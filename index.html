@@ -323,7 +323,7 @@ function App() {
   const [lang, setLang] = useState("pt");
   const [showUsd, setShowUsd] = useState(false);
   const [siteConfig, setSiteConfig] = useState(function(){
-    try { var raw = window.localStorage.getItem("portal-site-config"); return raw ? JSON.parse(raw) : {bgColor:"#0f0f0e",heroBanner:"",heroOverlay:true,usdRate:5.80,usdCustom:5.80,cubSC:3028.45,incc:0.50,ipca:0.43,waNumber:"5547992134870"}; } catch(e){ return {bgColor:"#0f0f0e",heroBanner:"",heroOverlay:true,usdRate:5.80,usdCustom:5.80,cubSC:3028.45,incc:0.50,ipca:0.43,waNumber:"5547992134870"}; }
+    try { var raw = window.localStorage.getItem("portal-site-config"); return raw ? JSON.parse(raw) : {bgColor:"#0f0f0e",heroBanner:"",heroOverlay:true,usdRate:5.80,usdCustom:"",cubSC:3028.45,incc:0.50,ipca:0.43,waNumber:"5547992134870",reportLogo:""}; } catch(e){ return {bgColor:"#0f0f0e",heroBanner:"",heroOverlay:true,usdRate:5.80,usdCustom:"",cubSC:3028.45,incc:0.50,ipca:0.43,waNumber:"5547992134870",reportLogo:""}; }
   });
   var t = TR[lang] || TR.pt;
   var sl = lang === "es" ? sLes : sL;
@@ -407,20 +407,30 @@ function App() {
     msg("Duplicado!");
   };
 
+  var reportStyle = "<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Helvetica,sans-serif;padding:30px;color:#1a1a1a;max-width:800px;margin:0 auto;font-size:11px}h1{font-size:22px;margin-bottom:4px}h2{font-size:16px;margin-bottom:2px}p.sub{font-size:10px;color:#888;margin-bottom:8px}.header{display:flex;align-items:center;gap:16px;margin-bottom:16px}.header img{max-height:60px;max-width:200px}.stats{display:flex;gap:12px;margin:14px 0;flex-wrap:wrap}.stat{padding:10px 14px;background:#f5f0e8;border-radius:6px;text-align:center;min-width:80px}.stat .n{font-size:20px;font-weight:700}.stat .l{font-size:8px;text-transform:uppercase;letter-spacing:1px;color:#888}.bld{margin-bottom:24px;padding-bottom:18px;border-bottom:1px solid #eee}table{width:100%;border-collapse:collapse;margin-top:6px}th{background:#f5f0e8;padding:8px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid #ddd}td{padding:8px;border-bottom:1px solid #eee;font-size:11px}.badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:9px;font-weight:700;color:#fff;margin-right:8px}.meta{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:10px;color:#666}.ft{margin-top:20px;text-align:center;font-size:9px;color:#999;padding-top:12px;border-top:1px solid #eee}.cub{font-size:10px;color:#666;margin-bottom:8px;padding:8px 10px;background:#f8f6f2;border-radius:5px}.comm{font-size:10px;color:#666;margin-bottom:10px}.bar-bg{height:6px;background:#e0dcd4;border-radius:3px;overflow:hidden;margin-top:3px}.bar-fill{height:100%;border-radius:3px}.usd-warn{margin:12px 0;padding:10px;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;font-size:10px;color:#856404;text-align:center}</style>";
+  var reportLogo = siteConfig.reportLogo ? "<div class='header'><img src='"+siteConfig.reportLogo+"' alt='Logo'/></div>" : "";
+  var usdDisclaimer = "<div class='usd-warn'>⚠️ Valores em dólar americano (USD) são apenas referência. A cotação será confirmada no dia da transação. Todos os contratos serão fechados em Real (BRL). Cotação de referência: R$ "+(getUsdRate()).toFixed(2)+"</div>";
+  var reportFmtVal = function(v){return showUsd ? fmtUsd(Math.round(v/getUsdRate())) : fmt(v)};
+
   const printAll = () => {
     const active = D.buildings.filter((b) => b.active);
     const sections = active.map((b) => {
-      const rows = b.units.map((u) => { const p = cp(u, b); return "<tr><td>" + u.name + "</td><td>" + u.area + "m²</td><td style='font-weight:700;color:#2e7d52'>" + (p > 0 ? fmt(p) : "—") + "</td><td>" + (p > 0 ? fmt(Math.round(p / u.area)) + "/m²" : "—") + "</td><td style='color:" + sC[u.status] + ";font-weight:600'>" + sL[u.status] + "</td></tr>"; }).join("");
-      return "<div class='bld'><h2>" + b.emoji + " " + b.name + "</h2><p class='sub'>" + b.subtitle + "</p><div class='meta'><span class='badge' style='background:" + b.color + "'>" + (b.status === "ready" ? "Pronto" : "Em obra " + b.constructionPct + "%") + "</span><span>CUB: " + fmt(b.cubCurrent) + " (" + ((b.cubCurrent / b.cubBase - 1) * 100).toFixed(2) + "%)</span><span>Comissão: " + b.commission + "%</span></div><table><thead><tr><th>Unid.</th><th>Área</th><th>Valor</th><th>R$/m²</th><th>Status</th></tr></thead><tbody>" + rows + "</tbody></table></div>";
+      const rows = b.units.map((u) => { const p = cp(u, b); return "<tr><td>" + u.name + "</td><td>" + u.area + "m²</td><td style='font-weight:700;color:#2e7d52'>" + (p > 0 ? reportFmtVal(p) : "—") + "</td><td style='color:" + sC[u.status] + ";font-weight:600'>" + sL[u.status] + "</td></tr>"; }).join("");
+      return "<div class='bld'><h2>" + b.emoji + " " + b.name + "</h2><p class='sub'>" + b.subtitle + "</p><div class='meta'><span class='badge' style='background:" + b.color + "'>" + (b.status === "ready" ? "Pronto" : "Em obra " + b.constructionPct + "%") + "</span><span>CUB: " + fmt(b.cubCurrent) + " (" + ((b.cubCurrent / b.cubBase - 1) * 100).toFixed(2) + "%)</span><span>Comissão: " + b.commission + "%</span></div><table><thead><tr><th>Unid.</th><th>Área</th><th>Valor"+(showUsd?" (USD)":"")+"</th><th>Status</th></tr></thead><tbody>" + rows + "</tbody></table></div>";
     }).join("");
-    const html = "<html><head><meta charset='UTF-8'><title>Relatório Consolidado</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Helvetica,sans-serif;padding:30px;color:#1a1a1a;max-width:800px;margin:0 auto;font-size:11px}h1{font-size:22px;margin-bottom:4px}h2{font-size:16px;margin-bottom:2px}p.sub{font-size:10px;color:#888;margin-bottom:8px}.stats{display:flex;gap:12px;margin:14px 0;flex-wrap:wrap}.stat{padding:10px 14px;background:#f5f0e8;border-radius:6px;text-align:center;min-width:80px}.stat .n{font-size:20px;font-weight:700}.stat .l{font-size:8px;text-transform:uppercase;letter-spacing:1px;color:#888}.bld{margin-bottom:24px;padding-bottom:18px;border-bottom:1px solid #eee}table{width:100%;border-collapse:collapse;margin-top:6px}th{background:#f5f0e8;padding:7px;text-align:left;font-size:8px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid #ddd}td{padding:7px;border-bottom:1px solid #f0f0f0}.badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:9px;font-weight:700;color:#fff;margin-right:8px}.meta{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:10px;color:#666}.ft{margin-top:20px;text-align:center;font-size:9px;color:#999;padding-top:12px;border-top:1px solid #eee}</style></head><body><h1>MK Realty & D&SS Incorporação — Relatório Consolidado</h1><p style='color:#888;margin-bottom:14px'>Gerado em " + new Date().toLocaleDateString("pt-BR") + "</p><div class='stats'><div class='stat'><div class='n'>" + stats.bldCount + "</div><div class='l'>Empreend.</div></div><div class='stat'><div class='n'>" + stats.totalU + "</div><div class='l'>Unidades</div></div><div class='stat'><div class='n' style='color:#2e7d52'>" + stats.avail + "</div><div class='l'>Disponíveis</div></div><div class='stat'><div class='n' style='color:#c78c20'>" + stats.reserved + "</div><div class='l'>Reservadas</div></div><div class='stat'><div class='n' style='color:#c74040'>" + stats.sold + "</div><div class='l'>Vendidas</div></div><div class='stat'><div class='n'>" + fmt(stats.totalVal) + "</div><div class='l'>VGV Total</div></div></div>" + sections + "<div class='ft'>" + CT.email + " | " + CT.phone + " | " + CT.ig.map(function(i){return i.h}).join(" | ") + "<br>Valores sujeitos a alteração</div></body></html>";
+    const html = "<html><head><meta charset='UTF-8'><title>Relatório Consolidado</title>"+reportStyle+"</head><body>"+reportLogo+"<h1>MK Realty & D&SS Incorporação — Relatório Consolidado</h1><p style='color:#888;margin-bottom:14px'>Gerado em " + new Date().toLocaleDateString("pt-BR") + "</p>"+(showUsd?usdDisclaimer:"")+"<div class='stats'><div class='stat'><div class='n'>" + stats.bldCount + "</div><div class='l'>Empreend.</div></div><div class='stat'><div class='n'>" + stats.totalU + "</div><div class='l'>Unidades</div></div><div class='stat'><div class='n' style='color:#2e7d52'>" + stats.avail + "</div><div class='l'>Disponíveis</div></div><div class='stat'><div class='n' style='color:#c78c20'>" + stats.reserved + "</div><div class='l'>Reservadas</div></div><div class='stat'><div class='n' style='color:#c74040'>" + stats.sold + "</div><div class='l'>Vendidas</div></div><div class='stat'><div class='n'>" + reportFmtVal(stats.totalVal) + "</div><div class='l'>VGV Total</div></div></div>" + sections + "<div class='ft'>" + CT.email + " | " + CT.phone + " | " + CT.ig.map(function(i){return i.h}).join(" | ") + "<br>Valores sujeitos a alteração</div></body></html>";
     setPrintHtml(html);
   };
 
   const printBld = (bid) => {
     const b = D.buildings.find((x) => x.id === bid); if (!b) return;
-    const rows = b.units.map((u) => { const p = cp(u, b); return "<tr><td>" + u.name + "</td><td>" + u.area + "m²</td><td style='font-weight:700;color:#2e7d52'>" + (p > 0 ? fmt(p) : "—") + "</td><td>" + (p > 0 ? fmt(Math.round(p / u.area)) + "/m²" : "—") + "</td><td style='color:" + sC[u.status] + ";font-weight:600'>" + sL[u.status] + "</td></tr>"; }).join("");
-    const html = "<html><head><meta charset='UTF-8'><title>" + b.name + "</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Helvetica,sans-serif;padding:34px;color:#1a1a1a;max-width:780px;margin:0 auto}h1{font-size:22px;margin-bottom:3px}h2{font-size:11px;color:#666;font-weight:400;margin-bottom:16px}.badge{display:inline-block;padding:3px 11px;border-radius:16px;font-size:9px;font-weight:700;color:#fff;margin-bottom:10px}table{width:100%;border-collapse:collapse;margin-top:6px}th{background:#f5f0e8;padding:8px;text-align:left;font-size:8px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid #ddd}td{padding:8px;border-bottom:1px solid #eee;font-size:11px}.ft{margin-top:22px;padding-top:10px;border-top:1px solid #ddd;font-size:9px;color:#999;text-align:center}.cub{font-size:10px;color:#666;margin-bottom:8px;padding:8px 10px;background:#f8f6f2;border-radius:5px}.comm{font-size:10px;color:#666;margin-bottom:10px}.bar-bg{height:6px;background:#e0dcd4;border-radius:3px;overflow:hidden;margin-top:3px}.bar-fill{height:100%;border-radius:3px}</style></head><body><h1>" + b.name + "</h1><h2>" + b.subtitle + "</h2><div class='badge' style='background:" + b.color + "'>" + (b.status === "ready" ? "Pronto" : "Em Construção — " + b.constructionPct + "%") + "</div>" + (b.status === "construction" ? "<div style='margin-bottom:10px'><div style='font-size:10px;font-weight:600'>Obra: " + b.constructionPct + "%</div><div class='bar-bg'><div class='bar-fill' style='width:" + b.constructionPct + "%;background:" + b.color + "'></div></div></div>" : "") + "<div class='cub'>CUB/SC: " + fmt(b.cubBase) + " → " + fmt(b.cubCurrent) + " (" + ((b.cubCurrent / b.cubBase - 1) * 100).toFixed(2) + "%)</div><div class='comm'>Comissão: " + b.commission + "%</div><table><thead><tr><th>Unid.</th><th>Área</th><th>Valor</th><th>R$/m²</th><th>Status</th></tr></thead><tbody>" + rows + "</tbody></table><div class='ft'>MK Realty & D&SS Incorporação | " + CT.email + " | " + CT.phone + "<br>" + CT.ig.map(function(i){return i.h}).join(" | ") + "<br>Gerado em " + new Date().toLocaleDateString("pt-BR") + "</div></body></html>";
+    const rows = b.units.map((u) => { const p = cp(u, b); return "<tr><td>" + u.name + "</td><td>" + u.area + "m²</td><td style='font-weight:700;color:#2e7d52'>" + (p > 0 ? reportFmtVal(p) : "—") + "</td><td style='color:" + sC[u.status] + ";font-weight:600'>" + sL[u.status] + "</td></tr>"; }).join("");
+    const html = "<html><head><meta charset='UTF-8'><title>" + b.name + "</title>"+reportStyle+"</head><body>"+reportLogo+"<h1>" + b.name + "</h1><h2>" + b.subtitle + "</h2><div class='badge' style='background:" + b.color + "'>" + (b.status === "ready" ? "Pronto" : "Em Construção — " + b.constructionPct + "%") + "</div>" + (b.status === "construction" ? "<div style='margin-bottom:10px'><div style='font-size:10px;font-weight:600'>Obra: " + b.constructionPct + "%</div><div class='bar-bg'><div class='bar-fill' style='width:" + b.constructionPct + "%;background:" + b.color + "'></div></div></div>" : "") + "<div class='cub'>CUB/SC: " + fmt(b.cubBase) + " → " + fmt(b.cubCurrent) + " (" + ((b.cubCurrent / b.cubBase - 1) * 100).toFixed(2) + "%)</div><div class='comm'>Comissão: " + b.commission + "%</div>"+(showUsd?usdDisclaimer:"")+"<table><thead><tr><th>Unid.</th><th>Área</th><th>Valor"+(showUsd?" (USD)":"")+"</th><th>Status</th></tr></thead><tbody>" + rows + "</tbody></table><div class='ft'>MK Realty & D&SS Incorporação | " + CT.email + " | " + CT.phone + "<br>" + CT.ig.map(function(i){return i.h}).join(" | ") + "<br>Gerado em " + new Date().toLocaleDateString("pt-BR") + "</div></body></html>";
+    setPrintHtml(html);
+  };
+
+  const printSim = function(b, u, price, down, bemVal, bemDesc, saldo, months, pmt, balaoFreq, numBaloes, balaoValor, totalBaloes, totalPago, comissao, defaultIndex) {
+    const html = "<html><head><meta charset='UTF-8'><title>Simulação - " + b.name + "</title>"+reportStyle+"</head><body>"+reportLogo+"<h1>Simulação de Financiamento</h1><h2>" + b.name + " — Unidade " + u.name + "</h2><p style='color:#888;margin-bottom:16px'>Gerado em " + new Date().toLocaleDateString("pt-BR") + " • Índice: " + defaultIndex + "</p><table><thead><tr><th>Item</th><th>Valor</th></tr></thead><tbody><tr><td>Valor do Imóvel</td><td style='font-weight:700;color:#2e7d52'>" + fmt(price) + "</td></tr><tr><td>Entrada</td><td style='font-weight:700'>" + fmt(down) + " (" + (price>0?((down/price)*100).toFixed(1):"0") + "%)</td></tr>" + (bemVal > 0 ? "<tr><td>Bem (" + (bemDesc||"—") + ")</td><td style='font-weight:700'>" + fmt(bemVal) + "</td></tr>" : "") + "<tr><td>Saldo Financiado</td><td style='font-weight:700;color:#1a5fb4'>" + fmt(saldo) + "</td></tr><tr><td>Parcela Mensal (" + months + "x)</td><td style='font-weight:700;color:#2e7d52;font-size:14px'>" + fmt(pmt) + "</td></tr>" + (numBaloes > 0 ? "<tr><td>Balão " + balaoFreq + " (" + numBaloes + "x)</td><td style='font-weight:700;color:#c74040'>" + fmt(balaoValor) + "</td></tr><tr><td>Total Balões</td><td>" + fmt(totalBaloes) + "</td></tr>" : "") + "<tr><td><strong>Total Pago</strong></td><td style='font-weight:700;color:#c74040'>" + fmt(totalPago) + "</td></tr><tr><td>Comissão (" + (b.commission||5) + "%)</td><td style='color:#7c3aed'>" + fmt(comissao) + "</td></tr></tbody></table><div style='margin-top:16px;padding:10px;background:#f8f6f2;border-radius:6px;font-size:10px;color:#666'>Esta é uma simulação estimativa. Valores sujeitos a alteração conforme condições de mercado e análise de crédito.</div><div class='ft'>MK Realty & D&SS Incorporação | " + CT.email + " | " + CT.phone + "</div></body></html>";
     setPrintHtml(html);
   };
 
@@ -670,33 +680,104 @@ function App() {
         </div>}
 
         {dtab==="photos" && <div>
-          {adm && <div style={{fontSize:8,color:"#E8A94E",marginBottom:8,padding:"5px 8px",background:"rgba(232,169,78,0.04)",borderRadius:5}}>📸 Upload em breve</div>}
           <div className="photo-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
-            {["Fachada","Living","Suíte Master","Lazer","Cozinha","Vista"].map(function(l,i){
-              return <div key={i} style={{aspectRatio:"1",borderRadius:8,border:"2px dashed rgba(255,255,255,0.06)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,fontSize:8,color:"#9A9590",background:bld.color+"04"}}><span style={{fontSize:22}}>📸</span>{l}</div>;
-            })}
+            {(bld.photos && bld.photos.length > 0) ? bld.photos.map(function(photo,i){
+              return <div key={i} style={{aspectRatio:"1",borderRadius:8,overflow:"hidden",position:"relative",border:"1px solid rgba(255,255,255,0.06)"}}>
+                <img src={photo.url} alt={photo.label||""} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"4px 8px",background:"rgba(0,0,0,0.6)",fontSize:9,color:"#fff"}}>{photo.label||"Foto "+(i+1)}</div>
+                {adm && <button onClick={function(){var photos=bld.photos.filter(function(_,j){return j!==i});upB(bld.id,{photos:photos});msg("Foto removida")}} style={{position:"absolute",top:4,right:4,width:22,height:22,borderRadius:"50%",background:"rgba(213,91,91,0.9)",color:"#fff",border:"none",fontSize:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>}
+              </div>;
+            }) : null}
+            {(!bld.photos || bld.photos.length === 0) && <div style={{aspectRatio:"1",borderRadius:8,border:"2px dashed rgba(255,255,255,0.06)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4,fontSize:10,color:"#9A9590",gridColumn:"1/-1"}}><span style={{fontSize:30}}>📸</span>{adm?"Adicione fotos abaixo":"Nenhuma foto disponível"}</div>}
           </div>
+          {adm && <div style={{marginTop:12,padding:12,background:"#1a1a19",borderRadius:8,border:"1px solid rgba(255,255,255,0.04)"}}>
+            <div style={{fontSize:11,fontWeight:600,color:G,marginBottom:8}}>＋ Adicionar Foto</div>
+            <L>URL da Imagem</L>
+            <input id="newPhotoUrl" style={mI} placeholder="https://exemplo.com/foto.jpg"/>
+            <L>Legenda</L>
+            <input id="newPhotoLabel" style={mI} placeholder="Ex: Fachada, Living, Piscina..."/>
+            <button style={mP(bld.color)} onClick={function(){
+              var url=document.getElementById("newPhotoUrl").value;
+              var label=document.getElementById("newPhotoLabel").value;
+              if(!url.trim()){msg("Cole a URL da imagem");return}
+              var photos=(bld.photos||[]).concat([{url:url,label:label||"Foto"}]);
+              upB(bld.id,{photos:photos});
+              document.getElementById("newPhotoUrl").value="";
+              document.getElementById("newPhotoLabel").value="";
+              msg("Foto adicionada!");
+            }}>Adicionar Foto</button>
+            <div style={{fontSize:9,color:"#9A9590",marginTop:6}}>Dica: hospede as imagens no Google Drive, Imgur ou seu servidor e cole o link aqui.</div>
+          </div>}
         </div>}
 
         {dtab==="plants" && <div>
-          <div style={{fontSize:10,fontWeight:600,marginBottom:10,color:"#9A9590",textTransform:"uppercase",letterSpacing:1}}>Plantas e Projetos</div>
+          <div style={{fontSize:11,fontWeight:600,marginBottom:10,color:"#9A9590",textTransform:"uppercase",letterSpacing:1}}>Plantas e Projetos</div>
           {(bld.plants && bld.plants.length > 0) ? bld.plants.map(function(p,i){
             return <div key={i} style={{display:"flex",alignItems:"center",gap:9,padding:"10px",background:"#1a1a19",borderRadius:8,border:"1px solid rgba(255,255,255,0.03)",marginBottom:6}}>
               <div style={{width:34,height:34,borderRadius:7,background:bld.color+"12",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15}}>📐</div>
-              <div style={{flex:1}}><div style={{fontSize:11,fontWeight:600}}>{p.name}</div><div style={{fontSize:8,color:"#9A9590"}}>{p.type ? p.type.toUpperCase() : "PDF"}</div></div>
-              <span style={{color:"#9A9590",fontSize:10}}>→</span>
+              <div style={{flex:1}}>
+                <div style={{fontSize:11,fontWeight:600}}>{p.name}</div>
+                <div style={{fontSize:8,color:"#9A9590"}}>{p.type ? p.type.toUpperCase() : "PDF"}</div>
+              </div>
+              {p.url && <a href={p.url} target="_blank" style={{color:"#5B8FD4",fontSize:10,textDecoration:"none",fontWeight:600}}>Abrir ↗</a>}
+              {adm && <button onClick={function(){var plants=bld.plants.filter(function(_,j){return j!==i});upB(bld.id,{plants:plants});msg("Planta removida")}} style={mb("#D45B5B")}>🗑️</button>}
             </div>;
-          }) : <div style={{textAlign:"center",padding:"20px",color:"#9A9590",fontSize:10}}>Nenhuma planta cadastrada ainda</div>}
+          }) : <div style={{textAlign:"center",padding:"20px",color:"#9A9590",fontSize:11}}>Nenhuma planta cadastrada</div>}
+          {adm && <div style={{marginTop:10,padding:12,background:"#1a1a19",borderRadius:8,border:"1px solid rgba(255,255,255,0.04)"}}>
+            <div style={{fontSize:11,fontWeight:600,color:G,marginBottom:8}}>＋ Adicionar Planta / Projeto</div>
+            <L>Nome</L>
+            <input id="newPlantName" style={mI} placeholder="Ex: Planta Tipo A — 85m²"/>
+            <L>URL do Arquivo (PDF, imagem)</L>
+            <input id="newPlantUrl" style={mI} placeholder="https://exemplo.com/planta.pdf"/>
+            <L>Tipo</L>
+            <select id="newPlantType" style={mI}><option value="pdf">PDF</option><option value="dwg">DWG</option><option value="img">Imagem</option></select>
+            <button style={mP(bld.color)} onClick={function(){
+              var name=document.getElementById("newPlantName").value;
+              var url=document.getElementById("newPlantUrl").value;
+              var type=document.getElementById("newPlantType").value;
+              if(!name.trim()){msg("Nome obrigatório");return}
+              var plants=(bld.plants||[]).concat([{name:name,url:url||"",type:type}]);
+              upB(bld.id,{plants:plants});
+              document.getElementById("newPlantName").value="";
+              document.getElementById("newPlantUrl").value="";
+              msg("Planta adicionada!");
+            }}>Adicionar</button>
+          </div>}
         </div>}
 
-        {dtab==="docs" && <div style={{display:"flex",flexDirection:"column",gap:6}}>
+        {dtab==="docs" && <div>
           {bld.documents.map(function(d,i){
-            return <div key={i} style={{display:"flex",alignItems:"center",gap:9,padding:"9px 10px",background:"#1a1a19",borderRadius:8,border:"1px solid rgba(255,255,255,0.03)"}}>
-              <div style={{width:32,height:32,borderRadius:6,background:bld.color+"12",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>📄</div>
-              <div style={{flex:1}}><div style={{fontSize:10,fontWeight:600}}>{d.name}</div><div style={{fontSize:8,color:"#9A9590"}}>{d.type.toUpperCase()}</div></div>
-              <span style={{color:"#9A9590",fontSize:10}}>→</span>
+            return <div key={i} style={{display:"flex",alignItems:"center",gap:9,padding:"10px 11px",background:"#1a1a19",borderRadius:8,border:"1px solid rgba(255,255,255,0.03)",marginBottom:6}}>
+              <div style={{width:34,height:34,borderRadius:7,background:bld.color+"12",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15}}>📄</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:11,fontWeight:600}}>{d.name}</div>
+                <div style={{fontSize:9,color:"#9A9590"}}>{d.type ? d.type.toUpperCase() : "PDF"}</div>
+              </div>
+              {d.url && <a href={d.url} target="_blank" style={{color:"#5B8FD4",fontSize:10,textDecoration:"none",fontWeight:600}}>Abrir ↗</a>}
+              {adm && <button onClick={function(){var docs=bld.documents.filter(function(_,j){return j!==i});upB(bld.id,{documents:docs});msg("Documento removido")}} style={mb("#D45B5B")}>🗑️</button>}
             </div>;
           })}
+          {adm && <div style={{marginTop:10,padding:12,background:"#1a1a19",borderRadius:8,border:"1px solid rgba(255,255,255,0.04)"}}>
+            <div style={{fontSize:11,fontWeight:600,color:G,marginBottom:8}}>＋ Adicionar Documento</div>
+            <L>Nome do Documento</L>
+            <input id="newDocName" style={mI} placeholder="Ex: Book de Vendas, Tabela de Preços"/>
+            <L>URL do Arquivo</L>
+            <input id="newDocUrl" style={mI} placeholder="https://drive.google.com/..."/>
+            <L>Tipo</L>
+            <select id="newDocType" style={mI}><option value="pdf">PDF</option><option value="xlsx">Excel</option><option value="doc">Word</option><option value="img">Imagem</option><option value="link">Link</option></select>
+            <button style={mP(bld.color)} onClick={function(){
+              var name=document.getElementById("newDocName").value;
+              var url=document.getElementById("newDocUrl").value;
+              var type=document.getElementById("newDocType").value;
+              if(!name.trim()){msg("Nome obrigatório");return}
+              var docs=(bld.documents||[]).concat([{name:name,url:url||"",type:type}]);
+              upB(bld.id,{documents:docs});
+              document.getElementById("newDocName").value="";
+              document.getElementById("newDocUrl").value="";
+              msg("Documento adicionado!");
+            }}>Adicionar</button>
+            <div style={{fontSize:9,color:"#9A9590",marginTop:6}}>Hospede os arquivos no Google Drive (link público) ou Dropbox e cole o link aqui.</div>
+          </div>}
         </div>}
 
         {dtab==="notices" && <div>
@@ -863,6 +944,7 @@ function App() {
           var text = "🏦 *Simulação de Financiamento*\n🏢 " + b.name + " — " + data.u.name + "\n💰 Valor: " + fmt(price) + "\n💳 Entrada: " + fmt(down) + " (" + (price>0?((down/price)*100).toFixed(1):"0") + "%)" + (bemVal>0?"\n🚗 Bem: " + fmt(bemVal) + " (" + bemDesc + ")":"") + "\n🏦 Saldo: " + fmt(saldo) + "\n📅 " + months + " parcelas de *" + fmt(pmt) + "*" + (numBaloes>0?"\n🎈 " + numBaloes + " balões " + balaoFreq + " de " + fmt(balaoValor):"") + "\n💵 Total: " + fmt(totalPago) + "\n📊 Índice: " + defaultIndex + "\n📞 " + CT.phone;
           window.open("https://wa.me/" + waNum + "?text=" + encodeURIComponent(text), "_blank");
         }} style={{width:"100%",marginTop:8,padding:"11px",borderRadius:7,fontSize:13,fontWeight:600,background:"#25D366",color:"#fff",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}><WaIcon size={16}/> {t.send}</button>
+        <button style={Object.assign({},mP("#3B82F6"),{display:"flex",alignItems:"center",justifyContent:"center",gap:6})} onClick={function(){printSim(b,data.u,price,down,bemVal,bemDesc,saldo,months,pmt,balaoFreq,numBaloes,balaoValor,totalBaloes,totalPago,comissao,defaultIndex);setSimUnit(null)}}>🖨️ {t.export}</button>
         <button style={mC} onClick={function(){setSimUnit(null)}}>{t.close}</button>
       </div>
     );
@@ -896,6 +978,15 @@ function App() {
       </div>
       <L>Cor personalizada (hex)</L>
       <input style={mI} value={c.bgColor} onChange={function(e){setC(Object.assign({},c,{bgColor:e.target.value}))}} placeholder="#0f0f0e"/>
+      <div style={{marginTop:10,padding:"10px 0",borderTop:"1px solid rgba(255,255,255,0.05)"}}>
+        <div style={{fontSize:11,fontWeight:600,color:G,marginBottom:8,textTransform:"uppercase",letterSpacing:1}}>🏷️ Logo do Relatório</div>
+        <L>URL da Logo (aparece nos PDFs exportados)</L>
+        <input style={mI} value={c.reportLogo||""} onChange={function(e){setC(Object.assign({},c,{reportLogo:e.target.value}))}} placeholder="https://exemplo.com/logo.png"/>
+        {c.reportLogo && <div style={{marginBottom:8,padding:10,background:"#fff",borderRadius:6,textAlign:"center"}}>
+          <img src={c.reportLogo} style={{maxHeight:50,maxWidth:200}} alt="Logo preview"/>
+        </div>}
+        <div style={{fontSize:9,color:"#9A9590"}}>Formatos recomendados: PNG ou SVG com fundo transparente.</div>
+      </div>
       <L>URL do Banner (imagem de fundo do header)</L>
       <input style={mI} value={c.heroBanner||""} onChange={function(e){setC(Object.assign({},c,{heroBanner:e.target.value}))}} placeholder="https://exemplo.com/banner.jpg"/>
       {c.heroBanner && <div style={{marginBottom:8}}>
