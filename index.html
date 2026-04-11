@@ -317,14 +317,19 @@ function App() {
   const [compare, setCompare] = useState([]);
   const [simUnit, setSimUnit] = useState(null);
   const [printHtml, setPrintHtml] = useState(null);
+  const [brokers, setBrokers] = useState(function(){
+    try { var raw = window.localStorage.getItem("portal-brokers"); return raw ? JSON.parse(raw) : []; } catch(e){ return []; }
+  });
   const [lang, setLang] = useState("pt");
   const [showUsd, setShowUsd] = useState(false);
   const [siteConfig, setSiteConfig] = useState(function(){
-    try { var raw = window.localStorage.getItem("portal-site-config"); return raw ? JSON.parse(raw) : {bgColor:"#0f0f0e",heroBanner:"",heroOverlay:true,usdRate:5.80}; } catch(e){ return {bgColor:"#0f0f0e",heroBanner:"",heroOverlay:true,usdRate:5.80}; }
+    try { var raw = window.localStorage.getItem("portal-site-config"); return raw ? JSON.parse(raw) : {bgColor:"#0f0f0e",heroBanner:"",heroOverlay:true,usdRate:5.80,usdCustom:5.80,cubSC:3028.45,incc:0.50,ipca:0.43,waNumber:"5547992134870"}; } catch(e){ return {bgColor:"#0f0f0e",heroBanner:"",heroOverlay:true,usdRate:5.80,usdCustom:5.80,cubSC:3028.45,incc:0.50,ipca:0.43,waNumber:"5547992134870"}; }
   });
   var t = TR[lang] || TR.pt;
   var sl = lang === "es" ? sLes : sL;
-  var fmtV = function(v){ return showUsd ? fmtUsd(Math.round(v / (siteConfig.usdRate || 5.80))) : fmt(v); };
+  var waNum = siteConfig.waNumber || CT.wa;
+  var WaIcon = function(props){return <svg width={props.size||14} height={props.size||14} viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>};
+  var fmtV = function(v){ return showUsd ? fmtUsd(Math.round(v / (siteConfig.usdCustom || siteConfig.usdRate || 5.80))) : fmt(v); };
 
   useEffect(() => {
     (async () => {
@@ -366,7 +371,7 @@ function App() {
   const shareUnit = (u, b) => {
     const p = cp(u, b);
     const text = "\u{1F3E2} *" + b.name + "*\n\u{1F4CD} Unidade: " + u.name + "\n\u{1F4D0} Área: " + u.area + "m²\n\u{1F4B0} Valor: " + fmt(p) + "\n\u{1F4CA} R$/m²: " + fmt(Math.round(p / u.area)) + "\n" + (b.status === "construction" ? "\u{1F3D7}\uFE0F Obra: " + b.constructionPct + "%" : "\u2705 Pronto para morar") + "\n\n\u{1F4DE} " + CT.phone + "\n\u2709\uFE0F " + CT.email;
-    window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank");
+    window.open("https://wa.me/" + waNum + "?text=" + encodeURIComponent(text), "_blank");
   };
 
   const dupBld = (b) => {
@@ -517,7 +522,22 @@ function App() {
           <span style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:16,fontWeight:600,flex:1}}>Gerenciar</span>
           <button onClick={printAll} style={Object.assign({},mb(G),{fontSize:8})}>🖨️ Geral</button>
         </div>
-        <button onClick={function(){setMdl({t:"addBld"})}} style={{width:"100%",padding:"10px",borderRadius:9,fontSize:10,fontWeight:600,background:"rgba(76,175,125,0.07)",color:"#4CAF7D",border:"1px dashed rgba(76,175,125,0.3)",cursor:"pointer",marginBottom:12}}>＋ Novo Empreendimento</button>
+        <button onClick={function(){setMdl({t:"addBld"})}} style={{width:"100%",padding:"10px",borderRadius:9,fontSize:11,fontWeight:600,background:"rgba(76,175,125,0.07)",color:"#4CAF7D",border:"1px dashed rgba(76,175,125,0.3)",cursor:"pointer",marginBottom:8}}>＋ Novo Empreendimento</button>
+        <button onClick={function(){setMdl({t:"brokerList"})}} style={{width:"100%",padding:"10px",borderRadius:9,fontSize:11,fontWeight:600,background:"rgba(200,164,92,0.07)",color:G,border:"1px dashed rgba(200,164,92,0.3)",cursor:"pointer",marginBottom:14,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>👥 Corretores Cadastrados <span style={{background:G+"30",padding:"2px 8px",borderRadius:10,fontSize:10,fontWeight:700}}>{brokers.length}</span></button>
+
+        <div style={{background:"#1a1a19",borderRadius:10,padding:12,marginBottom:14,border:"1px solid rgba(255,255,255,0.04)"}}>
+          <div style={{fontSize:11,fontWeight:600,color:G,marginBottom:8}}>💵 Cotação do Dólar</div>
+          <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+            <div style={{flex:1,minWidth:120}}>
+              <div style={{fontSize:9,color:"#9A9590",marginBottom:3}}>Mercado</div>
+              <input type="number" step="0.01" value={siteConfig.usdRate||5.80} onChange={function(e){var nc=Object.assign({},siteConfig,{usdRate:+e.target.value});setSiteConfig(nc);window.localStorage.setItem("portal-site-config",JSON.stringify(nc))}} style={Object.assign({},mI,{marginBottom:0,fontSize:14,fontWeight:700,textAlign:"center"})}/>
+            </div>
+            <div style={{flex:1,minWidth:120}}>
+              <div style={{fontSize:9,color:"#9A9590",marginBottom:3}}>Sua cotação (conversão)</div>
+              <input type="number" step="0.01" value={siteConfig.usdCustom||5.80} onChange={function(e){var nc=Object.assign({},siteConfig,{usdCustom:+e.target.value});setSiteConfig(nc);window.localStorage.setItem("portal-site-config",JSON.stringify(nc))}} style={Object.assign({},mI,{marginBottom:0,fontSize:14,fontWeight:700,textAlign:"center",color:"#5B8FD4"})}/>
+            </div>
+          </div>
+        </div>
         {D.buildings.map(function(b) {
           return (
             <div key={b.id} style={{background:"#1a1a19",borderRadius:10,padding:11,marginBottom:8,border:"1px solid " + (b.active ? "rgba(255,255,255,0.04)" : "rgba(213,91,91,0.2)"),opacity:b.active?1:.55}}>
@@ -588,7 +608,7 @@ function App() {
               return <span key={f.v} onClick={function(){setFilter(f.v)}} style={{padding:"3px 8px",borderRadius:4,fontSize:8,fontWeight:600,cursor:"pointer",background:filter===f.v?bld.color+"20":"#1e1e1d",color:filter===f.v?bld.color:"#9A9590",border:filter===f.v?"1px solid "+bld.color+"35":"1px solid transparent"}}>{f.l}</span>;
             })}
             <span style={{marginLeft:"auto"}}/>
-            <span onClick={function(){setShowUsd(!showUsd)}} style={{padding:"3px 8px",borderRadius:4,fontSize:8,fontWeight:600,cursor:"pointer",background:showUsd?"rgba(76,175,125,0.15)":"#1e1e1d",color:showUsd?"#4CAF7D":"#9A9590",border:showUsd?"1px solid rgba(76,175,125,0.3)":"1px solid transparent"}}>{showUsd?"💵 USD":"💵 "+t.showUsd}</span>
+            <span onClick={function(){setShowUsd(!showUsd)}} style={{padding:"6px 14px",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer",background:showUsd?"rgba(76,175,125,0.15)":"rgba(91,143,212,0.1)",color:showUsd?"#4CAF7D":"#5B8FD4",border:showUsd?"1px solid rgba(76,175,125,0.3)":"1px solid rgba(91,143,212,0.3)",display:"inline-flex",alignItems:"center",gap:5}}>{showUsd?"🇧🇷 R$ "+t.showBrl:"🇺🇸 $ "+t.showUsd}</span>
           </div>
           {compare.length>0 && <div style={{display:"flex",alignItems:"center",gap:6,padding:"7px 9px",background:"rgba(91,143,212,0.08)",borderRadius:7,marginBottom:10,border:"1px solid rgba(91,143,212,0.2)"}}>
             <span style={{fontSize:9,color:"#5B8FD4",fontWeight:600,flex:1}}>{compare.length} selecionada(s)</span>
@@ -607,7 +627,7 @@ function App() {
                   {adm && <td style={Object.assign({},tdS,{fontSize:8,color:"#9A9590"})}>{p > 0 ? fmtV(Math.round(p/u.area)) : "—"}</td>}
                   <td style={tdS}><span style={{display:"inline-flex",alignItems:"center",gap:3,fontSize:8,fontWeight:600,color:sC[u.status]}}><span style={{width:5,height:5,borderRadius:"50%",background:sC[u.status]}}/>{sl[u.status]}</span></td>
                   <td style={tdS}><div style={{display:"flex",gap:2,flexWrap:"wrap"}}>
-                    <button onClick={function(e){e.stopPropagation();shareUnit(u,bld)}} style={Object.assign({},mb("#25D366"),{fontSize:7,padding:"3px 6px"})}>💬</button>
+                    <button onClick={function(e){e.stopPropagation();shareUnit(u,bld)}} style={Object.assign({},mb("#25D366"),{fontSize:7,padding:"3px 6px",display:"flex",alignItems:"center",gap:2})}><WaIcon size={10}/></button>
                     <button onClick={function(e){e.stopPropagation();setSimUnit({u:u,b:bld})}} style={Object.assign({},mb("#5B8FD4"),{fontSize:7,padding:"3px 6px"})}>🏦</button>
                     <button onClick={function(e){e.stopPropagation();setCompare(function(c){return c.indexOf(u.id)!==-1?c.filter(function(x){return x!==u.id}):c.concat([u.id])})}} style={Object.assign({},mb(isSel?"#D45B5B":"#8B6FBF"),{fontSize:7,padding:"3px 6px"})}>{isSel?"✕":"⚖️"}</button>
                     {adm && <button onClick={function(){setMdl({t:"editUnit",bid:bld.id,u:Object.assign({},u)})}} style={Object.assign({},mb(bld.color),{fontSize:7,padding:"3px 6px"})}>✏️</button>}
@@ -618,7 +638,7 @@ function App() {
             </table>
           </div>
           <div style={{display:"flex",gap:4,marginTop:9,flexWrap:"wrap"}}>
-            {["available","reserved","sold"].map(function(s){return <span key={s} style={{padding:"3px 8px",background:sC[s]+"10",borderRadius:4,fontSize:8,fontWeight:600,color:sC[s]}}>{sL[s]}: {bld.units.filter(function(u){return u.status===s}).length}</span>})}
+            {["available","reserved","sold"].map(function(s){return <span key={s} style={{padding:"4px 10px",background:sC[s]+"10",borderRadius:5,fontSize:10,fontWeight:600,color:sC[s]}}>{sl[s]}: {bld.units.filter(function(u){return u.status===s}).length}</span>})}
           </div>
           <button onClick={function(){printBld(bld.id)}} style={{width:"100%",marginTop:10,padding:"9px",borderRadius:7,fontSize:10,fontWeight:600,background:bld.color,color:"#0f0f0e",border:"none",cursor:"pointer"}}>🖨️ {t.export}</button>
         </div>}
@@ -718,8 +738,12 @@ function App() {
     var rate = _rate[0]; var setRate = _rate[1];
     var _balaoFreq = useState("none");
     var balaoFreq = _balaoFreq[0]; var setBalaoFreq = _balaoFreq[1];
+    var _balaoMode = useState("pct");
+    var balaoMode = _balaoMode[0]; var setBalaoMode = _balaoMode[1];
     var _balaoPct = useState(5);
     var balaoPct = _balaoPct[0]; var setBalaoPct = _balaoPct[1];
+    var _balaoFixo = useState(50000);
+    var balaoFixo = _balaoFixo[0]; var setBalaoFixo = _balaoFixo[1];
 
     var totalEntrada = down + bemVal;
     var saldo = price - totalEntrada;
@@ -727,7 +751,7 @@ function App() {
 
     var balaoMeses = balaoFreq === "trimestral" ? 3 : balaoFreq === "semestral" ? 6 : balaoFreq === "anual" ? 12 : 0;
     var numBaloes = balaoMeses > 0 ? Math.floor(months / balaoMeses) : 0;
-    var balaoValor = numBaloes > 0 ? Math.round(saldo * balaoPct / 100) : 0;
+    var balaoValor = balaoMode === "fixo" ? balaoFixo : (numBaloes > 0 ? Math.round(saldo * balaoPct / 100) : 0);
     var totalBaloes = balaoValor * numBaloes;
     var saldoParcelas = saldo - totalBaloes;
     if (saldoParcelas < 0) saldoParcelas = 0;
@@ -781,9 +805,19 @@ function App() {
           })}
         </div>
         {balaoFreq !== "none" && <div>
-          <L>% do saldo por balão</L>
-          <input style={mI} type="number" step="0.5" value={balaoPct} onChange={function(e){setBalaoPct(+e.target.value)}}/>
-          <div style={{fontSize:8,color:"#9A9590",marginBottom:6}}>{numBaloes} balões de {fmt(balaoValor)} = {fmt(totalBaloes)}</div>
+          <div style={{display:"flex",gap:4,marginBottom:6}}>
+            <span onClick={function(){setBalaoMode("pct")}} style={{padding:"4px 10px",borderRadius:4,fontSize:9,fontWeight:600,cursor:"pointer",background:balaoMode==="pct"?b.color+"20":"#222",color:balaoMode==="pct"?b.color:"#9A9590"}}>% do saldo</span>
+            <span onClick={function(){setBalaoMode("fixo")}} style={{padding:"4px 10px",borderRadius:4,fontSize:9,fontWeight:600,cursor:"pointer",background:balaoMode==="fixo"?b.color+"20":"#222",color:balaoMode==="fixo"?b.color:"#9A9590"}}>Valor fixo</span>
+          </div>
+          {balaoMode === "pct" && <div>
+            <L>% do saldo por balão</L>
+            <input style={mI} type="number" step="0.5" value={balaoPct} onChange={function(e){setBalaoPct(+e.target.value)}}/>
+          </div>}
+          {balaoMode === "fixo" && <div>
+            <L>Valor fixo por balão (R$)</L>
+            <input style={mI} type="number" value={balaoFixo} onChange={function(e){setBalaoFixo(+e.target.value)}}/>
+          </div>}
+          <div style={{fontSize:9,color:"#9A9590",marginBottom:6,padding:"4px 8px",background:"#1e1e1d",borderRadius:4}}>{numBaloes} balões {balaoFreq}s de {fmt(balaoValor)} = {fmt(totalBaloes)}</div>
         </div>}
 
         <div style={{background:"#1e1e1d",borderRadius:8,padding:12,marginTop:10}}>
@@ -801,8 +835,8 @@ function App() {
         <div style={{fontSize:7,color:"#9A9590",marginTop:6,textAlign:"center"}}>Simulação estimativa • {defaultIndex} • Valores sujeitos a alteração</div>
         <button onClick={function(){
           var text = "🏦 *Simulação de Financiamento*\n🏢 " + b.name + " — " + data.u.name + "\n💰 Valor: " + fmt(price) + "\n💳 Entrada: " + fmt(down) + " (" + (price>0?((down/price)*100).toFixed(1):"0") + "%)" + (bemVal>0?"\n🚗 Bem: " + fmt(bemVal) + " (" + bemDesc + ")":"") + "\n🏦 Saldo: " + fmt(saldo) + "\n📅 " + months + " parcelas de *" + fmt(pmt) + "*" + (numBaloes>0?"\n🎈 " + numBaloes + " balões " + balaoFreq + " de " + fmt(balaoValor):"") + "\n💵 Total: " + fmt(totalPago) + "\n📊 Índice: " + defaultIndex + "\n📞 " + CT.phone;
-          window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank");
-        }} style={{width:"100%",marginTop:8,padding:"9px",borderRadius:7,fontSize:10,fontWeight:600,background:"#25D366",color:"#fff",border:"none",cursor:"pointer"}}>💬 {t.send}</button>
+          window.open("https://wa.me/" + waNum + "?text=" + encodeURIComponent(text), "_blank");
+        }} style={{width:"100%",marginTop:8,padding:"11px",borderRadius:7,fontSize:13,fontWeight:600,background:"#25D366",color:"#fff",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}><WaIcon size={16}/> {t.send}</button>
         <button style={mC} onClick={function(){setSimUnit(null)}}>{t.close}</button>
       </div>
     );
@@ -819,6 +853,8 @@ function App() {
     if (mdl.t === "addBld") return <AddBldM/>;
     if (mdl.t === "editBld") return <EditBldM/>;
     if (mdl.t === "siteSettings") return <SiteSettingsM/>;
+    if (mdl.t === "brokerRegister") return <BrokerRegisterM/>;
+    if (mdl.t === "brokerList") return <BrokerListM/>;
     return null;
   }
 
@@ -839,18 +875,118 @@ function App() {
       {c.heroBanner && <div style={{marginBottom:8}}>
         <div style={{height:80,borderRadius:8,overflow:"hidden",backgroundImage:"url("+c.heroBanner+")",backgroundSize:"cover",backgroundPosition:"center",border:"1px solid rgba(255,255,255,0.1)"}}/>
       </div>}
-      <label style={{display:"flex",alignItems:"center",gap:6,fontSize:10,color:"#9A9590",marginBottom:8,cursor:"pointer"}}>
+      <label style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:"#9A9590",marginBottom:8,cursor:"pointer"}}>
         <input type="checkbox" checked={c.heroOverlay!==false} onChange={function(e){setC(Object.assign({},c,{heroOverlay:e.target.checked}))}}/>
         Overlay escuro sobre o banner
       </label>
-      <div style={{marginTop:8,padding:"8px 0",borderTop:"1px solid rgba(255,255,255,0.05)"}}>
-        <div style={{fontSize:9,fontWeight:600,color:G,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>💵 Cotação do Dólar</div>
-        <L>USD → BRL (R$)</L>
+      <div style={{marginTop:10,padding:"10px 0",borderTop:"1px solid rgba(255,255,255,0.05)"}}>
+        <div style={{fontSize:11,fontWeight:600,color:"#25D366",marginBottom:8,textTransform:"uppercase",letterSpacing:1,display:"flex",alignItems:"center",gap:6}}><WaIcon size={14}/> WhatsApp</div>
+        <L>Número do WhatsApp (com código do país)</L>
+        <input style={mI} value={c.waNumber||"5547992134870"} onChange={function(e){setC(Object.assign({},c,{waNumber:e.target.value}))}} placeholder="5547992134870"/>
+        <div style={{fontSize:9,color:"#9A9590"}}>Formato: código do país + DDD + número, sem espaços ou traços. Ex: 5547992134870</div>
+      </div>
+      <div style={{marginTop:10,padding:"10px 0",borderTop:"1px solid rgba(255,255,255,0.05)"}}>
+        <div style={{fontSize:11,fontWeight:600,color:G,marginBottom:8,textTransform:"uppercase",letterSpacing:1}}>💵 Cotação do Dólar</div>
+        <L>Dólar Comercial (referência de mercado)</L>
         <input style={mI} type="number" step="0.01" value={c.usdRate||5.80} onChange={function(e){setC(Object.assign({},c,{usdRate:+e.target.value}))}} placeholder="5.80"/>
-        <div style={{fontSize:8,color:"#9A9590"}}>Usado quando o corretor ativa "Mostrar em USD"</div>
+        <L>Cotação personalizada (usada na conversão do portal)</L>
+        <input style={mI} type="number" step="0.01" value={c.usdCustom||5.80} onChange={function(e){setC(Object.assign({},c,{usdCustom:+e.target.value}))}} placeholder="5.80"/>
+        <div style={{fontSize:9,color:"#9A9590",marginBottom:6}}>O portal converte pela cotação personalizada. Mercado: R$ {(c.usdRate||5.80).toFixed(2)} | Sua cotação: R$ {(c.usdCustom||5.80).toFixed(2)}</div>
+      </div>
+      <div style={{marginTop:10,padding:"10px 0",borderTop:"1px solid rgba(255,255,255,0.05)"}}>
+        <div style={{fontSize:11,fontWeight:600,color:G,marginBottom:8,textTransform:"uppercase",letterSpacing:1}}>📊 Indicadores Econômicos</div>
+        <L>CUB/SC (R$/m²)</L>
+        <input style={mI} type="number" step="0.01" value={c.cubSC||3028.45} onChange={function(e){setC(Object.assign({},c,{cubSC:+e.target.value}))}}/>
+        <L>INCC (% mensal)</L>
+        <input style={mI} type="number" step="0.01" value={c.incc||0} onChange={function(e){setC(Object.assign({},c,{incc:+e.target.value}))}}/>
+        <L>IPCA (% mensal)</L>
+        <input style={mI} type="number" step="0.01" value={c.ipca||0} onChange={function(e){setC(Object.assign({},c,{ipca:+e.target.value}))}}/>
+        <div style={{fontSize:9,color:"#9A9590"}}>Estes valores são exibidos no rodapé do portal para os corretores.</div>
       </div>
       <button style={mP(G)} onClick={function(){setSiteConfig(c);window.localStorage.setItem("portal-site-config",JSON.stringify(c));setMdl(null);msg("Configurações salvas!")}}>Salvar</button>
       <button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
+    </div>;
+  }
+
+  function BrokerRegisterM() {
+    var _f = useState({nome:"",imobiliaria:"",cidade:"",telefone:"",email:""}); var f = _f[0]; var setF = _f[1];
+    var _sent = useState(false); var sent = _sent[0]; var setSent = _sent[1];
+    if (sent) return <div style={{textAlign:"center",padding:"20px 0"}}>
+      <div style={{fontSize:40,marginBottom:12}}>✅</div>
+      <div style={{fontSize:16,fontWeight:600,color:"#4CAF7D",marginBottom:6}}>{lang==="es"?"¡Registro exitoso!":"Cadastro realizado!"}</div>
+      <div style={{fontSize:12,color:"#9A9590",marginBottom:16}}>{lang==="es"?"Recibirá novedades sobre nuestros emprendimientos.":"Você receberá novidades sobre nossos empreendimentos."}</div>
+      <button style={mP(G)} onClick={function(){setMdl(null)}}>{t.close}</button>
+    </div>;
+    return <div>
+      <div style={mT}>{lang==="es"?"📋 Registro de Corredor":"📋 Cadastro de Corretor"}</div>
+      <div style={{fontSize:11,color:"#9A9590",marginBottom:12}}>{lang==="es"?"Complete sus datos para recibir novedades y materiales exclusivos.":"Preencha seus dados para receber novidades e materiais exclusivos."}</div>
+      <L>{lang==="es"?"Nombre completo":"Nome completo"}</L>
+      <input style={mI} value={f.nome} onChange={function(e){setF(Object.assign({},f,{nome:e.target.value}))}} placeholder={lang==="es"?"Su nombre":"Seu nome"}/>
+      <L>{lang==="es"?"Inmobiliaria / Empresa":"Imobiliária / Empresa"}</L>
+      <input style={mI} value={f.imobiliaria} onChange={function(e){setF(Object.assign({},f,{imobiliaria:e.target.value}))}} placeholder={lang==="es"?"Nombre de la inmobiliaria":"Nome da imobiliária"}/>
+      <L>{lang==="es"?"Ciudad":"Cidade"}</L>
+      <input style={mI} value={f.cidade} onChange={function(e){setF(Object.assign({},f,{cidade:e.target.value}))}} placeholder={lang==="es"?"Su ciudad":"Sua cidade"}/>
+      <L>{lang==="es"?"Teléfono":"Telefone"}</L>
+      <input style={mI} value={f.telefone} onChange={function(e){setF(Object.assign({},f,{telefone:e.target.value}))}} placeholder="+55 47 99999-9999" type="tel"/>
+      <L>E-mail</L>
+      <input style={mI} value={f.email} onChange={function(e){setF(Object.assign({},f,{email:e.target.value}))}} placeholder="corretor@email.com" type="email"/>
+      <button style={mP("#4CAF7D")} onClick={function(){
+        if(!f.nome.trim()||!f.telefone.trim()){msg(lang==="es"?"Nombre y teléfono obligatorios":"Nome e telefone obrigatórios");return}
+        var newBroker = Object.assign({},f,{id:"bk-"+Date.now(),datacadastro:new Date().toLocaleDateString("pt-BR"),hora:new Date().toLocaleTimeString("pt-BR")});
+        var updated = brokers.concat([newBroker]);
+        setBrokers(updated);
+        window.localStorage.setItem("portal-brokers",JSON.stringify(updated));
+        var mailto = "mailto:"+CT.email+"?subject=Novo+Corretor+Cadastrado+-+"+encodeURIComponent(f.nome)+"&body="+encodeURIComponent("Novo corretor cadastrado no Portal:\n\nNome: "+f.nome+"\nImobiliária: "+f.imobiliaria+"\nCidade: "+f.cidade+"\nTelefone: "+f.telefone+"\nE-mail: "+f.email+"\nData: "+newBroker.datacadastro+" "+newBroker.hora);
+        try{window.open(mailto,"_blank")}catch(e){}
+        setSent(true);
+      }}>{lang==="es"?"Registrarse":"Cadastrar"}</button>
+      <button style={mC} onClick={function(){setMdl(null)}}>{t.close}</button>
+    </div>;
+  }
+
+  function BrokerListM() {
+    var _search = useState(""); var search = _search[0]; var setSearch = _search[1];
+    var filtered = search ? brokers.filter(function(b){return (b.nome+b.imobiliaria+b.cidade+b.email).toLowerCase().indexOf(search.toLowerCase())!==-1}) : brokers;
+    return <div>
+      <div style={mT}>👥 Corretores Cadastrados ({brokers.length})</div>
+      <input style={mI} value={search} onChange={function(e){setSearch(e.target.value)}} placeholder="Buscar por nome, imobiliária, cidade..."/>
+      <div style={{maxHeight:400,overflow:"auto"}}>
+        {filtered.length === 0 && <div style={{textAlign:"center",padding:"20px",color:"#9A9590",fontSize:12}}>Nenhum corretor cadastrado ainda</div>}
+        {filtered.map(function(b,i){
+          return <div key={b.id||i} style={{background:"#222",borderRadius:8,padding:12,marginBottom:8,border:"1px solid rgba(255,255,255,0.04)"}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+              <div style={{width:36,height:36,borderRadius:"50%",background:G+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:700,color:G}}>{(b.nome||"?")[0].toUpperCase()}</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:600}}>{b.nome}</div>
+                <div style={{fontSize:10,color:"#9A9590"}}>{b.imobiliaria || "—"} • {b.cidade || "—"}</div>
+              </div>
+              <div style={{fontSize:8,color:"#9A9590",textAlign:"right"}}>{b.datacadastro}<br/>{b.hora}</div>
+            </div>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              {b.telefone && <a href={"tel:"+b.telefone} style={{fontSize:10,color:"#5B8FD4",textDecoration:"none"}}>📞 {b.telefone}</a>}
+              {b.email && <a href={"mailto:"+b.email} style={{fontSize:10,color:"#5B8FD4",textDecoration:"none"}}>✉️ {b.email}</a>}
+              {b.telefone && <a href={"https://wa.me/"+b.telefone.replace(/[^0-9]/g,"")} target="_blank" style={Object.assign({},mb("#25D366"),{display:"flex",alignItems:"center",gap:3,textDecoration:"none"})}><WaIcon size={10}/></a>}
+              <button onClick={function(){
+                var updated = brokers.filter(function(x){return x.id!==b.id});
+                setBrokers(updated);
+                window.localStorage.setItem("portal-brokers",JSON.stringify(updated));
+                msg("Corretor removido");
+              }} style={mb("#D45B5B")}>🗑️</button>
+            </div>
+          </div>;
+        })}
+      </div>
+      {brokers.length > 0 && <div style={{marginTop:10}}>
+        <button style={mP("#5B8FD4")} onClick={function(){
+          var csv = "Nome;Imobiliária;Cidade;Telefone;Email;Data\n" + brokers.map(function(b){return b.nome+";"+b.imobiliaria+";"+b.cidade+";"+b.telefone+";"+b.email+";"+b.datacadastro}).join("\n");
+          var mailto = "mailto:"+CT.email+"?subject=Lista+de+Corretores+Cadastrados&body="+encodeURIComponent(csv);
+          window.open(mailto,"_blank");
+        }}>📧 Enviar lista por e-mail</button>
+        <button style={Object.assign({},mC,{marginTop:6})} onClick={function(){
+          if(confirm("Limpar todos os "+brokers.length+" cadastros?")){setBrokers([]);window.localStorage.setItem("portal-brokers","[]");msg("Lista limpa")}
+        }}>🗑️ Limpar todos</button>
+      </div>}
+      <button style={Object.assign({},mC,{marginTop:6})} onClick={function(){setMdl(null)}}>{t.close}</button>
     </div>;
   }
 
@@ -981,7 +1117,7 @@ function App() {
         {adm && <div onClick={function(){setAdm(false);msg("Admin off")}} style={{marginTop:10,display:"inline-flex",alignItems:"center",gap:5,padding:"4px 12px",background:"rgba(76,175,125,0.1)",borderRadius:20,fontSize:9,fontWeight:600,color:"#4CAF7D",cursor:"pointer",position:"relative"}}>🔓 Admin — sair</div>}
         <div style={{marginTop:10,display:"flex",justifyContent:"center",gap:6}}>
           <button onClick={function(){setLang(lang==="pt"?"es":"pt")}} style={{padding:"4px 12px",borderRadius:20,fontSize:9,fontWeight:600,background:"rgba(91,143,212,0.1)",color:"#5B8FD4",border:"1px solid rgba(91,143,212,0.2)",cursor:"pointer"}}>{lang==="pt"?"🇪🇸 Español":"🇧🇷 Português"}</button>
-          <button onClick={function(){setShowUsd(!showUsd)}} style={{padding:"4px 12px",borderRadius:20,fontSize:9,fontWeight:600,background:showUsd?"rgba(76,175,125,0.1)":"rgba(200,164,92,0.1)",color:showUsd?"#4CAF7D":G,border:"1px solid "+(showUsd?"rgba(76,175,125,0.2)":"rgba(200,164,92,0.2)"),cursor:"pointer"}}>{showUsd?t.showBrl:t.showUsd}</button>
+          <button onClick={function(){setShowUsd(!showUsd)}} style={{padding:"6px 14px",borderRadius:20,fontSize:11,fontWeight:700,background:showUsd?"rgba(76,175,125,0.15)":"rgba(91,143,212,0.1)",color:showUsd?"#4CAF7D":"#5B8FD4",border:"1px solid "+(showUsd?"rgba(76,175,125,0.3)":"rgba(91,143,212,0.3)"),cursor:"pointer",display:"inline-flex",alignItems:"center",gap:5}}>{showUsd?"🇧🇷 R$ "+t.showBrl:"🇺🇸 $ "+t.showUsd}</button>
         </div>
       </div>
 
@@ -1011,15 +1147,34 @@ function App() {
 
       {/* FOOTER */}
       <div style={{textAlign:"center",padding:"20px 16px",borderTop:"1px solid rgba(255,255,255,0.03)",marginTop:12}}>
-        <div style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:12,color:G,marginBottom:4}}>MK Realty & D&SS Incorporação</div>
-        <div style={{fontSize:8,color:"#9A9590",lineHeight:1.8}}>✉️ {CT.email} • 📞 {CT.phone}<br/>IG: {CT.ig.map(function(i){return i.h}).join(" • ")}</div>
-        <div style={{fontSize:7,color:"#555",marginTop:5}}>Portal exclusivo para corretores parceiros • MK Realty & D&SS Incorporação Ltda • 2026</div>
+        <div style={{display:"flex",justifyContent:"center",gap:8,flexWrap:"wrap",marginBottom:12}}>
+          <div style={{padding:"8px 12px",background:"#1a1a19",borderRadius:8,border:"1px solid rgba(255,255,255,0.04)",textAlign:"center",minWidth:80}}>
+            <div style={{fontSize:8,color:"#9A9590",textTransform:"uppercase",letterSpacing:1,marginBottom:2}}>CUB/SC</div>
+            <div style={{fontSize:13,fontWeight:700,color:G}}>R$ {(siteConfig.cubSC||3028.45).toFixed(2)}</div>
+          </div>
+          <div style={{padding:"8px 12px",background:"#1a1a19",borderRadius:8,border:"1px solid rgba(255,255,255,0.04)",textAlign:"center",minWidth:80}}>
+            <div style={{fontSize:8,color:"#9A9590",textTransform:"uppercase",letterSpacing:1,marginBottom:2}}>USD/BRL</div>
+            <div style={{fontSize:13,fontWeight:700,color:"#5B8FD4"}}>R$ {(siteConfig.usdRate||5.80).toFixed(2)}</div>
+          </div>
+          <div style={{padding:"8px 12px",background:"#1a1a19",borderRadius:8,border:"1px solid rgba(255,255,255,0.04)",textAlign:"center",minWidth:80}}>
+            <div style={{fontSize:8,color:"#9A9590",textTransform:"uppercase",letterSpacing:1,marginBottom:2}}>INCC</div>
+            <div style={{fontSize:13,fontWeight:700,color:"#4CAF7D"}}>{(siteConfig.incc||0).toFixed(2)}%</div>
+          </div>
+          <div style={{padding:"8px 12px",background:"#1a1a19",borderRadius:8,border:"1px solid rgba(255,255,255,0.04)",textAlign:"center",minWidth:80}}>
+            <div style={{fontSize:8,color:"#9A9590",textTransform:"uppercase",letterSpacing:1,marginBottom:2}}>IPCA</div>
+            <div style={{fontSize:13,fontWeight:700,color:"#E8A94E"}}>{(siteConfig.ipca||0).toFixed(2)}%</div>
+          </div>
+        </div>
+        <div style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:13,color:G,marginBottom:4}}>MK Realty & D&SS Incorporação</div>
+        <div style={{fontSize:10,color:"#9A9590",lineHeight:1.8}}>✉️ {CT.email} • 📞 {CT.phone}<br/>IG: {CT.ig.map(function(i){return i.h}).join(" • ")}</div>
+        <button onClick={function(){setMdl({t:"brokerRegister"})}} style={{marginTop:10,padding:"10px 24px",borderRadius:8,fontSize:12,fontWeight:600,background:G+"20",color:G,border:"1px solid "+G+"40",cursor:"pointer",display:"inline-flex",alignItems:"center",gap:6}}>📋 {lang==="es"?"Regístrese para recibir novedades":"Cadastre-se para receber novidades"}</button>
+        <div style={{fontSize:8,color:"#555",marginTop:8}}>{lang==="es"?"Portal exclusivo para corredores • MK Realty & D&SS Incorporação Ltda • 2026":"Portal exclusivo para corretores parceiros • MK Realty & D&SS Incorporação Ltda • 2026"}</div>
       </div>
 
       {/* FABS */}
       <div style={{position:"fixed",bottom:14,right:12,zIndex:200,display:"flex",flexDirection:"column",gap:6,alignItems:"flex-end"}}>
         {vw==="detail" && bld && <button onClick={function(){printBld(bld.id)}} style={fab("#3B82F6")}>🖨️</button>}
-        <a href={"https://wa.me/"+CT.wa+"?text="+encodeURIComponent("Olá! Vim pelo Portal do Corretor 🏢")} target="_blank" style={Object.assign({},fab("#25D366"),{textDecoration:"none"})}>💬</a>
+        <a href={"https://wa.me/"+waNum+"?text="+encodeURIComponent("Olá! Vim pelo Portal do Corretor 🏢")} target="_blank" style={Object.assign({},fab("#25D366"),{textDecoration:"none",color:"#fff"})}><WaIcon size={22}/></a>
         {!adm && <button onClick={function(){setMdl({t:"login"})}} style={fab(G)}>🔐</button>}
         {adm && <button onClick={function(){setAdm(false);msg("Admin desativado")}} style={Object.assign({},fab("#D45B5B"),{fontSize:12,fontWeight:700})}>✕</button>}
       </div>
@@ -1056,16 +1211,16 @@ function App() {
   );
 }
 
-const fab = function(bg){return{width:42,height:42,borderRadius:"50%",background:bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,boxShadow:"0 3px 12px "+bg+"55",cursor:"pointer",border:"none"}};
-const mb = function(c){return{padding:"4px 9px",borderRadius:5,fontSize:8,fontWeight:600,background:c+"15",color:c,border:"1px solid "+c+"30",cursor:"pointer"}};
-const tg = {padding:"3px 7px",background:"#1e1e1d",borderRadius:4,fontSize:8,fontWeight:500,color:"#aaa"};
-const thS = {background:"rgba(200,164,92,0.06)",color:"#C8A45C",padding:"7px 6px",textAlign:"left",fontWeight:600,fontSize:7,textTransform:"uppercase",letterSpacing:1};
-const tdS = {padding:"7px 6px",borderBottom:"1px solid rgba(255,255,255,0.025)"};
-const mT = {fontFamily:"'Playfair Display',Georgia,serif",fontSize:15,fontWeight:600,marginBottom:11,color:"#F5F0E8"};
-const mI = {width:"100%",padding:"8px 10px",background:"#222",border:"1px solid rgba(255,255,255,0.05)",borderRadius:6,color:"#F5F0E8",fontSize:10,fontFamily:"inherit",outline:"none",marginBottom:6};
-const mP = function(c){return{width:"100%",padding:"9px",borderRadius:6,fontSize:10,fontWeight:600,background:c||"#C8A45C",color:"#0f0f0e",border:"none",cursor:"pointer",marginTop:3}};
-const mC = {width:"100%",padding:"9px",borderRadius:6,fontSize:10,fontWeight:600,background:"transparent",color:"#9A9590",border:"1px solid rgba(255,255,255,0.05)",cursor:"pointer",marginTop:3};
-const L = function(props){return <label style={{fontSize:8,color:"#9A9590",fontWeight:600,display:"block",marginBottom:2,textTransform:"uppercase",letterSpacing:.5}}>{props.children}</label>};
+const fab = function(bg){return{width:48,height:48,borderRadius:"50%",background:bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,boxShadow:"0 3px 12px "+bg+"55",cursor:"pointer",border:"none"}};
+const mb = function(c){return{padding:"5px 11px",borderRadius:6,fontSize:10,fontWeight:600,background:c+"15",color:c,border:"1px solid "+c+"30",cursor:"pointer"}};
+const tg = {padding:"4px 9px",background:"#1e1e1d",borderRadius:5,fontSize:10,fontWeight:500,color:"#aaa"};
+const thS = {background:"rgba(200,164,92,0.06)",color:"#C8A45C",padding:"9px 8px",textAlign:"left",fontWeight:600,fontSize:10,textTransform:"uppercase",letterSpacing:1};
+const tdS = {padding:"9px 8px",borderBottom:"1px solid rgba(255,255,255,0.025)",fontSize:12};
+const mT = {fontFamily:"'Playfair Display',Georgia,serif",fontSize:18,fontWeight:600,marginBottom:12,color:"#F5F0E8"};
+const mI = {width:"100%",padding:"10px 12px",background:"#222",border:"1px solid rgba(255,255,255,0.05)",borderRadius:7,color:"#F5F0E8",fontSize:13,fontFamily:"inherit",outline:"none",marginBottom:8};
+const mP = function(c){return{width:"100%",padding:"11px",borderRadius:7,fontSize:13,fontWeight:600,background:c||"#C8A45C",color:"#0f0f0e",border:"none",cursor:"pointer",marginTop:4}};
+const mC = {width:"100%",padding:"11px",borderRadius:7,fontSize:13,fontWeight:600,background:"transparent",color:"#9A9590",border:"1px solid rgba(255,255,255,0.05)",cursor:"pointer",marginTop:4};
+const L = function(props){return <label style={{fontSize:10,color:"#9A9590",fontWeight:600,display:"block",marginBottom:3,textTransform:"uppercase",letterSpacing:.5}}>{props.children}</label>};
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(React.createElement(React.StrictMode, null, React.createElement(App)));
