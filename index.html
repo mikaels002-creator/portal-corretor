@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<meta name="theme-color" content="#0f0f0e"/>
+<meta name="description" content="Portal do Corretor - MK Realty & D&SS Incorporação"/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏢</text></svg>"/>
+<title>Central do Corretor</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>body{margin:0;background:#0f0f0e;font-family:'DM Sans',system-ui,sans-serif}#root{min-height:100vh}</style>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-type="module">
+const { useState, useEffect, useCallback, useMemo } = React;
+
+const INIT = {
+  buildings: [
+    { id:"gran-vitta", name:"Ed. Gran Vitta", subtitle:"800m² de lazer — Rua Pavão, nº 315, Bombas, Bombinhas/SC • Início obra 11/2026 • Entrega 12/2030", emoji:"🏙️", color:"#5B8FD4", gradient:"linear-gradient(135deg,#1e3a5f,#2d5a8e)", tag:"Pré-Lançamento", status:"construction", active:true, constructionPct:0, commission:6, constructionHistory:[], cubBase:3019.26, cubCurrent:3019.26, cubHistory:[{month:"Fev/26",value:3019.26}], units:[
+      {id:"gv-s01",name:"Sala 01 (Comercial)",area:82.70,basePrice:1050000,status:"reserved",history:[]},
+      {id:"gv-s02",name:"Sala 02 (Comercial)",area:43.33,basePrice:750000,status:"reserved",history:[]},
+      {id:"gv-s03",name:"Sala 03 (Comercial)",area:43.33,basePrice:750000,status:"reserved",history:[]},
+      {id:"gv-101",name:"101 (2 suítes)",area:65.68,basePrice:1100000,status:"reserved",history:[]},
+      {id:"gv-102",name:"102 (1s+1d)",area:60.08,basePrice:940000,status:"available",history:[]},
+      {id:"gv-103",name:"103 (1s+1d)",area:60.07,basePrice:940000,status:"available",history:[]},
+      {id:"gv-104",name:"104 (1s+1d)",area:60.48,basePrice:969000,status:"available",history:[]},
+      {id:"gv-105",name:"105 (1s+1d)",area:60.42,basePrice:0,status:"reserved",history:[]},
+      {id:"gv-201",name:"201 (2 suítes)",area:65.68,basePrice:1100000,status:"available",history:[]},
+      {id:"gv-202",name:"202 (1s+1d)",area:60.08,basePrice:940000,status:"reserved",history:[]},
+      {id:"gv-203",name:"203 (1s+1d)",area:60.07,basePrice:950000,status:"available",history:[]},
+      {id:"gv-204",name:"204 (1s+1d)",area:60.48,basePrice:969000,status:"available",history:[]},
+      {id:"gv-205",name:"205 (1s+1d)",area:60.48,basePrice:969000,status:"reserved",history:[]},
+      {id:"gv-206",name:"206 (1s+1d)",area:60.28,basePrice:944310,status:"available",history:[]},
+      {id:"gv-207",name:"207 (1s+1d)",area:61.33,basePrice:944310,status:"reserved",history:[]},
+      {id:"gv-208",name:"208 (1s+1d)",area:58.45,basePrice:850000,status:"available",history:[]},
+      {id:"gv-209",name:"209 (1s+1d)",area:60.91,basePrice:945310,status:"available",history:[]},
+      {id:"gv-210",name:"210 (2 dorm.)",area:62.28,basePrice:1020000,status:"available",history:[]},
+      {id:"gv-211",name:"211 (1s+1d)",area:60.42,basePrice:945310,status:"available",history:[]},
+      {id:"gv-301",name:"301 (2 suítes)",area:65.68,basePrice:1110000,status:"reserved",history:[]},
+      {id:"gv-302",name:"302 (1s+1d)",area:60.08,basePrice:945310,status:"available",history:[]},
+      {id:"gv-303",name:"303 (1s+1d)",area:60.07,basePrice:945310,status:"available",history:[]},
+      {id:"gv-304",name:"304 (1s+1d)",area:60.48,basePrice:967145.28,status:"available",history:[]},
+      {id:"gv-305",name:"305 (1s+1d)",area:60.48,basePrice:967145.28,status:"available",history:[]},
+      {id:"gv-306",name:"306 (1s+1d)",area:60.28,basePrice:944310,status:"available",history:[]},
+      {id:"gv-307",name:"307 (1s+1d)",area:61.33,basePrice:944310,status:"available",history:[]},
+      {id:"gv-308",name:"308 (1s+1d)",area:58.45,basePrice:850125.48,status:"available",history:[]},
+      {id:"gv-309",name:"309 (1s+1d)",area:60.91,basePrice:985124.20,status:"available",history:[]},
+      {id:"gv-310",name:"310 (2 dorm.)",area:62.28,basePrice:1024235.27,status:"available",history:[]},
+      {id:"gv-311",name:"311 (1s+1d)",area:60.42,basePrice:967145.25,status:"available",history:[]},
+      {id:"gv-401",name:"401 (2 suítes)",area:65.68,basePrice:989451,status:"available",history:[]},
+      {id:"gv-402",name:"402 (1s+1d)",area:60.08,basePrice:943658.68,status:"available",history:[]},
+      {id:"gv-403",name:"403 (1s+1d)",area:60.07,basePrice:943658.68,status:"available",history:[]},
+      {id:"gv-404",name:"404 (1s+1d)",area:60.48,basePrice:967145.28,status:"reserved",history:[]},
+      {id:"gv-405",name:"405 (1s+1d)",area:60.48,basePrice:967145.28,status:"available",history:[]},
+      {id:"gv-406",name:"406 (1s+1d)",area:60.28,basePrice:967145.28,status:"available",history:[]},
+      {id:"gv-407",name:"407 (1s+1d)",area:61.33,basePrice:944310,status:"reserved",history:[]},
+      {id:"gv-408",name:"408 (1s+1d)",area:58.45,basePrice:864258.12,status:"available",history:[]},
+      {id:"gv-409",name:"409 (1s+1d)",area:60.91,basePrice:985124.20,status:"available",history:[]},
+      {id:"gv-410",name:"410 (2 dorm.)",area:62.28,basePrice:967145.28,status:"available",history:[]},
+      {id:"gv-411",name:"411 (1s+1d)",area:60.42,basePrice:967145.28,status:"available",history:[]},
+      {id:"gv-501",name:"501 (2 suítes)",area:65.68,basePrice:1050000,status:"available",history:[]},
+      {id:"gv-502",name:"502 (1s+1d)",area:60.08,basePrice:950000,status:"available",history:[]},
+      {id:"gv-503",name:"503 (1s+1d)",area:60.07,basePrice:945168,status:"available",history:[]},
+      {id:"gv-504",name:"504 (1s+1d)",area:60.48,basePrice:967145.28,status:"available",history:[]},
+      {id:"gv-505",name:"505 (1s+1d)",area:60.48,basePrice:967145.28,status:"reserved",history:[]},
+      {id:"gv-506",name:"506 (1s+1d)",area:60.28,basePrice:967145.28,status:"available",history:[]},
+      {id:"gv-507",name:"507 (1s+1d)",area:61.33,basePrice:947256.23,status:"available",history:[]},
+      {id:"gv-508",name:"508 (1s+1d)",area:58.45,basePrice:864258.12,status:"available",history:[]},
+      {id:"gv-509",name:"509 (1s+1d)",area:60.91,basePrice:971478.35,status:"available",history:[]},
+      {id:"gv-510",name:"510 (2 dorm.)",area:62.28,basePrice:1050000,status:"available",history:[]},
+      {id:"gv-511",name:"511 (1s+1d)",area:60.42,basePrice:967145.28,status:"available",history:[]}
+    ], photos:[], plants:[{name:"Planta Baixa Térreo + Situação",type:"pdf"},{name:"Planta Baixa Outorga 01 (Aptos + Garagem)",type:"pdf"},{name:"Planta Baixa Tipo (Apartamentos)",type:"pdf"},{name:"Planta Baixa Pavto. Lazer",type:"pdf"},{name:"Elevações (Ante Projeto)",type:"pdf"}], documents:[{name:"Book de Vendas",type:"pdf"},{name:"Memorial Descritivo",type:"pdf"},{name:"Tabela de Preços - Fev/2026",type:"pdf"}], notices:[{date:"10/04/2026",title:"Tabela Fevereiro/2026 - Pré-Lançamento",text:"CUB/SC R$ 3.019,26/m². Entrada 30% + saldo 48x corrigidos pelo CUB. 800m² de lazer. Rua Pavão, nº 315, Bombas, Bombinhas/SC. Início obra 11/2026, entrega 12/2030."}] },
+    { id:"carina", name:"Res. Carina Camboin", subtitle:"Pré-lançamento — Rua Bem-Te-Vi, Bombas, Bombinhas/SC • Entrega 31/04/2030", emoji:"🌇", color:"#D4735B", gradient:"linear-gradient(135deg,#5f2e1e,#8e4d2d)", tag:"Pré-Lançamento", status:"construction", active:true, constructionPct:0, commission:6, constructionHistory:[], cubBase:3163.10, cubCurrent:3163.10, cubHistory:[{month:"Abr/26",value:3163.10}], units:[
+      {id:"ca-101",name:"101",area:66.15,basePrice:1249590.05,status:"available",history:[]},
+      {id:"ca-102",name:"102",area:64.67,basePrice:0,status:"reserved",history:[]},
+      {id:"ca-103",name:"103",area:74.95,basePrice:0,status:"reserved",history:[]},
+      {id:"ca-104",name:"104",area:64.44,basePrice:1249590.05,status:"available",history:[]},
+      {id:"ca-105",name:"105",area:66.42,basePrice:1249590.05,status:"available",history:[]},
+      {id:"ca-106",name:"106",area:92.10,basePrice:0,status:"reserved",history:[]},
+      {id:"ca-107",name:"107",area:67.45,basePrice:1249590.05,status:"available",history:[]},
+      {id:"ca-108",name:"108",area:64.59,basePrice:1249590.05,status:"available",history:[]},
+      {id:"ca-109",name:"109",area:76.00,basePrice:0,status:"reserved",history:[]},
+      {id:"ca-110",name:"110",area:64.67,basePrice:0,status:"reserved",history:[]},
+      {id:"ca-111",name:"111",area:67.22,basePrice:0,status:"reserved",history:[]},
+      {id:"ca-112",name:"112",area:92.22,basePrice:0,status:"reserved",history:[]},
+      {id:"ca-201",name:"201",area:66.42,basePrice:0,status:"reserved",history:[]},
+      {id:"ca-202",name:"202",area:64.82,basePrice:0,status:"reserved",history:[]},
+      {id:"ca-203",name:"203",area:69.13,basePrice:0,status:"reserved",history:[]},
+      {id:"ca-204",name:"204",area:68.76,basePrice:0,status:"reserved",history:[]},
+      {id:"ca-205",name:"205",area:65.05,basePrice:0,status:"reserved",history:[]},
+      {id:"ca-206",name:"206",area:67.75,basePrice:0,status:"reserved",history:[]},
+      {id:"ca-207",name:"207",area:68.57,basePrice:0,status:"reserved",history:[]},
+      {id:"ca-301",name:"301",area:66.42,basePrice:0,status:"reserved",history:[]},
+      {id:"ca-302",name:"302",area:64.82,basePrice:1457855.05,status:"available",history:[]},
+      {id:"ca-303",name:"303",area:68.24,basePrice:1457855.05,status:"available",history:[]},
+      {id:"ca-304",name:"304",area:64.44,basePrice:1457855.05,status:"available",history:[]},
+      {id:"ca-305",name:"305",area:66.42,basePrice:1457855.05,status:"available",history:[]},
+      {id:"ca-306",name:"306",area:67.53,basePrice:1457855.05,status:"available",history:[]},
+      {id:"ca-307",name:"307",area:67.45,basePrice:1457855.05,status:"available",history:[]},
+      {id:"ca-308",name:"308",area:64.59,basePrice:1457855.05,status:"available",history:[]},
+      {id:"ca-309",name:"309",area:68.06,basePrice:1457855.05,status:"available",history:[]},
+      {id:"ca-310",name:"310",area:65.05,basePrice:0,status:"reserved",history:[]},
+      {id:"ca-311",name:"311",area:67.75,basePrice:1457855.05,status:"available",history:[]},
+      {id:"ca-312",name:"312",area:68.57,basePrice:0,status:"reserved",history:[]},
+      {id:"ca-401",name:"401",area:66.42,basePrice:1561987.56,status:"available",history:[]},
+      {id:"ca-402",name:"402",area:64.82,basePrice:1561987.56,status:"available",history:[]},
+      {id:"ca-403",name:"403",area:68.24,basePrice:1561987.56,status:"available",history:[]},
+      {id:"ca-404",name:"404",area:64.44,basePrice:1561987.56,status:"available",history:[]},
+      {id:"ca-405",name:"405",area:66.42,basePrice:1561987.56,status:"available",history:[]},
+      {id:"ca-406",name:"406",area:67.53,basePrice:1561987.56,status:"available",history:[]},
+      {id:"ca-407",name:"407",area:67.45,basePrice:1561987.56,status:"available",history:[]},
+      {id:"ca-408",name:"408",area:64.59,basePrice:1561987.56,status:"available",history:[]},
+      {id:"ca-409",name:"409",area:68.06,basePrice:1561987.56,status:"available",history:[]},
+      {id:"ca-410",name:"410",area:65.05,basePrice:1561987.56,status:"available",history:[]},
+      {id:"ca-411",name:"411",area:67.75,basePrice:1561987.56,status:"available",history:[]},
+      {id:"ca-412",name:"412",area:68.57,basePrice:1561987.56,status:"available",history:[]},
+      {id:"ca-501",name:"501",area:183.76,basePrice:2811577.60,status:"available",history:[]},
+      {id:"ca-502",name:"502",area:138.95,basePrice:0,status:"reserved",history:[]},
+      {id:"ca-503",name:"503",area:64.44,basePrice:0,status:"reserved",history:[]},
+      {id:"ca-504",name:"504",area:66.42,basePrice:0,status:"reserved",history:[]},
+      {id:"ca-505",name:"505",area:67.53,basePrice:0,status:"reserved",history:[]},
+      {id:"ca-506",name:"506",area:67.45,basePrice:0,status:"reserved",history:[]},
+      {id:"ca-507",name:"507",area:67.59,basePrice:1666120.06,status:"available",history:[]},
+      {id:"ca-508",name:"508",area:161.25,basePrice:0,status:"reserved",history:[]},
+      {id:"ca-601",name:"601",area:169.18,basePrice:0,status:"reserved",history:[]},
+      {id:"ca-602",name:"602",area:171.52,basePrice:0,status:"reserved",history:[]}
+    ], photos:[], plants:[], documents:[{name:"Book de Vendas",type:"pdf"},{name:"Tabela de Preços - Abril/2026",type:"pdf"}], notices:[{date:"10/04/2026",title:"Tabela Abril/2026 - Pré-Lançamento",text:"Entrada 30% + Início Obra 10% + saldo 72x. Reajuste CUB-SC até entrega, após INCC + 0,5% a.m. Unidades '1': 2 dorm (1 suíte) + 1 vaga. Unidades '2': 3 dorm (3 suítes) + 2 vagas. Entrega 31/04/2030. Rua Bem-Te-Vi, Bombas, Bombinhas/SC."}] },
+    { id:"artesano", name:"Ed. Artesano by Hilton", subtitle:"Hilton Tapestry Collection by Artefacto — Bombinhas/SC • Entrega 30/12/2026", emoji:"⭐", color:"#C8A45C", gradient:"linear-gradient(135deg,#4a3d1f,#7a6830)", tag:"Premium", status:"construction", active:true, constructionPct:25, commission:6, constructionHistory:[{month:"Jan/26",pct:15},{month:"Fev/26",pct:18},{month:"Mar/26",pct:22},{month:"Abr/26",pct:25}], cubBase:3028.45, cubCurrent:3028.45, cubHistory:[{month:"Mar/26",value:3028.45}], units:[
+      {id:"ar-127",name:"127",area:35,basePrice:0,status:"sold",history:[]},
+      {id:"ar-128",name:"128",area:32.26,basePrice:0,status:"sold",history:[]},
+      {id:"ar-129",name:"129",area:32.26,basePrice:0,status:"sold",history:[]},
+      {id:"ar-130",name:"130 - Master",area:40.34,basePrice:0,status:"sold",history:[]},
+      {id:"ar-201",name:"201",area:40.96,basePrice:0,status:"sold",history:[]},
+      {id:"ar-202",name:"202",area:33.91,basePrice:0,status:"sold",history:[]},
+      {id:"ar-203",name:"203",area:33.91,basePrice:0,status:"sold",history:[]},
+      {id:"ar-204",name:"204",area:33.91,basePrice:0,status:"sold",history:[]},
+      {id:"ar-205",name:"205",area:33.91,basePrice:0,status:"sold",history:[]},
+      {id:"ar-206",name:"206",area:33.91,basePrice:0,status:"sold",history:[]},
+      {id:"ar-207",name:"207",area:33.91,basePrice:0,status:"sold",history:[]},
+      {id:"ar-208",name:"208",area:33.7,basePrice:0,status:"sold",history:[]},
+      {id:"ar-209",name:"209",area:44.24,basePrice:0,status:"sold",history:[]},
+      {id:"ar-210",name:"210",area:28.41,basePrice:0,status:"sold",history:[]},
+      {id:"ar-211",name:"211",area:28.3,basePrice:0,status:"sold",history:[]},
+      {id:"ar-212",name:"212",area:28.48,basePrice:0,status:"sold",history:[]},
+      {id:"ar-214",name:"214",area:30.84,basePrice:0,status:"sold",history:[]},
+      {id:"ar-215",name:"215",area:22.8,basePrice:0,status:"sold",history:[]},
+      {id:"ar-216",name:"216 - Superior",area:28.59,basePrice:0,status:"sold",history:[]},
+      {id:"ar-217",name:"217 - Superior",area:28.3,basePrice:0,status:"sold",history:[]},
+      {id:"ar-218",name:"218",area:28.3,basePrice:0,status:"sold",history:[]},
+      {id:"ar-219",name:"219",area:28.3,basePrice:1946261.80,status:"available",history:[]},
+      {id:"ar-220",name:"220",area:28.3,basePrice:0,status:"sold",history:[]},
+      {id:"ar-221",name:"221",area:28.3,basePrice:0,status:"sold",history:[]},
+      {id:"ar-222",name:"222",area:28.3,basePrice:0,status:"sold",history:[]},
+      {id:"ar-223",name:"223",area:29.37,basePrice:0,status:"sold",history:[]},
+      {id:"ar-224",name:"224",area:32.75,basePrice:0,status:"sold",history:[]},
+      {id:"ar-225",name:"225",area:32.75,basePrice:0,status:"sold",history:[]},
+      {id:"ar-226",name:"226",area:33.39,basePrice:0,status:"sold",history:[]},
+      {id:"ar-227",name:"227 - Superior",area:35,basePrice:2013198.30,status:"available",history:[]},
+      {id:"ar-228",name:"228 - Superior",area:32.26,basePrice:1970624.50,status:"available",history:[]},
+      {id:"ar-229",name:"229",area:32.26,basePrice:0,status:"sold",history:[]},
+      {id:"ar-230",name:"230",area:40.34,basePrice:0,status:"sold",history:[]},
+      {id:"ar-301",name:"301",area:40.96,basePrice:0,status:"sold",history:[]},
+      {id:"ar-302",name:"302",area:33.91,basePrice:0,status:"sold",history:[]},
+      {id:"ar-303",name:"303",area:33.91,basePrice:0,status:"sold",history:[]},
+      {id:"ar-304",name:"304",area:33.91,basePrice:0,status:"sold",history:[]},
+      {id:"ar-305",name:"305",area:33.91,basePrice:0,status:"sold",history:[]},
+      {id:"ar-306",name:"306",area:33.91,basePrice:0,status:"sold",history:[]},
+      {id:"ar-307",name:"307",area:33.91,basePrice:0,status:"sold",history:[]},
+      {id:"ar-308",name:"308",area:33.7,basePrice:0,status:"sold",history:[]},
+      {id:"ar-309",name:"309",area:44.24,basePrice:0,status:"sold",history:[]},
+      {id:"ar-310",name:"310",area:28.41,basePrice:0,status:"sold",history:[]},
+      {id:"ar-311",name:"311",area:28.3,basePrice:0,status:"sold",history:[]},
+      {id:"ar-312",name:"312",area:28.48,basePrice:0,status:"sold",history:[]},
+      {id:"ar-314",name:"314",area:30.84,basePrice:0,status:"sold",history:[]},
+      {id:"ar-315",name:"315",area:22.8,basePrice:0,status:"sold",history:[]},
+      {id:"ar-316",name:"316",area:28.59,basePrice:0,status:"sold",history:[]},
+      {id:"ar-317",name:"317",area:28.3,basePrice:0,status:"sold",history:[]},
+      {id:"ar-318",name:"318",area:28.3,basePrice:0,status:"sold",history:[]},
+      {id:"ar-319",name:"319",area:28.3,basePrice:0,status:"sold",history:[]},
+      {id:"ar-320",name:"320",area:28.3,basePrice:0,status:"sold",history:[]},
+      {id:"ar-321",name:"321",area:28.3,basePrice:0,status:"sold",history:[]},
+      {id:"ar-322",name:"322",area:28.3,basePrice:0,status:"sold",history:[]},
+      {id:"ar-323",name:"323",area:29.37,basePrice:0,status:"sold",history:[]},
+      {id:"ar-324",name:"324",area:32.75,basePrice:0,status:"sold",history:[]},
+      {id:"ar-325",name:"325",area:32.75,basePrice:0,status:"sold",history:[]},
+      {id:"ar-326",name:"326 - Superior",area:33.39,basePrice:0,status:"sold",history:[]},
+      {id:"ar-327",name:"327 - Superior",area:35,basePrice:0,status:"sold",history:[]},
+      {id:"ar-328",name:"328 - Superior",area:32.26,basePrice:0,status:"sold",history:[]},
+      {id:"ar-329",name:"329",area:32.26,basePrice:2154377.70,status:"available",history:[]},
+      {id:"ar-330",name:"330 - Master",area:40.34,basePrice:2755947.30,status:"available",history:[]},
+      {id:"ar-401",name:"401 - Master",area:40.96,basePrice:2480613.30,status:"available",history:[]},
+      {id:"ar-402",name:"402 - Luxo",area:33.91,basePrice:2480613.30,status:"available",history:[]},
+      {id:"ar-403",name:"403 - Luxo",area:33.91,basePrice:2480613.30,status:"available",history:[]},
+      {id:"ar-404",name:"404 - Luxo",area:33.91,basePrice:0,status:"sold",history:[]},
+      {id:"ar-405",name:"405",area:33.91,basePrice:0,status:"sold",history:[]},
+      {id:"ar-406",name:"406",area:33.91,basePrice:0,status:"sold",history:[]},
+      {id:"ar-407",name:"407",area:33.91,basePrice:0,status:"sold",history:[]},
+      {id:"ar-408",name:"408",area:33.7,basePrice:2217671.80,status:"available",history:[]},
+      {id:"ar-409",name:"409",area:44.24,basePrice:0,status:"sold",history:[]},
+      {id:"ar-410",name:"410 - Superior",area:28.41,basePrice:0,status:"sold",history:[]},
+      {id:"ar-411",name:"411 - Superior",area:28.3,basePrice:2016996.30,status:"available",history:[]},
+      {id:"ar-412",name:"412 - Superior",area:28.48,basePrice:2017136.10,status:"available",history:[]},
+      {id:"ar-414",name:"414",area:30.84,basePrice:0,status:"sold",history:[]},
+      {id:"ar-415",name:"415 - Superior",area:22.8,basePrice:0,status:"sold",history:[]},
+      {id:"ar-416",name:"416 - Superior",area:28.59,basePrice:0,status:"sold",history:[]},
+      {id:"ar-417",name:"417 - Superior",area:28.3,basePrice:0,status:"sold",history:[]},
+      {id:"ar-418",name:"418 - Superior",area:28.3,basePrice:0,status:"sold",history:[]},
+      {id:"ar-419",name:"419 - Superior",area:28.3,basePrice:2042347.90,status:"available",history:[]},
+      {id:"ar-420",name:"420 - Superior",area:28.3,basePrice:2042347.90,status:"available",history:[]},
+      {id:"ar-421",name:"421 - Superior",area:28.3,basePrice:2042347.90,status:"available",history:[]},
+      {id:"ar-422",name:"422 - Superior",area:28.3,basePrice:2042347.90,status:"available",history:[]},
+      {id:"ar-423",name:"423 - Superior",area:29.37,basePrice:2098122.50,status:"available",history:[]},
+      {id:"ar-424",name:"424 - Superior",area:32.96,basePrice:2118290.90,status:"available",history:[]},
+      {id:"ar-425",name:"425 - Superior",area:32.75,basePrice:2142195.10,status:"available",history:[]},
+      {id:"ar-426",name:"426 - Superior",area:33.39,basePrice:2158060.60,status:"available",history:[]},
+      {id:"ar-427",name:"427 - Superior",area:35,basePrice:0,status:"sold",history:[]},
+      {id:"ar-428",name:"428 - Superior",area:32.26,basePrice:2149904.90,status:"available",history:[]},
+      {id:"ar-429",name:"429 - Superior",area:32.26,basePrice:2149022.10,status:"available",history:[]},
+      {id:"ar-430",name:"430 - Master",area:40.34,basePrice:2476072.90,status:"available",history:[]},
+      {id:"ar-501",name:"501",area:40.96,basePrice:0,status:"reserved",history:[]},
+      {id:"ar-502",name:"502",area:33.91,basePrice:0,status:"reserved",history:[]},
+      {id:"ar-503",name:"503",area:33.91,basePrice:0,status:"reserved",history:[]},
+      {id:"ar-504",name:"504",area:33.91,basePrice:0,status:"reserved",history:[]},
+      {id:"ar-505",name:"505",area:33.91,basePrice:0,status:"reserved",history:[]},
+      {id:"ar-506",name:"506",area:33.91,basePrice:0,status:"reserved",history:[]},
+      {id:"ar-507",name:"507",area:33.91,basePrice:0,status:"reserved",history:[]},
+      {id:"ar-508",name:"508",area:33.7,basePrice:0,status:"reserved",history:[]},
+      {id:"ar-509",name:"509",area:44.24,basePrice:0,status:"reserved",history:[]},
+      {id:"ar-510",name:"510",area:28.41,basePrice:0,status:"reserved",history:[]},
+      {id:"ar-511",name:"511",area:28.3,basePrice:0,status:"reserved",history:[]},
+      {id:"ar-512",name:"512",area:28.48,basePrice:0,status:"reserved",history:[]},
+      {id:"ar-514",name:"514",area:30.84,basePrice:0,status:"reserved",history:[]},
+      {id:"ar-515",name:"515",area:22.8,basePrice:0,status:"reserved",history:[]},
+      {id:"ar-516",name:"516",area:28.59,basePrice:0,status:"reserved",history:[]},
+      {id:"ar-517",name:"517",area:28.3,basePrice:0,status:"reserved",history:[]},
+      {id:"ar-518",name:"518",area:28.3,basePrice:0,status:"reserved",history:[]},
+      {id:"ar-519",name:"519",area:28.3,basePrice:0,status:"reserved",history:[]},
+      {id:"ar-520",name:"520",area:28.3,basePrice:0,status:"reserved",history:[]},
+      {id:"ar-521",name:"521",area:28.3,basePrice:0,status:"reserved",history:[]},
+      {id:"ar-522",name:"522",area:28.3,basePrice:0,status:"reserved",history:[]},
+      {id:"ar-523",name:"523",area:29.37,basePrice:0,status:"reserved",history:[]},
+      {id:"ar-524",name:"524",area:32.96,basePrice:0,status:"reserved",history:[]},
+      {id:"ar-525",name:"525",area:32.75,basePrice:0,status:"reserved",history:[]},
+      {id:"ar-526",name:"526",area:33.39,basePrice:0,status:"reserved",history:[]}
+    ], photos:[], plants:[], documents:[{name:"Book Hilton",type:"pdf"},{name:"Estudo de Rentabilidade",type:"pdf"},{name:"Tabela de Preços - Março/2026",type:"pdf"}], notices:[{date:"10/04/2026",title:"Tabela Março/2026 atualizada",text:"CUB/SC R$ 3.028,45/m². Entrada 10% + saldo 72x. 5% desconto à vista. Entrega 30/12/2026. Rua Mergulhão Caçador, 286 - Bombas, Bombinhas/SC. Registro R4-41.637."}] },
+    { id:"di-franci", name:"Res. Di Franci", subtitle:"3 Suítes + 2 Vagas — Rua 153, nº 95, Centro, Itapema/SC • Pronto para morar", emoji:"🏛️", color:"#8B6FBF", gradient:"linear-gradient(135deg,#3a2d5f,#5a4580)", tag:"Pronto", status:"ready", active:true, constructionPct:100, commission:6, constructionHistory:[], cubBase:2774.29, cubCurrent:2774.29, cubHistory:[{month:"Mar/26",value:2774.29}], units:[
+      {id:"df-501",name:"501 (Lado Mar)",area:130.6,basePrice:0,status:"reserved",history:[]},
+      {id:"df-502",name:"502 (Lado Av.)",area:125.6,basePrice:0,status:"reserved",history:[]},
+      {id:"df-601",name:"601 (Lado Mar)",area:130.6,basePrice:0,status:"reserved",history:[]},
+      {id:"df-602",name:"602 (Lado Av.)",area:125.6,basePrice:0,status:"reserved",history:[]},
+      {id:"df-701",name:"701 (Lado Mar)",area:130.6,basePrice:0,status:"reserved",history:[]},
+      {id:"df-702",name:"702 (Lado Av.)",area:125.6,basePrice:0,status:"reserved",history:[]},
+      {id:"df-801",name:"801 (Lado Mar)",area:130.6,basePrice:0,status:"reserved",history:[]},
+      {id:"df-802",name:"802 (Lado Av.)",area:125.6,basePrice:0,status:"reserved",history:[]},
+      {id:"df-901",name:"901 (Lado Mar)",area:130.6,basePrice:0,status:"reserved",history:[]},
+      {id:"df-902",name:"902 (Lado Av.)",area:125.6,basePrice:0,status:"reserved",history:[]},
+      {id:"df-1001",name:"1001 (Lado Mar)",area:130.6,basePrice:0,status:"reserved",history:[]},
+      {id:"df-1002",name:"1002 (Lado Av.)",area:125.6,basePrice:4404396.90,status:"available",history:[]},
+      {id:"df-1101",name:"1101 (Lado Mar)",area:130.6,basePrice:0,status:"reserved",history:[]},
+      {id:"df-1102",name:"1102 (Lado Av.)",area:125.6,basePrice:4683156.25,status:"available",history:[]},
+      {id:"df-1201",name:"1201 (Lado Mar)",area:130.6,basePrice:0,status:"reserved",history:[]},
+      {id:"df-1202",name:"1202 (Lado Av.)",area:125.6,basePrice:4906163.70,status:"available",history:[]},
+      {id:"df-1301",name:"1301 (Lado Mar)",area:130.6,basePrice:0,status:"reserved",history:[]},
+      {id:"df-1302",name:"1302 (Lado Av.)",area:125.6,basePrice:5073419.20,status:"available",history:[]},
+      {id:"df-1401",name:"1401 (Lado Mar)",area:130.6,basePrice:5865095.60,status:"available",history:[]},
+      {id:"df-1402",name:"1402 (Lado Av.)",area:125.6,basePrice:5240685.85,status:"available",history:[]},
+      {id:"df-1501",name:"1501 (Lado Mar)",area:130.6,basePrice:6166155.65,status:"available",history:[]},
+      {id:"df-1502",name:"1502 (Lado Av.)",area:125.6,basePrice:5653238.60,status:"available",history:[]}
+    ], photos:[], plants:[], documents:[{name:"Book de Vendas",type:"pdf"},{name:"Tabela de Preços - Março/2026",type:"pdf"}], notices:[{date:"10/04/2026",title:"Pronto para morar!",text:"CUB/SC R$ 2.774,29/m². Entrada 30% + 60 parcelas + 4 reforços. Reajuste CUB-SC até entrega, após INCC + 0,5% a.m. Unidades '1': Lado Mar. Unidades '2': Lado Avenida. Ambas 3 suítes + 2 vagas. Matrícula R-4-74.859 Itapema/SC."}] },
+    { id:"repasse", name:"Imóveis de Repasse", subtitle:"Oportunidades exclusivas com condições diferenciadas", emoji:"🔄", color:"#5BB8B0", gradient:"linear-gradient(135deg,#1e4a46,#2d7a73)", tag:"Oportunidade", status:"ready", active:true, constructionPct:100, commission:4, constructionHistory:[], cubBase:2850, cubCurrent:2920, cubHistory:[], units:[{id:"rp-01",name:"Repasse 01",area:85,basePrice:520000,status:"available",history:[]},{id:"rp-02",name:"Repasse 02",area:72,basePrice:380000,status:"available",history:[]},{id:"rp-03",name:"Repasse 03",area:120,basePrice:750000,status:"reserved",history:[{date:"09/04/2026",from:"available",to:"reserved"}]}], photos:[], plants:[], documents:[{name:"Catálogo de Repasses",type:"pdf"}], notices:[{date:"10/04/2026",title:"Oportunidades Ativas",text:"Novos repasses conforme disponibilidade."}] },
+  ],
+};
+
+const PIN = "8414";
+const SK = "broker-portal-v5";
+const fmt = (v) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const sL = { available: "Disponível", reserved: "Reservado", sold: "Vendido" };
+const sC = { available: "#4CAF7D", reserved: "#E8A94E", sold: "#D45B5B" };
+const EMO = ["🏙️","🌇","⭐","🏛️","🔄","🏢","🏗️","🌆","🏘️","🏠","🏡","🏰"];
+const CLR = ["#5B8FD4","#D4735B","#C8A45C","#8B6FBF","#5BB8B0","#E06090","#7CB342","#FF7043","#5C6BC0"];
+const CT = { email:"contato@mkcrealty.com.br", phone:"+55 47 992134870", wa:"5547992134870", ig:[{h:"@mkcrealty",u:"https://www.instagram.com/mkcrealty?igsh=MW1hdTFxZzBicHc0eQ=="},{h:"@dsincorporacao",u:"https://www.instagram.com/dsincorporacao?igsh=YTAxYTlkczYyNXZj"}] };
+const GRP = "MK Realty & D&SS Incorporação Ltda";
+const G = "#C8A45C";
+
+function App() {
+  const [D, setD] = useState(INIT);
+  const [vw, setVw] = useState("home");
+  const [sel, setSel] = useState(null);
+  const [dtab, setDtab] = useState("table");
+  const [adm, setAdm] = useState(false);
+  const [mdl, setMdl] = useState(null);
+  const [toast, setToast] = useState(null);
+  const [rdy, setRdy] = useState(false);
+  const [filter, setFilter] = useState("all");
+  const [compare, setCompare] = useState([]);
+  const [simUnit, setSimUnit] = useState(null);
+  const [printHtml, setPrintHtml] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      try { const raw = window.localStorage.getItem(SK); if (raw) setD(JSON.parse(raw)); } catch (e) {}
+      setRdy(true);
+    })();
+  }, []);
+
+  const sv = useCallback(async (d) => { try { window.localStorage.setItem(SK, JSON.stringify(d)); } catch (e) {} }, []);
+
+  const upd = (fn) => {
+    setD((p) => { const n = fn(p); sv(n); return n; });
+  };
+
+  const upB = (id, ch) => {
+    upd((d) => {
+      return Object.assign({}, d, { buildings: d.buildings.map((b) => b.id === id ? Object.assign({}, b, ch) : b) });
+    });
+  };
+
+  const msg = (m) => { setToast(m); setTimeout(() => setToast(null), 2500); };
+  const bld = D.buildings.find((b) => b.id === sel);
+  const vis = D.buildings.filter((b) => adm || b.active);
+  const cp = (u, b) => b && b.cubBase ? Math.round(u.basePrice * (b.cubCurrent / b.cubBase)) : u.basePrice;
+  const go = (id) => { setSel(id); setVw("detail"); setDtab("table"); setFilter("all"); setCompare([]); };
+
+  const stats = useMemo(() => {
+    const all = D.buildings.filter((b) => b.active);
+    let totalU=0, avail=0, reserved=0, sold=0, totalVal=0;
+    all.forEach((b) => b.units.forEach((u) => {
+      totalU++; totalVal += cp(u, b);
+      if (u.status === "available") avail++;
+      else if (u.status === "reserved") reserved++;
+      else sold++;
+    }));
+    return { totalU, avail, reserved, sold, totalVal, bldCount: all.length };
+  }, [D]);
+
+  const shareUnit = (u, b) => {
+    const p = cp(u, b);
+    const text = "\u{1F3E2} *" + b.name + "*\n\u{1F4CD} Unidade: " + u.name + "\n\u{1F4D0} Área: " + u.area + "m²\n\u{1F4B0} Valor: " + fmt(p) + "\n\u{1F4CA} R$/m²: " + fmt(Math.round(p / u.area)) + "\n" + (b.status === "construction" ? "\u{1F3D7}\uFE0F Obra: " + b.constructionPct + "%" : "\u2705 Pronto para morar") + "\n\n\u{1F4DE} " + CT.phone + "\n\u2709\uFE0F " + CT.email;
+    window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank");
+  };
+
+  const dupBld = (b) => {
+    const copy = JSON.parse(JSON.stringify(b));
+    copy.id = b.id + "-copy-" + Date.now();
+    copy.name = b.name + " (Cópia)";
+    copy.active = false;
+    copy.units = copy.units.map((u) => { u.id = u.id + "-c" + Date.now(); u.status = "available"; u.history = []; return u; });
+    upd((d) => Object.assign({}, d, { buildings: d.buildings.concat([copy]) }));
+    msg("Duplicado!");
+  };
+
+  const printAll = () => {
+    const active = D.buildings.filter((b) => b.active);
+    const sections = active.map((b) => {
+      const rows = b.units.map((u) => { const p = cp(u, b); return "<tr><td>" + u.name + "</td><td>" + u.area + "m²</td><td style='font-weight:700;color:#2e7d52'>" + (p > 0 ? fmt(p) : "—") + "</td><td>" + (p > 0 ? fmt(Math.round(p / u.area)) + "/m²" : "—") + "</td><td style='color:" + sC[u.status] + ";font-weight:600'>" + sL[u.status] + "</td></tr>"; }).join("");
+      return "<div class='bld'><h2>" + b.emoji + " " + b.name + "</h2><p class='sub'>" + b.subtitle + "</p><div class='meta'><span class='badge' style='background:" + b.color + "'>" + (b.status === "ready" ? "Pronto" : "Em obra " + b.constructionPct + "%") + "</span><span>CUB: " + fmt(b.cubCurrent) + " (" + ((b.cubCurrent / b.cubBase - 1) * 100).toFixed(2) + "%)</span><span>Comissão: " + b.commission + "%</span></div><table><thead><tr><th>Unid.</th><th>Área</th><th>Valor</th><th>R$/m²</th><th>Status</th></tr></thead><tbody>" + rows + "</tbody></table></div>";
+    }).join("");
+    const html = "<html><head><meta charset='UTF-8'><title>Relatório Consolidado</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Helvetica,sans-serif;padding:30px;color:#1a1a1a;max-width:800px;margin:0 auto;font-size:11px}h1{font-size:22px;margin-bottom:4px}h2{font-size:16px;margin-bottom:2px}p.sub{font-size:10px;color:#888;margin-bottom:8px}.stats{display:flex;gap:12px;margin:14px 0;flex-wrap:wrap}.stat{padding:10px 14px;background:#f5f0e8;border-radius:6px;text-align:center;min-width:80px}.stat .n{font-size:20px;font-weight:700}.stat .l{font-size:8px;text-transform:uppercase;letter-spacing:1px;color:#888}.bld{margin-bottom:24px;padding-bottom:18px;border-bottom:1px solid #eee}table{width:100%;border-collapse:collapse;margin-top:6px}th{background:#f5f0e8;padding:7px;text-align:left;font-size:8px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid #ddd}td{padding:7px;border-bottom:1px solid #f0f0f0}.badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:9px;font-weight:700;color:#fff;margin-right:8px}.meta{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:10px;color:#666}.ft{margin-top:20px;text-align:center;font-size:9px;color:#999;padding-top:12px;border-top:1px solid #eee}</style></head><body><h1>MK Realty & D&SS Incorporação — Relatório Consolidado</h1><p style='color:#888;margin-bottom:14px'>Gerado em " + new Date().toLocaleDateString("pt-BR") + "</p><div class='stats'><div class='stat'><div class='n'>" + stats.bldCount + "</div><div class='l'>Empreend.</div></div><div class='stat'><div class='n'>" + stats.totalU + "</div><div class='l'>Unidades</div></div><div class='stat'><div class='n' style='color:#2e7d52'>" + stats.avail + "</div><div class='l'>Disponíveis</div></div><div class='stat'><div class='n' style='color:#c78c20'>" + stats.reserved + "</div><div class='l'>Reservadas</div></div><div class='stat'><div class='n' style='color:#c74040'>" + stats.sold + "</div><div class='l'>Vendidas</div></div><div class='stat'><div class='n'>" + fmt(stats.totalVal) + "</div><div class='l'>VGV Total</div></div></div>" + sections + "<div class='ft'>" + CT.email + " | " + CT.phone + " | " + CT.ig.map(function(i){return i.h}).join(" | ") + "<br>Valores sujeitos a alteração</div></body></html>";
+    setPrintHtml(html);
+  };
+
+  const printBld = (bid) => {
+    const b = D.buildings.find((x) => x.id === bid); if (!b) return;
+    const rows = b.units.map((u) => { const p = cp(u, b); return "<tr><td>" + u.name + "</td><td>" + u.area + "m²</td><td style='font-weight:700;color:#2e7d52'>" + (p > 0 ? fmt(p) : "—") + "</td><td>" + (p > 0 ? fmt(Math.round(p / u.area)) + "/m²" : "—") + "</td><td style='color:" + sC[u.status] + ";font-weight:600'>" + sL[u.status] + "</td></tr>"; }).join("");
+    const html = "<html><head><meta charset='UTF-8'><title>" + b.name + "</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Helvetica,sans-serif;padding:34px;color:#1a1a1a;max-width:780px;margin:0 auto}h1{font-size:22px;margin-bottom:3px}h2{font-size:11px;color:#666;font-weight:400;margin-bottom:16px}.badge{display:inline-block;padding:3px 11px;border-radius:16px;font-size:9px;font-weight:700;color:#fff;margin-bottom:10px}table{width:100%;border-collapse:collapse;margin-top:6px}th{background:#f5f0e8;padding:8px;text-align:left;font-size:8px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid #ddd}td{padding:8px;border-bottom:1px solid #eee;font-size:11px}.ft{margin-top:22px;padding-top:10px;border-top:1px solid #ddd;font-size:9px;color:#999;text-align:center}.cub{font-size:10px;color:#666;margin-bottom:8px;padding:8px 10px;background:#f8f6f2;border-radius:5px}.comm{font-size:10px;color:#666;margin-bottom:10px}.bar-bg{height:6px;background:#e0dcd4;border-radius:3px;overflow:hidden;margin-top:3px}.bar-fill{height:100%;border-radius:3px}</style></head><body><h1>" + b.name + "</h1><h2>" + b.subtitle + "</h2><div class='badge' style='background:" + b.color + "'>" + (b.status === "ready" ? "Pronto" : "Em Construção — " + b.constructionPct + "%") + "</div>" + (b.status === "construction" ? "<div style='margin-bottom:10px'><div style='font-size:10px;font-weight:600'>Obra: " + b.constructionPct + "%</div><div class='bar-bg'><div class='bar-fill' style='width:" + b.constructionPct + "%;background:" + b.color + "'></div></div></div>" : "") + "<div class='cub'>CUB/SC: " + fmt(b.cubBase) + " → " + fmt(b.cubCurrent) + " (" + ((b.cubCurrent / b.cubBase - 1) * 100).toFixed(2) + "%)</div><div class='comm'>Comissão: " + b.commission + "%</div><table><thead><tr><th>Unid.</th><th>Área</th><th>Valor</th><th>R$/m²</th><th>Status</th></tr></thead><tbody>" + rows + "</tbody></table><div class='ft'>MK Realty & D&SS Incorporação | " + CT.email + " | " + CT.phone + "<br>" + CT.ig.map(function(i){return i.h}).join(" | ") + "<br>Gerado em " + new Date().toLocaleDateString("pt-BR") + "</div></body></html>";
+    setPrintHtml(html);
+  };
+
+  if (!rdy) return (
+    <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",background:"#0f0f0e",color:"#9A9590",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:10}}>
+      <div style={{fontSize:30,animation:"p 1.5s infinite"}}>🏢</div>
+      <div style={{fontSize:12}}>Carregando...</div>
+      <style>{String.raw`@keyframes p{0%,100%{opacity:1}50%{opacity:.3}}`}</style>
+    </div>
+  );
+
+  function TabBtn(props) {
+    var isActive = props.active;
+    var isGreen = props.green;
+    return (
+      <div onClick={props.onClick} style={{flexShrink:0,padding:"7px 13px",borderRadius:50,fontSize:10,fontWeight:600,cursor:"pointer",border:isActive ? "1px solid " + (isGreen ? "#4CAF7D" : G) : "1px solid rgba(255,255,255,0.06)",background:isActive ? (isGreen ? "#4CAF7D" : G) : "transparent",color:isActive ? "#0f0f0e" : "#9A9590",whiteSpace:"nowrap"}}>
+        {props.children}
+      </div>
+    );
+  }
+
+  // ═══ HOME ═══
+  function HomeView() {
+    return (
+      <div style={{padding:"14px 12px"}}>
+        <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:12}}>
+          <span style={{fontSize:18}}>🏢</span>
+          <span style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:16,fontWeight:600,flex:1}}>Empreendimentos</span>
+          <span style={{fontSize:8,color:"#9A9590",background:"#1a1a19",padding:"3px 8px",borderRadius:20}}>{vis.length} ativos</span>
+        </div>
+        {vis.map(function(b) {
+          return (
+            <div key={b.id} onClick={function(){go(b.id)}} style={{background:"#1a1a19",borderRadius:12,overflow:"hidden",border:"1px solid rgba(255,255,255,0.04)",marginBottom:10,cursor:"pointer"}}>
+              <div style={{height:100,background:b.gradient,display:"flex",alignItems:"center",justifyContent:"center",fontSize:34,position:"relative"}}>
+                {b.emoji}
+                <span style={{position:"absolute",top:7,right:7,padding:"3px 8px",borderRadius:16,fontSize:8,fontWeight:700,background:b.color,color:"#fff"}}>{b.tag}</span>
+                {!b.active && adm && <span style={{position:"absolute",top:7,left:7,padding:"3px 8px",borderRadius:16,fontSize:8,fontWeight:700,background:"#D45B5B",color:"#fff"}}>OCULTO</span>}
+              </div>
+              <div style={{padding:12}}>
+                <div style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:14,fontWeight:600,marginBottom:2}}>{b.name}</div>
+                <div style={{fontSize:9,color:"#9A9590",marginBottom:8,lineHeight:1.4}}>{b.subtitle}</div>
+                <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:7}}>
+                  <span style={{padding:"2px 7px",borderRadius:4,fontSize:8,fontWeight:700,background:b.status==="ready"?"rgba(76,175,125,0.1)":"rgba(232,169,78,0.1)",color:b.status==="ready"?"#4CAF7D":"#E8A94E"}}>{b.status==="ready"?"✅ Pronto":"🏗️ Em Obra"}</span>
+                  {b.status==="construction" && <div style={{flex:1,height:4,background:"rgba(255,255,255,0.05)",borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:b.constructionPct+"%",background:b.color,borderRadius:2}}/></div>}
+                  {b.status==="construction" && <span style={{fontSize:9,fontWeight:700,color:"#E8A94E"}}>{b.constructionPct}%</span>}
+                </div>
+                <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                  <span style={tg}>💰 {b.commission}%</span>
+                  <span style={tg}>{b.units.filter(function(u){return u.status==="available"}).length}/{b.units.length} disp.</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // ═══ DASHBOARD ═══
+  function DashView() {
+    var recentChanges = [];
+    D.buildings.filter(function(b){return b.active}).forEach(function(b){
+      b.units.forEach(function(u){
+        (u.history || []).forEach(function(h){
+          recentChanges.push(Object.assign({},h,{unit:u.name,bld:b.name,color:b.color}));
+        });
+      });
+    });
+    recentChanges.sort(function(a,b){return (b.date||"").localeCompare(a.date||"")});
+
+    return (
+      <div style={{padding:"14px 12px"}}>
+        <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:14}}>
+          <span style={{fontSize:18}}>📊</span>
+          <span style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:16,fontWeight:600,flex:1}}>Dashboard</span>
+          <button onClick={printAll} style={Object.assign({},mb(G),{fontSize:8})}>🖨️ Relatório</button>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:7,marginBottom:14}}>
+          {[{n:stats.totalU,l:"Unidades",c:"#F5F0E8"},{n:stats.avail,l:"Disponíveis",c:"#4CAF7D"},{n:stats.reserved,l:"Reservadas",c:"#E8A94E"},{n:stats.sold,l:"Vendidas",c:"#D45B5B"},{n:stats.bldCount,l:"Empreend.",c:"#5B8FD4"},{n:fmt(stats.totalVal),l:"VGV Total",c:G,small:true}].map(function(s,i){
+            return <div key={i} style={{background:"#1a1a19",borderRadius:9,padding:"10px 8px",textAlign:"center",border:"1px solid rgba(255,255,255,0.03)"}}><div style={{fontSize:s.small?11:20,fontWeight:700,color:s.c,lineHeight:1.2}}>{s.n}</div><div style={{fontSize:7,color:"#9A9590",textTransform:"uppercase",letterSpacing:.5,marginTop:2}}>{s.l}</div></div>;
+          })}
+        </div>
+        <div style={{fontSize:10,fontWeight:600,color:"#9A9590",textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Por Empreendimento</div>
+        {D.buildings.filter(function(b){return b.active}).map(function(b){
+          var a=b.units.filter(function(u){return u.status==="available"}).length;
+          var r=b.units.filter(function(u){return u.status==="reserved"}).length;
+          var s=b.units.filter(function(u){return u.status==="sold"}).length;
+          var vgv=b.units.reduce(function(ac,u){return ac+cp(u,b)},0);
+          return <div key={b.id} style={{background:"#1a1a19",borderRadius:9,padding:10,marginBottom:7,border:"1px solid rgba(255,255,255,0.03)"}}>
+            <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:6}}><span style={{fontSize:16}}>{b.emoji}</span><span style={{fontSize:12,fontWeight:600,flex:1}}>{b.name}</span><span style={{fontSize:8,color:G}}>{fmt(vgv)}</span></div>
+            <div style={{display:"flex",gap:4}}><span style={Object.assign({},tg,{color:"#4CAF7D",background:"rgba(76,175,125,0.08)"})}>{a} disp.</span><span style={Object.assign({},tg,{color:"#E8A94E",background:"rgba(232,169,78,0.08)"})}>{r} res.</span><span style={Object.assign({},tg,{color:"#D45B5B",background:"rgba(213,91,91,0.08)"})}>{s} vend.</span><span style={Object.assign({},tg,{color:b.color})}>{b.commission}%</span></div>
+          </div>;
+        })}
+        {recentChanges.length > 0 && <div>
+          <div style={{fontSize:10,fontWeight:600,color:"#9A9590",textTransform:"uppercase",letterSpacing:1,marginTop:14,marginBottom:8}}>Histórico Recente</div>
+          {recentChanges.slice(0,10).map(function(h,i){
+            return <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 0",borderBottom:"1px solid rgba(255,255,255,0.02)",fontSize:10}}>
+              <span style={{fontSize:8,color:"#9A9590",minWidth:62}}>{h.date}</span>
+              <span style={{fontWeight:600}}>{h.unit}</span>
+              <span style={{color:"#9A9590",fontSize:9}}>{h.bld}</span>
+              <span style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:3}}>
+                <span style={{width:6,height:6,borderRadius:"50%",background:sC[h.from]}}/>
+                <span style={{color:"#666"}}>→</span>
+                <span style={{width:6,height:6,borderRadius:"50%",background:sC[h.to]}}/>
+                <span style={{fontSize:8,color:sC[h.to],fontWeight:600}}>{sL[h.to]}</span>
+              </span>
+            </div>;
+          })}
+        </div>}
+      </div>
+    );
+  }
+
+  // ═══ MANAGE ═══
+  function ManageView() {
+    return (
+      <div style={{padding:"14px 12px"}}>
+        <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:12}}>
+          <span style={{fontSize:18}}>⚙️</span>
+          <span style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:16,fontWeight:600,flex:1}}>Gerenciar</span>
+          <button onClick={printAll} style={Object.assign({},mb(G),{fontSize:8})}>🖨️ Geral</button>
+        </div>
+        <button onClick={function(){setMdl({t:"addBld"})}} style={{width:"100%",padding:"10px",borderRadius:9,fontSize:10,fontWeight:600,background:"rgba(76,175,125,0.07)",color:"#4CAF7D",border:"1px dashed rgba(76,175,125,0.3)",cursor:"pointer",marginBottom:12}}>＋ Novo Empreendimento</button>
+        {D.buildings.map(function(b) {
+          return (
+            <div key={b.id} style={{background:"#1a1a19",borderRadius:10,padding:11,marginBottom:8,border:"1px solid " + (b.active ? "rgba(255,255,255,0.04)" : "rgba(213,91,91,0.2)"),opacity:b.active?1:.55}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                <span style={{fontSize:18}}>{b.emoji}</span>
+                <div style={{flex:1}}><div style={{fontSize:12,fontWeight:600}}>{b.name}</div><div style={{fontSize:8,color:"#9A9590"}}>{b.units.length} un. • {b.active?"Ativo":"Oculto"} • {b.commission}%</div></div>
+                <div style={{width:8,height:8,borderRadius:"50%",background:b.active?"#4CAF7D":"#D45B5B"}}/>
+              </div>
+              <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                <button onClick={function(){upB(b.id,{active:!b.active});msg(b.active?"Oculto":"Ativado")}} style={mb(b.active?"#E8A94E":"#4CAF7D")}>{b.active?"👁️‍🗨️ Ocultar":"👁️ Ativar"}</button>
+                <button onClick={function(){setMdl({t:"editBld",bid:b.id})}} style={mb(b.color)}>✏️ Editar</button>
+                <button onClick={function(){setMdl({t:"addUnit",bid:b.id})}} style={mb("#5BB8B0")}>＋ Unid.</button>
+                <button onClick={function(){setMdl({t:"cub",bid:b.id})}} style={mb(G)}>📈 CUB</button>
+                {b.status==="construction" && <button onClick={function(){setMdl({t:"obra",bid:b.id})}} style={mb("#E8A94E")}>🏗️</button>}
+                <button onClick={function(){setMdl({t:"notice",bid:b.id})}} style={mb("#8B6FBF")}>📢</button>
+                <button onClick={function(){dupBld(b)}} style={mb("#5B8FD4")}>📋 Duplicar</button>
+                <button onClick={function(){if(confirm('Excluir "'+b.name+'"?')){upd(function(d){return Object.assign({},d,{buildings:d.buildings.filter(function(x){return x.id!==b.id})})});msg("Excluído")}}} style={mb("#D45B5B")}>🗑️</button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // ═══ DETAIL ═══
+  function DetailView() {
+    if (!bld) return null;
+    var filtered = filter === "all" ? bld.units : bld.units.filter(function(u){return u.status===filter});
+    var tabs = [{id:"table",i:"📊",l:"Tabela"},{id:"photos",i:"📸",l:"Fotos"},{id:"plants",i:"📐",l:"Plantas"},{id:"docs",i:"📄",l:"Docs"},{id:"notices",i:"📢",l:"Avisos"}];
+
+    return (
+      <div style={{padding:"14px 12px"}}>
+        <button onClick={function(){setVw("home")}} style={{background:"none",border:"none",color:G,fontSize:11,fontWeight:600,cursor:"pointer",padding:"4px 0",marginBottom:8}}>← Voltar</button>
+        <div style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:20,fontWeight:700,color:bld.color,marginBottom:2}}>{bld.name}</div>
+        <div style={{fontSize:10,color:"#9A9590",marginBottom:10}}>{bld.subtitle}</div>
+        <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:8,flexWrap:"wrap"}}>
+          <span style={{padding:"2px 8px",borderRadius:5,fontSize:8,fontWeight:700,background:bld.status==="ready"?"rgba(76,175,125,0.1)":"rgba(232,169,78,0.1)",color:bld.status==="ready"?"#4CAF7D":"#E8A94E"}}>{bld.status==="ready"?"✅ Pronto":"🏗️ Em Construção"}</span>
+          {bld.status==="construction" && <div style={{flex:1,height:4,background:"rgba(255,255,255,0.05)",borderRadius:2,overflow:"hidden",minWidth:60}}><div style={{height:"100%",width:bld.constructionPct+"%",background:bld.color,borderRadius:2}}/></div>}
+          {bld.status==="construction" && <span style={{fontSize:9,fontWeight:700,color:"#E8A94E"}}>{bld.constructionPct}%</span>}
+          <span style={{padding:"2px 8px",borderRadius:5,fontSize:8,fontWeight:600,background:bld.color+"12",color:bld.color}}>💰 {bld.commission}%</span>
+        </div>
+        {adm && <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:10}}>
+          <button style={mb(bld.color)} onClick={function(){setMdl({t:"cub",bid:bld.id})}}>📈 CUB</button>
+          {bld.status==="construction" && <button style={mb("#E8A94E")} onClick={function(){setMdl({t:"obra",bid:bld.id})}}>🏗️</button>}
+          <button style={mb("#8B6FBF")} onClick={function(){setMdl({t:"notice",bid:bld.id})}}>📢</button>
+          <button style={mb("#5BB8B0")} onClick={function(){setMdl({t:"addUnit",bid:bld.id})}}>＋ Unid.</button>
+          <button style={mb(bld.color)} onClick={function(){upB(bld.id,{status:bld.status==="ready"?"construction":"ready"})}}>{bld.status==="ready"?"🏗️→Obra":"✅→Pronto"}</button>
+        </div>}
+
+        <div style={{display:"flex",gap:3,overflowX:"auto",marginBottom:12,scrollbarWidth:"none"}}>
+          {tabs.map(function(t){return <div key={t.id} onClick={function(){setDtab(t.id)}} style={{flexShrink:0,padding:"6px 11px",borderRadius:6,fontSize:9,fontWeight:600,cursor:"pointer",background:dtab===t.id?bld.color+"20":"#1a1a19",color:dtab===t.id?bld.color:"#9A9590",border:dtab===t.id?"1px solid "+bld.color+"40":"1px solid transparent"}}>{t.i} {t.l}</div>})}
+        </div>
+
+        {dtab==="table" && <div>
+          <div style={{padding:9,background:"rgba(200,164,92,0.04)",borderRadius:8,marginBottom:10}}>
+            <div style={{fontSize:8,color:"#9A9590",fontWeight:600,textTransform:"uppercase",letterSpacing:1,marginBottom:2}}>CUB/SC</div>
+            <div style={{display:"flex",alignItems:"baseline",gap:4}}>
+              <span style={{fontSize:15,fontWeight:700,color:G}}>{fmt(bld.cubCurrent)}</span>
+              <span style={{fontSize:9,fontWeight:600,color:"#4CAF7D"}}>↑{((bld.cubCurrent/bld.cubBase-1)*100).toFixed(2)}%</span>
+            </div>
+            <div style={{fontSize:7,color:"#9A9590",marginTop:1}}>Base: {fmt(bld.cubBase)}</div>
+          </div>
+          <div style={{display:"flex",gap:4,marginBottom:10,flexWrap:"wrap",alignItems:"center"}}>
+            <span style={{fontSize:8,color:"#9A9590",fontWeight:600}}>Filtrar:</span>
+            {[{v:"all",l:"Todos"},{v:"available",l:"Disponíveis"},{v:"reserved",l:"Reservados"},{v:"sold",l:"Vendidos"}].map(function(f){
+              return <span key={f.v} onClick={function(){setFilter(f.v)}} style={{padding:"3px 8px",borderRadius:4,fontSize:8,fontWeight:600,cursor:"pointer",background:filter===f.v?bld.color+"20":"#1e1e1d",color:filter===f.v?bld.color:"#9A9590",border:filter===f.v?"1px solid "+bld.color+"35":"1px solid transparent"}}>{f.l}</span>;
+            })}
+          </div>
+          {compare.length>0 && <div style={{display:"flex",alignItems:"center",gap:6,padding:"7px 9px",background:"rgba(91,143,212,0.08)",borderRadius:7,marginBottom:10,border:"1px solid rgba(91,143,212,0.2)"}}>
+            <span style={{fontSize:9,color:"#5B8FD4",fontWeight:600,flex:1}}>{compare.length} selecionada(s)</span>
+            <button onClick={function(){setVw("compare")}} style={Object.assign({},mb("#5B8FD4"),{fontSize:8})}>📊 Comparar</button>
+            <button onClick={function(){setCompare([])}} style={Object.assign({},mb("#D45B5B"),{fontSize:8})}>✕</button>
+          </div>}
+          <div style={{overflowX:"auto"}}>
+            <table style={{width:"100%",borderCollapse:"separate",borderSpacing:0,borderRadius:7,overflow:"hidden",fontSize:9}}>
+              <thead><tr><th style={thS}>Unid.</th><th style={thS}>Área</th><th style={thS}>Valor</th><th style={thS}>R$/m²</th><th style={thS}>Status</th><th style={thS}>Ações</th></tr></thead>
+              <tbody>{filtered.map(function(u){
+                var p=cp(u,bld); var isSel=compare.indexOf(u.id)!==-1;
+                return <tr key={u.id} style={{background:isSel?"rgba(91,143,212,0.06)":"transparent"}}>
+                  <td style={Object.assign({},tdS,{fontWeight:600})}>{u.name}</td>
+                  <td style={tdS}>{u.area}m²</td>
+                  <td style={Object.assign({},tdS,{fontWeight:700,color:"#4CAF7D"})}>{p > 0 ? fmt(p) : "—"}</td>
+                  <td style={Object.assign({},tdS,{fontSize:8,color:"#9A9590"})}>{p > 0 ? fmt(Math.round(p/u.area)) : "—"}</td>
+                  <td style={tdS}><span style={{display:"inline-flex",alignItems:"center",gap:3,fontSize:8,fontWeight:600,color:sC[u.status]}}><span style={{width:5,height:5,borderRadius:"50%",background:sC[u.status]}}/>{sL[u.status]}</span></td>
+                  <td style={tdS}><div style={{display:"flex",gap:2,flexWrap:"wrap"}}>
+                    <button onClick={function(e){e.stopPropagation();shareUnit(u,bld)}} style={Object.assign({},mb("#25D366"),{fontSize:7,padding:"3px 6px"})}>💬</button>
+                    <button onClick={function(e){e.stopPropagation();setSimUnit({u:u,b:bld})}} style={Object.assign({},mb("#5B8FD4"),{fontSize:7,padding:"3px 6px"})}>🏦</button>
+                    <button onClick={function(e){e.stopPropagation();setCompare(function(c){return c.indexOf(u.id)!==-1?c.filter(function(x){return x!==u.id}):c.concat([u.id])})}} style={Object.assign({},mb(isSel?"#D45B5B":"#8B6FBF"),{fontSize:7,padding:"3px 6px"})}>{isSel?"✕":"⚖️"}</button>
+                    {adm && <button onClick={function(){setMdl({t:"editUnit",bid:bld.id,u:Object.assign({},u)})}} style={Object.assign({},mb(bld.color),{fontSize:7,padding:"3px 6px"})}>✏️</button>}
+                    {adm && <button onClick={function(){upB(bld.id,{units:bld.units.filter(function(x){return x.id!==u.id})});msg("Removida")}} style={Object.assign({},mb("#D45B5B"),{fontSize:7,padding:"3px 6px"})}>🗑️</button>}
+                  </div></td>
+                </tr>;
+              })}</tbody>
+            </table>
+          </div>
+          <div style={{display:"flex",gap:4,marginTop:9,flexWrap:"wrap"}}>
+            {["available","reserved","sold"].map(function(s){return <span key={s} style={{padding:"3px 8px",background:sC[s]+"10",borderRadius:4,fontSize:8,fontWeight:600,color:sC[s]}}>{sL[s]}: {bld.units.filter(function(u){return u.status===s}).length}</span>})}
+          </div>
+          <button onClick={function(){printBld(bld.id)}} style={{width:"100%",marginTop:10,padding:"9px",borderRadius:7,fontSize:10,fontWeight:600,background:bld.color,color:"#0f0f0e",border:"none",cursor:"pointer"}}>🖨️ Exportar PDF</button>
+        </div>}
+
+        {dtab==="photos" && <div>
+          {adm && <div style={{fontSize:8,color:"#E8A94E",marginBottom:8,padding:"5px 8px",background:"rgba(232,169,78,0.04)",borderRadius:5}}>📸 Upload em breve</div>}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+            {["Fachada","Living","Suíte Master","Lazer","Cozinha","Vista"].map(function(l,i){
+              return <div key={i} style={{aspectRatio:"1",borderRadius:8,border:"2px dashed rgba(255,255,255,0.06)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,fontSize:8,color:"#9A9590",background:bld.color+"04"}}><span style={{fontSize:22}}>📸</span>{l}</div>;
+            })}
+          </div>
+        </div>}
+
+        {dtab==="plants" && <div>
+          <div style={{fontSize:10,fontWeight:600,marginBottom:10,color:"#9A9590",textTransform:"uppercase",letterSpacing:1}}>Plantas e Projetos</div>
+          {(bld.plants && bld.plants.length > 0) ? bld.plants.map(function(p,i){
+            return <div key={i} style={{display:"flex",alignItems:"center",gap:9,padding:"10px",background:"#1a1a19",borderRadius:8,border:"1px solid rgba(255,255,255,0.03)",marginBottom:6}}>
+              <div style={{width:34,height:34,borderRadius:7,background:bld.color+"12",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15}}>📐</div>
+              <div style={{flex:1}}><div style={{fontSize:11,fontWeight:600}}>{p.name}</div><div style={{fontSize:8,color:"#9A9590"}}>{p.type ? p.type.toUpperCase() : "PDF"}</div></div>
+              <span style={{color:"#9A9590",fontSize:10}}>→</span>
+            </div>;
+          }) : <div style={{textAlign:"center",padding:"20px",color:"#9A9590",fontSize:10}}>Nenhuma planta cadastrada ainda</div>}
+        </div>}
+
+        {dtab==="docs" && <div style={{display:"flex",flexDirection:"column",gap:6}}>
+          {bld.documents.map(function(d,i){
+            return <div key={i} style={{display:"flex",alignItems:"center",gap:9,padding:"9px 10px",background:"#1a1a19",borderRadius:8,border:"1px solid rgba(255,255,255,0.03)"}}>
+              <div style={{width:32,height:32,borderRadius:6,background:bld.color+"12",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>📄</div>
+              <div style={{flex:1}}><div style={{fontSize:10,fontWeight:600}}>{d.name}</div><div style={{fontSize:8,color:"#9A9590"}}>{d.type.toUpperCase()}</div></div>
+              <span style={{color:"#9A9590",fontSize:10}}>→</span>
+            </div>;
+          })}
+        </div>}
+
+        {dtab==="notices" && <div>
+          {bld.notices.map(function(n,i){
+            return <div key={i} style={{padding:10,borderRadius:8,borderLeft:"3px solid "+bld.color,background:bld.color+"06",marginBottom:6}}>
+              <div style={{fontSize:7,color:"#9A9590",fontWeight:600,textTransform:"uppercase",letterSpacing:1,marginBottom:2}}>{n.date}</div>
+              <div style={{fontSize:11,fontWeight:600,marginBottom:1}}>{n.title}</div>
+              <div style={{fontSize:9,color:"#9A9590",lineHeight:1.5}}>{n.text}</div>
+              {adm && <button onClick={function(){upB(bld.id,{notices:bld.notices.filter(function(_,j){return j!==i})});msg("Removido")}} style={Object.assign({},mb("#D45B5B"),{marginTop:4,fontSize:7})}>🗑️</button>}
+            </div>;
+          })}
+        </div>}
+      </div>
+    );
+  }
+
+  // ═══ COMPARE ═══
+  function CompareView() {
+    var units = compare.map(function(id){
+      for (var i=0;i<D.buildings.length;i++){var b=D.buildings[i];var u=b.units.find(function(x){return x.id===id});if(u)return{u:u,b:b}}return null;
+    }).filter(Boolean);
+    return (
+      <div style={{padding:"14px 12px"}}>
+        <button onClick={function(){setVw("detail")}} style={{background:"none",border:"none",color:G,fontSize:11,fontWeight:600,cursor:"pointer",marginBottom:10}}>← Voltar</button>
+        <div style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:18,fontWeight:600,marginBottom:14}}>⚖️ Comparativo</div>
+        <div style={{overflowX:"auto"}}>
+          <table style={{width:"100%",borderCollapse:"separate",borderSpacing:0,borderRadius:7,overflow:"hidden",fontSize:9}}>
+            <thead><tr><th style={thS}>Info</th>{units.map(function(item){return <th key={item.u.id} style={Object.assign({},thS,{color:"#F5F0E8"})}>{item.u.name}</th>})}</tr></thead>
+            <tbody>
+              <tr><td style={Object.assign({},tdS,{fontWeight:600,color:"#9A9590"})}>Empreend.</td>{units.map(function(item){return <td key={item.u.id} style={Object.assign({},tdS,{color:item.b.color,fontWeight:600})}>{item.b.name.replace("Ed. ","")}</td>})}</tr>
+              <tr><td style={Object.assign({},tdS,{fontWeight:600,color:"#9A9590"})}>Área</td>{units.map(function(item){return <td key={item.u.id} style={tdS}>{item.u.area}m²</td>})}</tr>
+              <tr><td style={Object.assign({},tdS,{fontWeight:600,color:"#9A9590"})}>Valor</td>{units.map(function(item){return <td key={item.u.id} style={Object.assign({},tdS,{fontWeight:700,color:"#4CAF7D"})}>{fmt(cp(item.u,item.b))}</td>})}</tr>
+              <tr><td style={Object.assign({},tdS,{fontWeight:600,color:"#9A9590"})}>R$/m²</td>{units.map(function(item){return <td key={item.u.id} style={tdS}>{fmt(Math.round(cp(item.u,item.b)/item.u.area))}</td>})}</tr>
+              <tr><td style={Object.assign({},tdS,{fontWeight:600,color:"#9A9590"})}>Status</td>{units.map(function(item){return <td key={item.u.id} style={Object.assign({},tdS,{color:sC[item.u.status],fontWeight:600})}>{sL[item.u.status]}</td>})}</tr>
+              <tr><td style={Object.assign({},tdS,{fontWeight:600,color:"#9A9590"})}>Comissão</td>{units.map(function(item){return <td key={item.u.id} style={tdS}>{item.b.commission}%</td>})}</tr>
+            </tbody>
+          </table>
+        </div>
+        <button onClick={function(){setCompare([]);setVw("detail")}} style={{width:"100%",marginTop:12,padding:"9px",borderRadius:7,fontSize:10,fontWeight:600,background:G,color:"#0f0f0e",border:"none",cursor:"pointer"}}>Limpar</button>
+      </div>
+    );
+  }
+
+  // ═══ SIMULATOR MODAL ═══
+  function SimModal() {
+    var data = simUnit;
+    var price = cp(data.u, data.b);
+    var _down = useState(Math.round(price * 0.2));
+    var down = _down[0]; var setDown = _down[1];
+    var _months = useState(360);
+    var months = _months[0]; var setMonths = _months[1];
+    var _rate = useState(0.85);
+    var rate = _rate[0]; var setRate = _rate[1];
+    var financed = price - down;
+    var mr = rate / 100;
+    var pmt = mr > 0 ? financed * (mr * Math.pow(1+mr,months)) / (Math.pow(1+mr,months)-1) : financed / months;
+    return (
+      <div>
+        <div style={mT}>🏦 Simulador de Financiamento</div>
+        <div style={{fontSize:10,color:"#9A9590",marginBottom:10}}>{data.b.name} — Unidade {data.u.name}</div>
+        <div style={{padding:9,background:"rgba(76,175,125,0.06)",borderRadius:7,marginBottom:12,textAlign:"center"}}>
+          <div style={{fontSize:8,color:"#9A9590",textTransform:"uppercase",letterSpacing:1}}>Valor do Imóvel</div>
+          <div style={{fontSize:20,fontWeight:700,color:"#4CAF7D"}}>{fmt(price)}</div>
+        </div>
+        <L>Entrada (R$)</L>
+        <input style={mI} type="number" value={down} onChange={function(e){setDown(+e.target.value)}}/>
+        <div style={{fontSize:8,color:"#9A9590",marginBottom:6}}>= {((down/price)*100).toFixed(1)}% do valor</div>
+        <L>Prazo (meses)</L>
+        <div style={{display:"flex",gap:4,marginBottom:8}}>
+          {[120,180,240,300,360,420].map(function(m){return <span key={m} onClick={function(){setMonths(m)}} style={{padding:"4px 8px",borderRadius:4,fontSize:8,fontWeight:600,cursor:"pointer",background:months===m?data.b.color+"20":"#222",color:months===m?data.b.color:"#9A9590"}}>{m/12}a</span>})}
+        </div>
+        <L>Taxa Mensal (%)</L>
+        <input style={mI} type="number" step="0.01" value={rate} onChange={function(e){setRate(+e.target.value)}}/>
+        <div style={{background:"#1e1e1d",borderRadius:8,padding:11,marginTop:8}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+            <div><div style={{fontSize:7,color:"#9A9590",textTransform:"uppercase",letterSpacing:1}}>Entrada</div><div style={{fontSize:14,fontWeight:700,color:G}}>{fmt(down)}</div></div>
+            <div><div style={{fontSize:7,color:"#9A9590",textTransform:"uppercase",letterSpacing:1}}>Financiado</div><div style={{fontSize:14,fontWeight:700,color:"#5B8FD4"}}>{fmt(financed)}</div></div>
+            <div><div style={{fontSize:7,color:"#9A9590",textTransform:"uppercase",letterSpacing:1}}>Parcela</div><div style={{fontSize:18,fontWeight:700,color:"#4CAF7D"}}>{fmt(pmt)}</div></div>
+            <div><div style={{fontSize:7,color:"#9A9590",textTransform:"uppercase",letterSpacing:1}}>Total Pago</div><div style={{fontSize:14,fontWeight:700,color:"#D4735B"}}>{fmt(down+pmt*months)}</div></div>
+          </div>
+        </div>
+        <div style={{fontSize:7,color:"#9A9590",marginTop:6,textAlign:"center"}}>Simulação estimativa</div>
+        <button onClick={function(){
+          var text = "🏦 *Simulação*\n🏢 " + data.b.name + " — " + data.u.name + "\n💰 Valor: " + fmt(price) + "\n💳 Entrada: " + fmt(down) + " (" + ((down/price)*100).toFixed(1) + "%)\n🏦 Financiado: " + fmt(financed) + "\n📅 Prazo: " + months + " meses\n📊 Parcela: *" + fmt(pmt) + "*\n📞 " + CT.phone;
+          window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank");
+        }} style={{width:"100%",marginTop:8,padding:"9px",borderRadius:7,fontSize:10,fontWeight:600,background:"#25D366",color:"#fff",border:"none",cursor:"pointer"}}>💬 Enviar via WhatsApp</button>
+        <button style={mC} onClick={function(){setSimUnit(null)}}>Fechar</button>
+      </div>
+    );
+  }
+
+  // ═══ MODAL CONTENT ═══
+  function ModalContent() {
+    if (mdl.t === "login") return <LoginM/>;
+    if (mdl.t === "editUnit") return <EditUnitM/>;
+    if (mdl.t === "addUnit") return <AddUnitM/>;
+    if (mdl.t === "cub") return <CubM/>;
+    if (mdl.t === "obra") return <ObraM/>;
+    if (mdl.t === "notice") return <NoticeM/>;
+    if (mdl.t === "addBld") return <AddBldM/>;
+    if (mdl.t === "editBld") return <EditBldM/>;
+    return null;
+  }
+
+  function LoginM() {
+    var _p = useState(""); var p = _p[0]; var setP = _p[1];
+    return <div><div style={mT}>🔐 Acesso Admin</div><input type="password" maxLength={4} value={p} onChange={function(e){setP(e.target.value)}} onKeyDown={function(e){if(e.key==="Enter"){if(p===PIN){setAdm(true);setMdl(null);msg("Admin ativado")}else msg("PIN incorreto")}}} placeholder="• • • •" style={Object.assign({},mI,{textAlign:"center",fontSize:18,letterSpacing:10})}/><button style={mP(G)} onClick={function(){if(p===PIN){setAdm(true);setMdl(null);msg("Admin ativado")}else msg("PIN incorreto")}}>Entrar</button></div>;
+  }
+
+  function EditUnitM() {
+    var _u = useState(mdl.u); var u = _u[0]; var setU = _u[1];
+    return <div><div style={mT}>✏️ {u.name}</div>
+      <L>Nome</L><input style={mI} value={u.name} onChange={function(e){setU(Object.assign({},u,{name:e.target.value}))}}/>
+      <L>Preço Base</L><input style={mI} type="number" value={u.basePrice} onChange={function(e){setU(Object.assign({},u,{basePrice:+e.target.value}))}}/>
+      <L>Área (m²)</L><input style={mI} type="number" value={u.area} onChange={function(e){setU(Object.assign({},u,{area:+e.target.value}))}}/>
+      <L>Status</L><select style={mI} value={u.status} onChange={function(e){setU(Object.assign({},u,{status:e.target.value}))}}><option value="available">Disponível</option><option value="reserved">Reservado</option><option value="sold">Vendido</option></select>
+      {(u.history||[]).length>0 && <div><div style={{fontSize:8,color:"#9A9590",fontWeight:600,marginBottom:4,marginTop:4}}>HISTÓRICO</div>{u.history.map(function(h,i){return <div key={i} style={{fontSize:8,color:"#9A9590",marginBottom:2}}>{h.date}: {sL[h.from]}→{sL[h.to]}</div>})}</div>}
+      <button style={mP(bld?bld.color:G)} onClick={function(){
+        var ob = D.buildings.find(function(b){return b.id===mdl.bid});
+        var ou = ob.units.find(function(x){return x.id===u.id});
+        var hist = (u.history||[]).slice();
+        if(ou.status !== u.status) hist.push({date:new Date().toLocaleDateString("pt-BR"),from:ou.status,to:u.status});
+        upB(mdl.bid, {units:ob.units.map(function(x){return x.id===u.id?Object.assign({},u,{history:hist}):x})});
+        setMdl(null); msg("Salvo!");
+      }}>Salvar</button><button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
+    </div>;
+  }
+
+  function AddUnitM() {
+    var _u = useState({name:"",area:0,basePrice:0,status:"available"}); var u = _u[0]; var setU = _u[1];
+    return <div><div style={mT}>＋ Nova Unidade</div>
+      <L>Nome</L><input style={mI} placeholder="401" value={u.name} onChange={function(e){setU(Object.assign({},u,{name:e.target.value}))}}/>
+      <L>Área (m²)</L><input style={mI} type="number" value={u.area||""} onChange={function(e){setU(Object.assign({},u,{area:+e.target.value}))}}/>
+      <L>Preço Base</L><input style={mI} type="number" value={u.basePrice||""} onChange={function(e){setU(Object.assign({},u,{basePrice:+e.target.value}))}}/>
+      <L>Status</L><select style={mI} value={u.status} onChange={function(e){setU(Object.assign({},u,{status:e.target.value}))}}><option value="available">Disponível</option><option value="reserved">Reservado</option><option value="sold">Vendido</option></select>
+      <button style={mP("#5BB8B0")} onClick={function(){var b=D.buildings.find(function(x){return x.id===mdl.bid});upB(mdl.bid,{units:b.units.concat([Object.assign({},u,{id:mdl.bid+"-"+Date.now(),history:[]})])});setMdl(null);msg("Adicionada!")}}>Adicionar</button><button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
+    </div>;
+  }
+
+  function CubM() {
+    var b = D.buildings.find(function(x){return x.id===mdl.bid});
+    var _v = useState(b.cubCurrent); var v = _v[0]; var setV = _v[1];
+    var _m = useState(""); var m = _m[0]; var setM = _m[1];
+    return <div><div style={mT}>📈 CUB/SC</div><div style={{fontSize:9,color:"#9A9590",marginBottom:8}}>Atual: {fmt(b.cubCurrent)}</div>
+      {b.cubHistory.length>0 && <div style={{marginBottom:8}}>{b.cubHistory.slice(-4).map(function(h,i){return <div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:8,color:"#9A9590",padding:"1px 0"}}><span>{h.month}</span><span style={{fontWeight:600,color:"#bbb"}}>{fmt(h.value)}</span></div>})}</div>}
+      <L>Mês</L><input style={mI} placeholder="Mai/26" value={m} onChange={function(e){setM(e.target.value)}}/>
+      <L>Novo CUB (R$)</L><input style={mI} type="number" step="0.01" value={v} onChange={function(e){setV(+e.target.value)}}/>
+      <button style={mP(G)} onClick={function(){upB(mdl.bid,{cubCurrent:v,cubHistory:b.cubHistory.concat([{month:m||"Novo",value:v}])});setMdl(null);msg("CUB atualizado!")}}>Atualizar</button><button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
+    </div>;
+  }
+
+  function ObraM() {
+    var b = D.buildings.find(function(x){return x.id===mdl.bid});
+    var _p = useState(b.constructionPct); var p = _p[0]; var setP = _p[1];
+    var _m = useState(""); var m = _m[0]; var setM = _m[1];
+    return <div><div style={mT}>🏗️ Obra</div>
+      {b.constructionHistory.length>0 && <div style={{marginBottom:8}}>{b.constructionHistory.map(function(h,i){return <div key={i} style={{display:"flex",alignItems:"center",gap:4,marginBottom:2}}><span style={{fontSize:8,color:"#9A9590",minWidth:40}}>{h.month}</span><div style={{flex:1,height:3,background:"#333",borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:h.pct+"%",background:b.color,borderRadius:2}}/></div><span style={{fontSize:8,fontWeight:600,color:b.color,minWidth:24,textAlign:"right"}}>{h.pct}%</span></div>})}</div>}
+      <L>Mês</L><input style={mI} placeholder="Mai/26" value={m} onChange={function(e){setM(e.target.value)}}/>
+      <L>%</L><input style={mI} type="number" min="0" max="100" value={p} onChange={function(e){setP(+e.target.value)}}/>
+      <button style={mP(b.color)} onClick={function(){upB(mdl.bid,{constructionPct:p,constructionHistory:b.constructionHistory.concat([{month:m||"Atual",pct:p}]),status:p>=100?"ready":"construction"});setMdl(null);msg(p>=100?"Concluída!":"Atualizado!")}}>Atualizar</button><button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
+    </div>;
+  }
+
+  function NoticeM() {
+    var _t = useState(""); var t = _t[0]; var setT = _t[1];
+    var _x = useState(""); var x = _x[0]; var setX = _x[1];
+    return <div><div style={mT}>📢 Aviso</div>
+      <L>Título</L><input style={mI} value={t} onChange={function(e){setT(e.target.value)}}/>
+      <L>Mensagem</L><textarea style={Object.assign({},mI,{minHeight:55,resize:"vertical"})} value={x} onChange={function(e){setX(e.target.value)}}/>
+      <button style={mP("#8B6FBF")} onClick={function(){var b=D.buildings.find(function(y){return y.id===mdl.bid});upB(mdl.bid,{notices:[{date:new Date().toLocaleDateString("pt-BR"),title:t,text:x}].concat(b.notices)});setMdl(null);msg("Publicado!")}}>Publicar</button><button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
+    </div>;
+  }
+
+  function AddBldM() {
+    var _f = useState({name:"",subtitle:"",emoji:"🏢",color:"#5B8FD4",tag:"Novo",status:"construction",commission:5}); var f = _f[0]; var setF = _f[1];
+    return <div><div style={mT}>＋ Novo Empreendimento</div>
+      <L>Nome</L><input style={mI} placeholder="Ed. Novo" value={f.name} onChange={function(e){setF(Object.assign({},f,{name:e.target.value}))}}/>
+      <L>Descrição</L><input style={mI} value={f.subtitle} onChange={function(e){setF(Object.assign({},f,{subtitle:e.target.value}))}}/>
+      <L>Ícone</L><div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}}>{EMO.map(function(e){return <span key={e} onClick={function(){setF(Object.assign({},f,{emoji:e}))}} style={{fontSize:18,cursor:"pointer",padding:2,borderRadius:4,background:f.emoji===e?"rgba(200,164,92,0.2)":"transparent"}}>{e}</span>})}</div>
+      <L>Cor</L><div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}}>{CLR.map(function(cl){return <span key={cl} onClick={function(){setF(Object.assign({},f,{color:cl}))}} style={{width:24,height:24,borderRadius:4,background:cl,cursor:"pointer",border:f.color===cl?"2px solid #fff":"2px solid transparent"}}/>})}</div>
+      <L>Tag</L><input style={mI} value={f.tag} onChange={function(e){setF(Object.assign({},f,{tag:e.target.value}))}}/>
+      <L>Comissão (%)</L><input style={mI} type="number" step="0.5" value={f.commission} onChange={function(e){setF(Object.assign({},f,{commission:+e.target.value}))}}/>
+      <L>Status</L><select style={mI} value={f.status} onChange={function(e){setF(Object.assign({},f,{status:e.target.value}))}}><option value="construction">Em Construção</option><option value="ready">Pronto</option></select>
+      <button style={mP("#4CAF7D")} onClick={function(){if(!f.name.trim()){msg("Nome obrigatório");return}var id=f.name.toLowerCase().replace(/[^a-z0-9]/g,"-").replace(/-+/g,"-");upd(function(d){return Object.assign({},d,{buildings:d.buildings.concat([Object.assign({},f,{id:id,gradient:"linear-gradient(135deg,"+f.color+"40,"+f.color+"80)",active:true,constructionPct:f.status==="ready"?100:0,constructionHistory:[],cubBase:2920,cubCurrent:2920,cubHistory:[],units:[],photos:[],plants:[],documents:[],notices:[]})])})});setMdl(null);msg("Criado!")}}>Criar</button><button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
+    </div>;
+  }
+
+  function EditBldM() {
+    var b = D.buildings.find(function(x){return x.id===mdl.bid});
+    var _f = useState({name:b.name,subtitle:b.subtitle,emoji:b.emoji,color:b.color,tag:b.tag,cubBase:b.cubBase,commission:b.commission||5}); var f = _f[0]; var setF = _f[1];
+    return <div><div style={mT}>✏️ {b.name}</div>
+      <L>Nome</L><input style={mI} value={f.name} onChange={function(e){setF(Object.assign({},f,{name:e.target.value}))}}/>
+      <L>Descrição</L><input style={mI} value={f.subtitle} onChange={function(e){setF(Object.assign({},f,{subtitle:e.target.value}))}}/>
+      <L>Ícone</L><div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}}>{EMO.map(function(e){return <span key={e} onClick={function(){setF(Object.assign({},f,{emoji:e}))}} style={{fontSize:18,cursor:"pointer",padding:2,borderRadius:4,background:f.emoji===e?"rgba(200,164,92,0.2)":"transparent"}}>{e}</span>})}</div>
+      <L>Cor</L><div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}}>{CLR.map(function(cl){return <span key={cl} onClick={function(){setF(Object.assign({},f,{color:cl}))}} style={{width:24,height:24,borderRadius:4,background:cl,cursor:"pointer",border:f.color===cl?"2px solid #fff":"2px solid transparent"}}/>})}</div>
+      <L>Tag</L><input style={mI} value={f.tag} onChange={function(e){setF(Object.assign({},f,{tag:e.target.value}))}}/>
+      <L>CUB Base</L><input style={mI} type="number" step="0.01" value={f.cubBase} onChange={function(e){setF(Object.assign({},f,{cubBase:+e.target.value}))}}/>
+      <L>Comissão (%)</L><input style={mI} type="number" step="0.5" value={f.commission} onChange={function(e){setF(Object.assign({},f,{commission:+e.target.value}))}}/>
+      <button style={mP(b.color)} onClick={function(){upB(b.id,Object.assign({},f,{gradient:"linear-gradient(135deg,"+f.color+"40,"+f.color+"80)"}));setMdl(null);msg("Salvo!")}}>Salvar</button><button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
+    </div>;
+  }
+
+  // ═══ MAIN RENDER ═══
+  return (
+    <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",background:"#0f0f0e",color:"#F5F0E8",minHeight:"100vh",maxWidth:480,margin:"0 auto",position:"relative",paddingBottom:80}}>
+      <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+      <style>{String.raw`@keyframes p{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.85)}}div::-webkit-scrollbar{display:none}`}</style>
+
+      {/* HERO */}
+      <div style={{padding:"44px 20px 24px",textAlign:"center",background:"linear-gradient(170deg,#0f0f0e,#1c1914,#0f0f0e)",position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",top:"-40%",left:"-40%",width:"180%",height:"180%",background:"radial-gradient(ellipse at 50% 50%,rgba(200,164,92,0.05) 0%,transparent 65%)",pointerEvents:"none"}}/>
+        <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"rgba(200,164,92,0.1)",border:"1px solid rgba(200,164,92,0.2)",padding:"5px 13px",borderRadius:50,fontSize:9,fontWeight:700,letterSpacing:2,textTransform:"uppercase",color:G,marginBottom:14,position:"relative"}}><span style={{width:5,height:5,background:"#4CAF7D",borderRadius:"50%",animation:"p 2s infinite"}}/>Portal Exclusivo</div>
+        <h1 style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:30,fontWeight:700,lineHeight:1.1,marginBottom:7,position:"relative"}}>Central do <span style={{color:G}}>Corretor</span></h1>
+        <p style={{fontSize:11,color:"#9A9590",maxWidth:310,margin:"0 auto",lineHeight:1.6,position:"relative"}}>Empreendimentos, tabelas com correção CUB/SC, simulador e materiais.</p>
+        {adm && <div onClick={function(){setAdm(false);msg("Admin off")}} style={{marginTop:10,display:"inline-flex",alignItems:"center",gap:5,padding:"4px 12px",background:"rgba(76,175,125,0.1)",borderRadius:20,fontSize:9,fontWeight:600,color:"#4CAF7D",cursor:"pointer",position:"relative"}}>🔓 Admin — sair</div>}
+      </div>
+
+      {/* CONTACT */}
+      <div style={{display:"flex",borderTop:"1px solid rgba(200,164,92,0.1)",borderBottom:"1px solid rgba(200,164,92,0.1)",background:"rgba(200,164,92,0.02)"}}>
+        {[{href:"mailto:"+CT.email,i:"✉️",l:"E-mail"},{href:"tel:"+CT.phone,i:"📞",l:"Ligar"},{href:CT.ig[0].u,i:"📷",l:"MK Realty",t:"_blank"},{href:CT.ig[1].u,i:"📷",l:"D&SS",t:"_blank"}].map(function(x,i){
+          return <a key={i} href={x.href} target={x.t} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:3,padding:"8px 3px",fontSize:8,fontWeight:600,color:G,textDecoration:"none",borderRight:i<3?"1px solid rgba(200,164,92,0.08)":"none"}}>{x.i} {x.l}</a>;
+        })}
+      </div>
+
+      {/* NAV */}
+      <div style={{position:"sticky",top:0,zIndex:100,background:"#0f0f0e",padding:"10px 10px 0",borderBottom:"1px solid rgba(255,255,255,0.03)"}}>
+        <div style={{display:"flex",gap:4,overflowX:"auto",paddingBottom:9,scrollbarWidth:"none"}}>
+          <TabBtn active={vw==="home"} onClick={function(){setVw("home")}}>🏠 Início</TabBtn>
+          {adm && <TabBtn active={vw==="dash"} green onClick={function(){setVw("dash")}}>📊 Dashboard</TabBtn>}
+          {adm && <TabBtn active={vw==="manage"} green onClick={function(){setVw("manage")}}>⚙️ Gerenciar</TabBtn>}
+          {vis.map(function(b){return <TabBtn key={b.id} active={vw==="detail"&&sel===b.id} onClick={function(){go(b.id)}}>{b.name.replace("Ed. ","").replace("Imóveis de ","")}</TabBtn>})}
+        </div>
+      </div>
+
+      {vw==="home" && <HomeView/>}
+      {vw==="dash" && adm && <DashView/>}
+      {vw==="manage" && adm && <ManageView/>}
+      {vw==="detail" && bld && <DetailView/>}
+      {vw==="compare" && <CompareView/>}
+
+      {/* FOOTER */}
+      <div style={{textAlign:"center",padding:"20px 16px",borderTop:"1px solid rgba(255,255,255,0.03)",marginTop:12}}>
+        <div style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:12,color:G,marginBottom:4}}>MK Realty & D&SS Incorporação</div>
+        <div style={{fontSize:8,color:"#9A9590",lineHeight:1.8}}>✉️ {CT.email} • 📞 {CT.phone}<br/>📷 {CT.ig.map(function(i){return i.h}).join(" • ")}</div>
+        <div style={{fontSize:7,color:"#555",marginTop:5}}>Portal exclusivo para corretores parceiros • MK Realty & D&SS Incorporação Ltda • 2026</div>
+      </div>
+
+      {/* FABS */}
+      <div style={{position:"fixed",bottom:14,right:12,zIndex:200,display:"flex",flexDirection:"column",gap:6,alignItems:"flex-end"}}>
+        {vw==="detail" && bld && <button onClick={function(){printBld(bld.id)}} style={fab("#3B82F6")}>🖨️</button>}
+        <a href={"https://wa.me/"+CT.wa+"?text="+encodeURIComponent("Olá! Vim pelo Portal do Corretor 🏢")} target="_blank" style={Object.assign({},fab("#25D366"),{textDecoration:"none"})}>💬</a>
+        {!adm && <button onClick={function(){setMdl({t:"login"})}} style={fab(G)}>🔐</button>}
+      </div>
+
+      {mdl && <div onClick={function(){setMdl(null)}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+        <div onClick={function(e){e.stopPropagation()}} style={{background:"#1a1a19",borderRadius:13,padding:17,width:"100%",maxWidth:370,maxHeight:"82vh",overflow:"auto",border:"1px solid rgba(255,255,255,0.05)"}}>
+          <ModalContent/>
+        </div>
+      </div>}
+
+      {simUnit && <div onClick={function(){setSimUnit(null)}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+        <div onClick={function(e){e.stopPropagation()}} style={{background:"#1a1a19",borderRadius:13,padding:17,width:"100%",maxWidth:370,maxHeight:"82vh",overflow:"auto",border:"1px solid rgba(255,255,255,0.05)"}}>
+          <SimModal/>
+        </div>
+      </div>}
+
+      {toast && <div style={{position:"fixed",bottom:70,left:"50%",transform:"translateX(-50%)",background:"#2a2a28",color:"#F5F0E8",padding:"7px 15px",borderRadius:7,fontSize:10,fontWeight:500,zIndex:600,boxShadow:"0 4px 14px rgba(0,0,0,0.5)",whiteSpace:"nowrap"}}>{toast}</div>}
+
+      {printHtml && <div onClick={function(){setPrintHtml(null)}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:700,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:10}}>
+        <div onClick={function(e){e.stopPropagation()}} style={{width:"100%",maxWidth:460,height:"80vh",background:"#fff",borderRadius:12,overflow:"hidden",display:"flex",flexDirection:"column"}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,padding:"10px 14px",background:"#f5f0e8",borderBottom:"1px solid #ddd"}}>
+            <span style={{fontSize:14}}>🖨️</span>
+            <span style={{fontSize:12,fontWeight:600,color:"#1a1a1a",flex:1}}>Visualização para Impressão</span>
+            <button onClick={function(){
+              var iframeEl = document.getElementById("print-frame");
+              if (iframeEl && iframeEl.contentWindow) { iframeEl.contentWindow.print(); }
+            }} style={{padding:"5px 12px",borderRadius:6,fontSize:10,fontWeight:600,background:"#3B82F6",color:"#fff",border:"none",cursor:"pointer"}}>🖨️ Imprimir</button>
+            <button onClick={function(){setPrintHtml(null)}} style={{padding:"5px 10px",borderRadius:6,fontSize:12,fontWeight:600,background:"#eee",color:"#666",border:"none",cursor:"pointer"}}>✕</button>
+          </div>
+          <iframe id="print-frame" srcDoc={printHtml} style={{flex:1,width:"100%",border:"none"}}/>
+        </div>
+      </div>}
+    </div>
+  );
+}
+
+const fab = function(bg){return{width:42,height:42,borderRadius:"50%",background:bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,boxShadow:"0 3px 12px "+bg+"55",cursor:"pointer",border:"none"}};
+const mb = function(c){return{padding:"4px 9px",borderRadius:5,fontSize:8,fontWeight:600,background:c+"15",color:c,border:"1px solid "+c+"30",cursor:"pointer"}};
+const tg = {padding:"3px 7px",background:"#1e1e1d",borderRadius:4,fontSize:8,fontWeight:500,color:"#aaa"};
+const thS = {background:"rgba(200,164,92,0.06)",color:"#C8A45C",padding:"7px 6px",textAlign:"left",fontWeight:600,fontSize:7,textTransform:"uppercase",letterSpacing:1};
+const tdS = {padding:"7px 6px",borderBottom:"1px solid rgba(255,255,255,0.025)"};
+const mT = {fontFamily:"'Playfair Display',Georgia,serif",fontSize:15,fontWeight:600,marginBottom:11,color:"#F5F0E8"};
+const mI = {width:"100%",padding:"8px 10px",background:"#222",border:"1px solid rgba(255,255,255,0.05)",borderRadius:6,color:"#F5F0E8",fontSize:10,fontFamily:"inherit",outline:"none",marginBottom:6};
+const mP = function(c){return{width:"100%",padding:"9px",borderRadius:6,fontSize:10,fontWeight:600,background:c||"#C8A45C",color:"#0f0f0e",border:"none",cursor:"pointer",marginTop:3}};
+const mC = {width:"100%",padding:"9px",borderRadius:6,fontSize:10,fontWeight:600,background:"transparent",color:"#9A9590",border:"1px solid rgba(255,255,255,0.05)",cursor:"pointer",marginTop:3};
+const L = function(props){return <label style={{fontSize:8,color:"#9A9590",fontWeight:600,display:"block",marginBottom:2,textTransform:"uppercase",letterSpacing:.5}}>{props.children}</label>};
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(React.createElement(React.StrictMode, null, React.createElement(App)));
+</script>
+</body>
+</html>
