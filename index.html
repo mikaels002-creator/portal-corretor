@@ -299,6 +299,8 @@ const CLR = ["#5B8FD4","#D4735B","#C8A45C","#8B6FBF","#5BB8B0","#E06090","#7CB34
 const CT = { email:"contato@mkcrealty.com.br", phone:"+55 47 992134870", wa:"5547992134870", ig:[{h:"@mkcrealty",u:"https://www.instagram.com/mkcrealty?igsh=MW1hdTFxZzBicHc0eQ=="},{h:"@dsincorporacao",u:"https://www.instagram.com/dsincorporacao?igsh=YTAxYTlkczYyNXZj"}] };
 const GRP = "MK Realty & D&SS Incorporação Ltda";
 const G = "#C8A45C";
+var parseBR = function(v){ if(typeof v === "number") return v; return parseFloat(String(v||"0").replace(/\./g,"").replace(",",".")) || 0; };
+var fmtBR = function(v){ return (typeof v === "number" ? v : 0).toFixed(2).replace(".",","); };
 const TR = {
   pt:{home:"Início",buildings:"Empreendimentos",table:"Tabela",photos:"Fotos",plants:"Plantas",docs:"Docs",notices:"Avisos",back:"Voltar",available:"Disponível",reserved:"Reservado",sold:"Vendido",ready:"Pronto para Morar",construction:"Em Construção",unit:"Unid.",area:"Área",value:"Valor",status:"Status",actions:"Ações",filter:"Filtrar",all:"Todos",export:"Exportar PDF",commission:"comissão",compare:"Comparar",simulator:"Simulador de Financiamento",send:"Enviar via WhatsApp",close:"Fechar",incorp:"Incorporação",preLaunch:"Pré-Lançamento",showUsd:"Mostrar em USD",showBrl:"Mostrar em BRL"},
   es:{home:"Inicio",buildings:"Emprendimientos",table:"Tabla",photos:"Fotos",plants:"Planos",docs:"Docs",notices:"Avisos",back:"Volver",available:"Disponible",reserved:"Reservado",sold:"Vendido",ready:"Listo para vivir",construction:"En Construcción",unit:"Unid.",area:"Área",value:"Valor",status:"Estado",actions:"Acciones",filter:"Filtrar",all:"Todos",export:"Exportar PDF",commission:"comisión",compare:"Comparar",simulator:"Simulador de Financiación",send:"Enviar por WhatsApp",close:"Cerrar",incorp:"Incorporación",preLaunch:"Pre-lanzamiento",showUsd:"Mostrar en USD",showBrl:"Mostrar en BRL"}
@@ -355,9 +357,26 @@ function App() {
       .catch(function(e){console.log("USD fetch error:",e)});
   };
 
+  // Auto-fetch CUB/SC from Banco Central do Brasil (série 7495)
+  var fetchCubSC = function(){
+    fetch("https://api.bcb.gov.br/dados/serie/bcdata.sgs.7495/dados/ultimos/1?formato=json")
+      .then(function(r){return r.json()})
+      .then(function(data){
+        if(data && data.length > 0){
+          var val = parseFloat(data[0].valor);
+          var dt = data[0].data;
+          var nc = Object.assign({},siteConfig,{cubSC:val,cubSCDate:dt,cubSCLastFetch:new Date().toLocaleString("pt-BR")});
+          setSiteConfig(nc);
+          window.localStorage.setItem("portal-site-config",JSON.stringify(nc));
+        }
+      })
+      .catch(function(e){console.log("CUB fetch error:",e)});
+  };
+
   useEffect(function(){
     fetchUsdRate();
-    var interval = setInterval(fetchUsdRate, 3600000);
+    fetchCubSC();
+    var interval = setInterval(function(){fetchUsdRate();fetchCubSC()}, 3600000);
     return function(){clearInterval(interval)};
   },[]);
 
@@ -1012,8 +1031,16 @@ function App() {
       </div>
       <div style={{marginTop:10,padding:"10px 0",borderTop:"1px solid rgba(255,255,255,0.05)"}}>
         <div style={{fontSize:11,fontWeight:600,color:G,marginBottom:8,textTransform:"uppercase",letterSpacing:1}}>📊 Indicadores Econômicos</div>
-        <L>CUB/SC (R$/m²)</L>
-        <input style={mI} type="number" step="0.01" value={c.cubSC||3028.45} onChange={function(e){setC(Object.assign({},c,{cubSC:+e.target.value}))}}/>
+        <L>CUB/SC (R$/m²) — vírgula ou ponto</L>
+        <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:4}}>
+          <input style={Object.assign({},mI,{marginBottom:0,flex:1})} value={c.cubSC||""} onChange={function(e){setC(Object.assign({},c,{cubSC:e.target.value.replace(",",".")}))}} placeholder="3.028,45"/>
+          <button onClick={function(){try{navigator.clipboard.writeText(String(c.cubSC||""));msg("CUB copiado!")}catch(e){}}} style={Object.assign({},mb("#4CAF7D"),{fontSize:10,whiteSpace:"nowrap"})}>📋</button>
+        </div>
+        <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:8}}>
+          <button onClick={function(){fetchCubSC();msg("Buscando CUB/SC...")}} style={Object.assign({},mb("#5B8FD4"),{fontSize:10})}>🔄 Buscar CUB atualizado (BCB)</button>
+          {c.cubSCDate && <span style={{fontSize:8,color:"#9A9590"}}>Ref: {c.cubSCDate}</span>}
+        </div>
+        <div style={{fontSize:9,color:"#9A9590",marginBottom:6}}>Fonte: Banco Central do Brasil (série 7495). Atualização automática a cada hora.</div>
         <L>INCC (% mensal)</L>
         <input style={mI} type="number" step="0.01" value={c.incc||0} onChange={function(e){setC(Object.assign({},c,{incc:+e.target.value}))}}/>
         <L>IPCA (% mensal)</L>
@@ -1144,13 +1171,41 @@ function App() {
 
   function CubM() {
     var b = D.buildings.find(function(x){return x.id===mdl.bid});
-    var _v = useState(b.cubCurrent); var v = _v[0]; var setV = _v[1];
+    var _v = useState(fmtBR(b.cubCurrent)); var v = _v[0]; var setV = _v[1];
     var _m = useState(""); var m = _m[0]; var setM = _m[1];
-    return <div><div style={mT}>📈 CUB/SC</div><div style={{fontSize:9,color:"#9A9590",marginBottom:8}}>Atual: {fmt(b.cubCurrent)}</div>
-      {b.cubHistory.length>0 && <div style={{marginBottom:8}}>{b.cubHistory.slice(-4).map(function(h,i){return <div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:8,color:"#9A9590",padding:"1px 0"}}><span>{h.month}</span><span style={{fontWeight:600,color:"#bbb"}}>{fmt(h.value)}</span></div>})}</div>}
-      <L>Mês</L><input style={mI} placeholder="Mai/26" value={m} onChange={function(e){setM(e.target.value)}}/>
-      <L>Novo CUB (R$)</L><input style={mI} type="number" step="0.01" value={v} onChange={function(e){setV(+e.target.value)}}/>
-      <button style={mP(G)} onClick={function(){upB(mdl.bid,{cubCurrent:v,cubHistory:b.cubHistory.concat([{month:m||"Novo",value:v}])});setMdl(null);msg("CUB atualizado!")}}>Atualizar</button><button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
+    var globalCub = siteConfig.cubSC || 3028.45;
+    var parsedV = parseBR(v);
+    return <div><div style={mT}>📈 Atualizar CUB/SC</div>
+      <div style={{padding:10,background:"rgba(76,175,125,0.06)",borderRadius:8,marginBottom:12}}>
+        <div style={{fontSize:9,color:"#9A9590",textTransform:"uppercase",letterSpacing:1,marginBottom:3}}>CUB/SC Referência (Config. Gerais)</div>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <span style={{fontSize:18,fontWeight:700,color:"#4CAF7D"}}>R$ {fmtBR(globalCub)}</span>
+          <button onClick={function(){setV(fmtBR(globalCub));msg("CUB copiado!")}} style={Object.assign({},mb("#4CAF7D"),{fontSize:10})}>📋 Usar este valor</button>
+        </div>
+        <div style={{fontSize:8,color:"#9A9590",marginTop:4}}>Atualize o CUB de referência nas Configurações Gerais (🎨)</div>
+      </div>
+      <div style={{fontSize:11,color:"#9A9590",marginBottom:8}}>CUB atual deste empreendimento: <strong style={{color:"#F5F0E8"}}>R$ {fmtBR(b.cubCurrent)}</strong></div>
+      {b.cubHistory.length>0 && <div style={{marginBottom:10}}>
+        <div style={{fontSize:9,color:"#9A9590",fontWeight:600,marginBottom:4,textTransform:"uppercase",letterSpacing:1}}>Histórico</div>
+        {b.cubHistory.slice(-6).map(function(h,i){return <div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"#9A9590",padding:"3px 0",borderBottom:"1px solid rgba(255,255,255,0.02)"}}>
+          <span>{h.month}</span>
+          <span style={{fontWeight:600,color:"#bbb"}}>R$ {fmtBR(h.value)}</span>
+          <button onClick={function(){
+            try{navigator.clipboard.writeText(fmtBR(h.value));msg("Copiado!")}catch(e){msg("R$ "+fmtBR(h.value))}
+          }} style={{background:"none",border:"none",color:"#5B8FD4",cursor:"pointer",fontSize:10}}>📋</button>
+        </div>})}
+      </div>}
+      <L>Mês de Referência</L><input style={mI} placeholder="Mai/26" value={m} onChange={function(e){setM(e.target.value)}}/>
+      <L>Novo CUB (R$) — use vírgula ou ponto</L>
+      <input style={mI} value={v} onChange={function(e){setV(e.target.value)}} placeholder="3.028,45 ou 3028.45"/>
+      <div style={{fontSize:9,color:"#9A9590",marginBottom:6}}>Valor interpretado: R$ {fmtBR(parsedV)}</div>
+      <button style={mP(G)} onClick={function(){
+        var val = parsedV;
+        if(val <= 0){msg("Valor inválido");return}
+        upB(mdl.bid,{cubCurrent:val,cubHistory:b.cubHistory.concat([{month:m||"Novo",value:val}])});
+        setMdl(null);msg("CUB atualizado para R$ "+fmtBR(val)+"!");
+      }}>Atualizar CUB</button>
+      <button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
     </div>;
   }
 
@@ -1201,8 +1256,7 @@ function App() {
       <L>Ícone</L><div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}}>{EMO.map(function(e){return <span key={e} onClick={function(){setF(Object.assign({},f,{emoji:e}))}} style={{fontSize:18,cursor:"pointer",padding:2,borderRadius:4,background:f.emoji===e?"rgba(200,164,92,0.2)":"transparent"}}>{e}</span>})}</div>
       <L>Cor</L><div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}}>{CLR.map(function(cl){return <span key={cl} onClick={function(){setF(Object.assign({},f,{color:cl}))}} style={{width:24,height:24,borderRadius:4,background:cl,cursor:"pointer",border:f.color===cl?"2px solid #fff":"2px solid transparent"}}/>})}</div>
       <L>Tag</L><input style={mI} value={f.tag} onChange={function(e){setF(Object.assign({},f,{tag:e.target.value}))}}/>
-      <L>CUB Base</L><input style={mI} type="number" step="0.01" value={f.cubBase} onChange={function(e){setF(Object.assign({},f,{cubBase:+e.target.value}))}}/>
-      <L>Comissão (%)</L><input style={mI} type="number" step="0.5" value={f.commission} onChange={function(e){setF(Object.assign({},f,{commission:+e.target.value}))}}/>
+      <L>CUB Base (R$) — vírgula ou ponto</L><input style={mI} value={f.cubBase} onChange={function(e){setF(Object.assign({},f,{cubBase:e.target.value}))}} placeholder="3.028,45"/>      <L>Comissão (%)</L><input style={mI} type="number" step="0.5" value={f.commission} onChange={function(e){setF(Object.assign({},f,{commission:+e.target.value}))}}/>
       <L>Nº Incorporação / Registro</L><input style={mI} value={f.incorporation} onChange={function(e){setF(Object.assign({},f,{incorporation:e.target.value}))}} placeholder="Ex: R4-41.637 ou Pré-Lançamento"/>
       <div style={{marginTop:8,padding:"8px 0",borderTop:"1px solid rgba(255,255,255,0.05)"}}>
         <div style={{fontSize:9,fontWeight:600,color:G,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>⚙️ Config. Financiamento</div>
@@ -1214,7 +1268,7 @@ function App() {
           <option value="CUB-SC">CUB-SC</option><option value="INCC">INCC</option><option value="IPCA">IPCA</option><option value="IGP-M">IGP-M</option><option value="CUB-SC + INCC">CUB-SC até entrega + INCC após</option><option value="Outro">Outro</option>
         </select>
       </div>
-      <button style={mP(b.color)} onClick={function(){upB(b.id,Object.assign({},f,{gradient:"linear-gradient(135deg,"+f.color+"40,"+f.color+"80)",financing:{entradaPct:f.finEntrada,parcelas:f.finParcelas,taxaMensal:f.finTaxa,indice:f.finIndice,parcelasOpcoes:f.finParcelasOpcoes}}));setMdl(null);msg("Salvo!")}}>Salvar</button><button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
+      <button style={mP(b.color)} onClick={function(){upB(b.id,Object.assign({},f,{cubBase:parseBR(f.cubBase),gradient:"linear-gradient(135deg,"+f.color+"40,"+f.color+"80)",financing:{entradaPct:f.finEntrada,parcelas:f.finParcelas,taxaMensal:f.finTaxa,indice:f.finIndice,parcelasOpcoes:f.finParcelasOpcoes}}));setMdl(null);msg("Salvo!")}}>Salvar</button><button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
     </div>;
   }
 
@@ -1267,7 +1321,8 @@ function App() {
         <div style={{display:"flex",justifyContent:"center",gap:8,flexWrap:"wrap",marginBottom:12}}>
           <div style={{padding:"8px 12px",background:"#1a1a19",borderRadius:8,border:"1px solid rgba(255,255,255,0.04)",textAlign:"center",minWidth:80}}>
             <div style={{fontSize:8,color:"#9A9590",textTransform:"uppercase",letterSpacing:1,marginBottom:2}}>CUB/SC</div>
-            <div style={{fontSize:13,fontWeight:700,color:G}}>R$ {(siteConfig.cubSC||3028.45).toFixed(2)}</div>
+            <div style={{fontSize:13,fontWeight:700,color:G}}>R$ {fmtBR(parseFloat(siteConfig.cubSC)||0)}</div>
+            <div style={{fontSize:7,color:"#666"}}>{siteConfig.cubSCDate||"—"}</div>
           </div>
           <div style={{padding:"8px 12px",background:"#1a1a19",borderRadius:8,border:"1px solid rgba(255,255,255,0.04)",textAlign:"center",minWidth:80}}>
             <div style={{fontSize:8,color:"#9A9590",textTransform:"uppercase",letterSpacing:1,marginBottom:2}}>USD/BRL</div>
