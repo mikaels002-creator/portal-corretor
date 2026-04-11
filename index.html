@@ -32,7 +32,7 @@ const { useState, useEffect, useCallback, useMemo } = React;
 
 const INIT = {
   buildings: [
-    { id:"gran-vitta", name:"Ed. Gran Vitta", subtitle:"800m² de lazer — Rua Pavão, nº 315, Bombas, Bombinhas/SC • Início obra 11/2026 • Entrega 12/2030", emoji:"🏙️", color:"#5B8FD4", gradient:"linear-gradient(135deg,#1e3a5f,#2d5a8e)", tag:"Pré-Lançamento", status:"construction", active:true, constructionPct:0, commission:6, constructionHistory:[], cubBase:3019.26, cubCurrent:3019.26, cubHistory:[{month:"Fev/26",value:3019.26}], units:[
+    { id:"gran-vitta", name:"Ed. Gran Vitta", subtitle:"800m² de lazer — Rua Pavão, nº 315, Bombas, Bombinhas/SC • Início obra 11/2026 • Entrega 12/2030", emoji:"🏙️", color:"#5B8FD4", gradient:"linear-gradient(135deg,#1e3a5f,#2d5a8e)", tag:"Pré-Lançamento", status:"construction", active:true, constructionPct:0, commission:5, constructionHistory:[], cubBase:3019.26, cubCurrent:3019.26, cubHistory:[{month:"Fev/26",value:3019.26}], units:[
       {id:"gv-s01",name:"Sala 01 (Comercial)",area:82.70,basePrice:1050000,status:"reserved",history:[]},
       {id:"gv-s02",name:"Sala 02 (Comercial)",area:43.33,basePrice:750000,status:"reserved",history:[]},
       {id:"gv-s03",name:"Sala 03 (Comercial)",area:43.33,basePrice:750000,status:"reserved",history:[]},
@@ -86,7 +86,7 @@ const INIT = {
       {id:"gv-510",name:"510 (2 dorm.)",area:62.28,basePrice:1050000,status:"available",history:[]},
       {id:"gv-511",name:"511 (1s+1d)",area:60.42,basePrice:967145.28,status:"available",history:[]}
     ], photos:[], plants:[{name:"Planta Baixa Térreo + Situação",type:"pdf"},{name:"Planta Baixa Outorga 01 (Aptos + Garagem)",type:"pdf"},{name:"Planta Baixa Tipo (Apartamentos)",type:"pdf"},{name:"Planta Baixa Pavto. Lazer",type:"pdf"},{name:"Elevações (Ante Projeto)",type:"pdf"}], documents:[{name:"Book de Vendas",type:"pdf"},{name:"Memorial Descritivo",type:"pdf"},{name:"Tabela de Preços - Fev/2026",type:"pdf"}], notices:[{date:"10/04/2026",title:"Tabela Fevereiro/2026 - Pré-Lançamento",text:"CUB/SC R$ 3.019,26/m². Entrada 30% + saldo 48x corrigidos pelo CUB. 800m² de lazer. Rua Pavão, nº 315, Bombas, Bombinhas/SC. Início obra 11/2026, entrega 12/2030."}] },
-    { id:"carina", name:"Res. Carina Camboin", subtitle:"Pré-lançamento — Rua Bem-Te-Vi, Bombas, Bombinhas/SC • Entrega 31/04/2030", emoji:"🌇", color:"#D4735B", gradient:"linear-gradient(135deg,#5f2e1e,#8e4d2d)", tag:"Pré-Lançamento", status:"construction", active:true, constructionPct:0, commission:6, constructionHistory:[], cubBase:3163.10, cubCurrent:3163.10, cubHistory:[{month:"Abr/26",value:3163.10}], units:[
+    { id:"carina", name:"Res. Carina Camboin", subtitle:"Pré-lançamento — Rua Bem-Te-Vi, Bombas, Bombinhas/SC • Entrega 31/04/2030", emoji:"🌇", color:"#D4735B", gradient:"linear-gradient(135deg,#5f2e1e,#8e4d2d)", tag:"Pré-Lançamento", status:"construction", active:true, constructionPct:0, commission:5, constructionHistory:[], cubBase:3163.10, cubCurrent:3163.10, cubHistory:[{month:"Abr/26",value:3163.10}], units:[
       {id:"ca-101",name:"101",area:66.15,basePrice:1249590.05,status:"available",history:[]},
       {id:"ca-102",name:"102",area:64.67,basePrice:0,status:"reserved",history:[]},
       {id:"ca-103",name:"103",area:74.95,basePrice:0,status:"reserved",history:[]},
@@ -141,7 +141,7 @@ const INIT = {
       {id:"ca-601",name:"601",area:169.18,basePrice:0,status:"reserved",history:[]},
       {id:"ca-602",name:"602",area:171.52,basePrice:0,status:"reserved",history:[]}
     ], photos:[], plants:[], documents:[{name:"Book de Vendas",type:"pdf"},{name:"Tabela de Preços - Abril/2026",type:"pdf"}], notices:[{date:"10/04/2026",title:"Tabela Abril/2026 - Pré-Lançamento",text:"Entrada 30% + Início Obra 10% + saldo 72x. Reajuste CUB-SC até entrega, após INCC + 0,5% a.m. Unidades '1': 2 dorm (1 suíte) + 1 vaga. Unidades '2': 3 dorm (3 suítes) + 2 vagas. Entrega 31/04/2030. Rua Bem-Te-Vi, Bombas, Bombinhas/SC."}] },
-    { id:"artesano", name:"Ed. Artesano by Hilton", subtitle:"Hilton Tapestry Collection by Artefacto — Bombinhas/SC • Entrega 30/12/2026", emoji:"⭐", color:"#C8A45C", gradient:"linear-gradient(135deg,#4a3d1f,#7a6830)", tag:"Premium", status:"construction", active:true, constructionPct:25, commission:6, constructionHistory:[{month:"Jan/26",pct:15},{month:"Fev/26",pct:18},{month:"Mar/26",pct:22},{month:"Abr/26",pct:25}], cubBase:3028.45, cubCurrent:3028.45, cubHistory:[{month:"Mar/26",value:3028.45}], units:[
+    { id:"artesano", name:"Ed. Artesano by Hilton", subtitle:"Hilton Tapestry Collection by Artefacto — Bombinhas/SC • Entrega 30/12/2026", emoji:"⭐", color:"#C8A45C", gradient:"linear-gradient(135deg,#4a3d1f,#7a6830)", tag:"Premium", status:"construction", active:true, constructionPct:25, commission:5, constructionHistory:[{month:"Jan/26",pct:15},{month:"Fev/26",pct:18},{month:"Mar/26",pct:22},{month:"Abr/26",pct:25}], cubBase:3028.45, cubCurrent:3028.45, cubHistory:[{month:"Mar/26",value:3028.45}], units:[
       {id:"ar-127",name:"127",area:35,basePrice:0,status:"sold",history:[]},
       {id:"ar-128",name:"128",area:32.26,basePrice:0,status:"sold",history:[]},
       {id:"ar-129",name:"129",area:32.26,basePrice:0,status:"sold",history:[]},
@@ -259,7 +259,7 @@ const INIT = {
       {id:"ar-525",name:"525",area:32.75,basePrice:0,status:"reserved",history:[]},
       {id:"ar-526",name:"526",area:33.39,basePrice:0,status:"reserved",history:[]}
     ], photos:[], plants:[], documents:[{name:"Book Hilton",type:"pdf"},{name:"Estudo de Rentabilidade",type:"pdf"},{name:"Tabela de Preços - Março/2026",type:"pdf"}], notices:[{date:"10/04/2026",title:"Tabela Março/2026 atualizada",text:"CUB/SC R$ 3.028,45/m². Entrada 10% + saldo 72x. 5% desconto à vista. Entrega 30/12/2026. Rua Mergulhão Caçador, 286 - Bombas, Bombinhas/SC. Registro R4-41.637."}] },
-    { id:"di-franci", name:"Res. Di Franci", subtitle:"3 Suítes + 2 Vagas — Rua 153, nº 95, Centro, Itapema/SC • Pronto para morar", emoji:"🏛️", color:"#8B6FBF", gradient:"linear-gradient(135deg,#3a2d5f,#5a4580)", tag:"Pronto", status:"ready", active:true, constructionPct:100, commission:6, constructionHistory:[], cubBase:2774.29, cubCurrent:2774.29, cubHistory:[{month:"Mar/26",value:2774.29}], units:[
+    { id:"di-franci", name:"Res. Di Franci", subtitle:"3 Suítes + 2 Vagas — Rua 153, nº 95, Centro, Itapema/SC • Pronto para morar", emoji:"🏛️", color:"#8B6FBF", gradient:"linear-gradient(135deg,#3a2d5f,#5a4580)", tag:"Pronto", status:"ready", active:true, constructionPct:100, commission:5, constructionHistory:[], cubBase:2774.29, cubCurrent:2774.29, cubHistory:[{month:"Mar/26",value:2774.29}], units:[
       {id:"df-501",name:"501 (Lado Mar)",area:130.6,basePrice:0,status:"reserved",history:[]},
       {id:"df-502",name:"502 (Lado Av.)",area:125.6,basePrice:0,status:"reserved",history:[]},
       {id:"df-601",name:"601 (Lado Mar)",area:130.6,basePrice:0,status:"reserved",history:[]},
@@ -283,20 +283,26 @@ const INIT = {
       {id:"df-1501",name:"1501 (Lado Mar)",area:130.6,basePrice:6166155.65,status:"available",history:[]},
       {id:"df-1502",name:"1502 (Lado Av.)",area:125.6,basePrice:5653238.60,status:"available",history:[]}
     ], photos:[], plants:[], documents:[{name:"Book de Vendas",type:"pdf"},{name:"Tabela de Preços - Março/2026",type:"pdf"}], notices:[{date:"10/04/2026",title:"Pronto para morar!",text:"CUB/SC R$ 2.774,29/m². Entrada 30% + 60 parcelas + 4 reforços. Reajuste CUB-SC até entrega, após INCC + 0,5% a.m. Unidades '1': Lado Mar. Unidades '2': Lado Avenida. Ambas 3 suítes + 2 vagas. Matrícula R-4-74.859 Itapema/SC."}] },
-    { id:"repasse", name:"Imóveis de Repasse", subtitle:"Oportunidades exclusivas com condições diferenciadas", emoji:"🔄", color:"#5BB8B0", gradient:"linear-gradient(135deg,#1e4a46,#2d7a73)", tag:"Oportunidade", status:"ready", active:true, constructionPct:100, commission:4, constructionHistory:[], cubBase:2850, cubCurrent:2920, cubHistory:[], units:[{id:"rp-01",name:"Repasse 01",area:85,basePrice:520000,status:"available",history:[]},{id:"rp-02",name:"Repasse 02",area:72,basePrice:380000,status:"available",history:[]},{id:"rp-03",name:"Repasse 03",area:120,basePrice:750000,status:"reserved",history:[{date:"09/04/2026",from:"available",to:"reserved"}]}], photos:[], plants:[], documents:[{name:"Catálogo de Repasses",type:"pdf"}], notices:[{date:"10/04/2026",title:"Oportunidades Ativas",text:"Novos repasses conforme disponibilidade."}] },
+    { id:"repasse", name:"Imóveis de Repasse", subtitle:"Oportunidades exclusivas com condições diferenciadas", emoji:"🔄", color:"#5BB8B0", gradient:"linear-gradient(135deg,#1e4a46,#2d7a73)", tag:"Oportunidade", status:"ready", active:true, constructionPct:100, commission:5, constructionHistory:[], cubBase:2850, cubCurrent:2920, cubHistory:[], units:[{id:"rp-01",name:"Repasse 01",area:85,basePrice:520000,status:"available",history:[]},{id:"rp-02",name:"Repasse 02",area:72,basePrice:380000,status:"available",history:[]},{id:"rp-03",name:"Repasse 03",area:120,basePrice:750000,status:"reserved",history:[{date:"09/04/2026",from:"available",to:"reserved"}]}], photos:[], plants:[], documents:[{name:"Catálogo de Repasses",type:"pdf"}], notices:[{date:"10/04/2026",title:"Oportunidades Ativas",text:"Novos repasses conforme disponibilidade."}] },
   ],
 };
 
 const PIN = "8414";
 const SK = "broker-portal-v5";
 const fmt = (v) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const fmtUsd = (v) => v.toLocaleString("en-US", { style: "currency", currency: "USD" });
 const sL = { available: "Disponível", reserved: "Reservado", sold: "Vendido" };
+const sLes = { available: "Disponible", reserved: "Reservado", sold: "Vendido" };
 const sC = { available: "#4CAF7D", reserved: "#E8A94E", sold: "#D45B5B" };
 const EMO = ["🏙️","🌇","⭐","🏛️","🔄","🏢","🏗️","🌆","🏘️","🏠","🏡","🏰"];
 const CLR = ["#5B8FD4","#D4735B","#C8A45C","#8B6FBF","#5BB8B0","#E06090","#7CB342","#FF7043","#5C6BC0"];
 const CT = { email:"contato@mkcrealty.com.br", phone:"+55 47 992134870", wa:"5547992134870", ig:[{h:"@mkcrealty",u:"https://www.instagram.com/mkcrealty?igsh=MW1hdTFxZzBicHc0eQ=="},{h:"@dsincorporacao",u:"https://www.instagram.com/dsincorporacao?igsh=YTAxYTlkczYyNXZj"}] };
 const GRP = "MK Realty & D&SS Incorporação Ltda";
 const G = "#C8A45C";
+const TR = {
+  pt:{home:"Início",buildings:"Empreendimentos",table:"Tabela",photos:"Fotos",plants:"Plantas",docs:"Docs",notices:"Avisos",back:"Voltar",available:"Disponível",reserved:"Reservado",sold:"Vendido",ready:"Pronto para Morar",construction:"Em Construção",unit:"Unid.",area:"Área",value:"Valor",status:"Status",actions:"Ações",filter:"Filtrar",all:"Todos",export:"Exportar PDF",commission:"comissão",compare:"Comparar",simulator:"Simulador de Financiamento",send:"Enviar via WhatsApp",close:"Fechar",incorp:"Incorporação",preLaunch:"Pré-Lançamento",showUsd:"Mostrar em USD",showBrl:"Mostrar em BRL"},
+  es:{home:"Inicio",buildings:"Emprendimientos",table:"Tabla",photos:"Fotos",plants:"Planos",docs:"Docs",notices:"Avisos",back:"Volver",available:"Disponible",reserved:"Reservado",sold:"Vendido",ready:"Listo para vivir",construction:"En Construcción",unit:"Unid.",area:"Área",value:"Valor",status:"Estado",actions:"Acciones",filter:"Filtrar",all:"Todos",export:"Exportar PDF",commission:"comisión",compare:"Comparar",simulator:"Simulador de Financiación",send:"Enviar por WhatsApp",close:"Cerrar",incorp:"Incorporación",preLaunch:"Pre-lanzamiento",showUsd:"Mostrar en USD",showBrl:"Mostrar en BRL"}
+};
 
 function App() {
   const [D, setD] = useState(INIT);
@@ -311,9 +317,14 @@ function App() {
   const [compare, setCompare] = useState([]);
   const [simUnit, setSimUnit] = useState(null);
   const [printHtml, setPrintHtml] = useState(null);
+  const [lang, setLang] = useState("pt");
+  const [showUsd, setShowUsd] = useState(false);
   const [siteConfig, setSiteConfig] = useState(function(){
-    try { var raw = window.localStorage.getItem("portal-site-config"); return raw ? JSON.parse(raw) : {bgColor:"#0f0f0e",heroBanner:"",heroOverlay:true}; } catch(e){ return {bgColor:"#0f0f0e",heroBanner:"",heroOverlay:true}; }
+    try { var raw = window.localStorage.getItem("portal-site-config"); return raw ? JSON.parse(raw) : {bgColor:"#0f0f0e",heroBanner:"",heroOverlay:true,usdRate:5.80}; } catch(e){ return {bgColor:"#0f0f0e",heroBanner:"",heroOverlay:true,usdRate:5.80}; }
   });
+  var t = TR[lang] || TR.pt;
+  var sl = lang === "es" ? sLes : sL;
+  var fmtV = function(v){ return showUsd ? fmtUsd(Math.round(v / (siteConfig.usdRate || 5.80))) : fmt(v); };
 
   useEffect(() => {
     (async () => {
@@ -540,14 +551,15 @@ function App() {
 
     return (
       <div style={{padding:"14px clamp(12px, 3vw, 40px)"}}>
-        <button onClick={function(){setVw("home")}} style={{background:"none",border:"none",color:G,fontSize:11,fontWeight:600,cursor:"pointer",padding:"4px 0",marginBottom:8}}>← Voltar</button>
+        <button onClick={function(){setVw("home")}} style={{background:"none",border:"none",color:G,fontSize:11,fontWeight:600,cursor:"pointer",padding:"4px 0",marginBottom:8}}>← {t.back}</button>
         <div style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:20,fontWeight:700,color:bld.color,marginBottom:2}}>{bld.name}</div>
         <div style={{fontSize:10,color:"#9A9590",marginBottom:10}}>{bld.subtitle}</div>
         <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:8,flexWrap:"wrap"}}>
           <span style={{padding:"2px 8px",borderRadius:5,fontSize:8,fontWeight:700,background:bld.status==="ready"?"rgba(76,175,125,0.1)":"rgba(232,169,78,0.1)",color:bld.status==="ready"?"#4CAF7D":"#E8A94E"}}>{bld.status==="ready"?"✅ Pronto":"🏗️ Em Construção"}</span>
           {bld.status==="construction" && <div style={{flex:1,height:4,background:"rgba(255,255,255,0.05)",borderRadius:2,overflow:"hidden",minWidth:60}}><div style={{height:"100%",width:bld.constructionPct+"%",background:bld.color,borderRadius:2}}/></div>}
           {bld.status==="construction" && <span style={{fontSize:9,fontWeight:700,color:"#E8A94E"}}>{bld.constructionPct}%</span>}
-          <span style={{padding:"2px 8px",borderRadius:5,fontSize:8,fontWeight:600,background:bld.color+"12",color:bld.color}}>💰 {bld.commission}%</span>
+          <span style={{padding:"2px 8px",borderRadius:5,fontSize:8,fontWeight:600,background:bld.color+"12",color:bld.color}}>💰 {bld.commission||5}% {t.commission}</span>
+          {bld.incorporation && <span style={{padding:"2px 8px",borderRadius:5,fontSize:8,fontWeight:600,background:"rgba(91,143,212,0.1)",color:"#5B8FD4"}}>📋 {bld.incorporation}</span>}
         </div>
         {adm && <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:10}}>
           <button style={mb(bld.color)} onClick={function(){setMdl({t:"cub",bid:bld.id})}}>📈 CUB</button>
@@ -571,10 +583,12 @@ function App() {
             <div style={{fontSize:7,color:"#9A9590",marginTop:1}}>Base: {fmt(bld.cubBase)}</div>
           </div>
           <div style={{display:"flex",gap:4,marginBottom:10,flexWrap:"wrap",alignItems:"center"}}>
-            <span style={{fontSize:8,color:"#9A9590",fontWeight:600}}>Filtrar:</span>
-            {[{v:"all",l:"Todos"},{v:"available",l:"Disponíveis"},{v:"reserved",l:"Reservados"},{v:"sold",l:"Vendidos"}].map(function(f){
+            <span style={{fontSize:8,color:"#9A9590",fontWeight:600}}>{t.filter}:</span>
+            {[{v:"all",l:t.all},{v:"available",l:t.available},{v:"reserved",l:t.reserved},{v:"sold",l:t.sold}].map(function(f){
               return <span key={f.v} onClick={function(){setFilter(f.v)}} style={{padding:"3px 8px",borderRadius:4,fontSize:8,fontWeight:600,cursor:"pointer",background:filter===f.v?bld.color+"20":"#1e1e1d",color:filter===f.v?bld.color:"#9A9590",border:filter===f.v?"1px solid "+bld.color+"35":"1px solid transparent"}}>{f.l}</span>;
             })}
+            <span style={{marginLeft:"auto"}}/>
+            <span onClick={function(){setShowUsd(!showUsd)}} style={{padding:"3px 8px",borderRadius:4,fontSize:8,fontWeight:600,cursor:"pointer",background:showUsd?"rgba(76,175,125,0.15)":"#1e1e1d",color:showUsd?"#4CAF7D":"#9A9590",border:showUsd?"1px solid rgba(76,175,125,0.3)":"1px solid transparent"}}>{showUsd?"💵 USD":"💵 "+t.showUsd}</span>
           </div>
           {compare.length>0 && <div style={{display:"flex",alignItems:"center",gap:6,padding:"7px 9px",background:"rgba(91,143,212,0.08)",borderRadius:7,marginBottom:10,border:"1px solid rgba(91,143,212,0.2)"}}>
             <span style={{fontSize:9,color:"#5B8FD4",fontWeight:600,flex:1}}>{compare.length} selecionada(s)</span>
@@ -583,15 +597,15 @@ function App() {
           </div>}
           <div style={{overflowX:"auto"}}>
             <table style={{width:"100%",borderCollapse:"separate",borderSpacing:0,borderRadius:7,overflow:"hidden",fontSize:9}}>
-              <thead><tr><th style={thS}>Unid.</th><th style={thS}>Área</th><th style={thS}>Valor</th>{adm && <th style={thS}>R$/m²</th>}<th style={thS}>Status</th><th style={thS}>Ações</th></tr></thead>
+              <thead><tr><th style={thS}>{t.unit}</th><th style={thS}>{t.area}</th><th style={thS}>{t.value}{showUsd?" (USD)":""}</th>{adm && <th style={thS}>R$/m²</th>}<th style={thS}>{t.status}</th><th style={thS}>{t.actions}</th></tr></thead>
               <tbody>{filtered.map(function(u){
                 var p=cp(u,bld); var isSel=compare.indexOf(u.id)!==-1;
                 return <tr key={u.id} style={{background:isSel?"rgba(91,143,212,0.06)":"transparent"}}>
                   <td style={Object.assign({},tdS,{fontWeight:600})}>{u.name}</td>
                   <td style={tdS}>{u.area}m²</td>
-                  <td style={Object.assign({},tdS,{fontWeight:700,color:"#4CAF7D"})}>{p > 0 ? fmt(p) : "—"}</td>
-                  {adm && <td style={Object.assign({},tdS,{fontSize:8,color:"#9A9590"})}>{p > 0 ? fmt(Math.round(p/u.area)) : "—"}</td>}
-                  <td style={tdS}><span style={{display:"inline-flex",alignItems:"center",gap:3,fontSize:8,fontWeight:600,color:sC[u.status]}}><span style={{width:5,height:5,borderRadius:"50%",background:sC[u.status]}}/>{sL[u.status]}</span></td>
+                  <td style={Object.assign({},tdS,{fontWeight:700,color:"#4CAF7D"})}>{p > 0 ? fmtV(p) : "—"}</td>
+                  {adm && <td style={Object.assign({},tdS,{fontSize:8,color:"#9A9590"})}>{p > 0 ? fmtV(Math.round(p/u.area)) : "—"}</td>}
+                  <td style={tdS}><span style={{display:"inline-flex",alignItems:"center",gap:3,fontSize:8,fontWeight:600,color:sC[u.status]}}><span style={{width:5,height:5,borderRadius:"50%",background:sC[u.status]}}/>{sl[u.status]}</span></td>
                   <td style={tdS}><div style={{display:"flex",gap:2,flexWrap:"wrap"}}>
                     <button onClick={function(e){e.stopPropagation();shareUnit(u,bld)}} style={Object.assign({},mb("#25D366"),{fontSize:7,padding:"3px 6px"})}>💬</button>
                     <button onClick={function(e){e.stopPropagation();setSimUnit({u:u,b:bld})}} style={Object.assign({},mb("#5B8FD4"),{fontSize:7,padding:"3px 6px"})}>🏦</button>
@@ -606,7 +620,7 @@ function App() {
           <div style={{display:"flex",gap:4,marginTop:9,flexWrap:"wrap"}}>
             {["available","reserved","sold"].map(function(s){return <span key={s} style={{padding:"3px 8px",background:sC[s]+"10",borderRadius:4,fontSize:8,fontWeight:600,color:sC[s]}}>{sL[s]}: {bld.units.filter(function(u){return u.status===s}).length}</span>})}
           </div>
-          <button onClick={function(){printBld(bld.id)}} style={{width:"100%",marginTop:10,padding:"9px",borderRadius:7,fontSize:10,fontWeight:600,background:bld.color,color:"#0f0f0e",border:"none",cursor:"pointer"}}>🖨️ Exportar PDF</button>
+          <button onClick={function(){printBld(bld.id)}} style={{width:"100%",marginTop:10,padding:"9px",borderRadius:7,fontSize:10,fontWeight:600,background:bld.color,color:"#0f0f0e",border:"none",cursor:"pointer"}}>🖨️ {t.export}</button>
         </div>}
 
         {dtab==="photos" && <div>
@@ -660,7 +674,7 @@ function App() {
     }).filter(Boolean);
     return (
       <div style={{padding:"14px clamp(12px, 3vw, 40px)"}}>
-        <button onClick={function(){setVw("detail")}} style={{background:"none",border:"none",color:G,fontSize:11,fontWeight:600,cursor:"pointer",marginBottom:10}}>← Voltar</button>
+        <button onClick={function(){setVw("detail")}} style={{background:"none",border:"none",color:G,fontSize:11,fontWeight:600,cursor:"pointer",marginBottom:10}}>← {t.back}</button>
         <div style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:18,fontWeight:600,marginBottom:14}}>⚖️ Comparativo</div>
         <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"separate",borderSpacing:0,borderRadius:7,overflow:"hidden",fontSize:9}}>
@@ -686,51 +700,110 @@ function App() {
     var b = data.b;
     var price = cp(data.u, b);
     var finConfig = b.financing || {};
-    var defaultDown = finConfig.entradaPct || 20;
-    var defaultMonths = finConfig.parcelas || 360;
-    var defaultRate = finConfig.taxaMensal || 0.85;
+    var defaultDown = finConfig.entradaPct || 30;
+    var defaultMonths = finConfig.parcelas || 48;
+    var defaultRate = finConfig.taxaMensal || 0;
     var defaultIndex = finConfig.indice || "CUB-SC";
+    var parcOpts = finConfig.parcelasOpcoes ? finConfig.parcelasOpcoes.split(",").map(Number) : [24,36,48,60,72,96,120,180,240,360];
+
     var _down = useState(Math.round(price * defaultDown / 100));
     var down = _down[0]; var setDown = _down[1];
+    var _bemVal = useState(0);
+    var bemVal = _bemVal[0]; var setBemVal = _bemVal[1];
+    var _bemDesc = useState("");
+    var bemDesc = _bemDesc[0]; var setBemDesc = _bemDesc[1];
     var _months = useState(defaultMonths);
     var months = _months[0]; var setMonths = _months[1];
     var _rate = useState(defaultRate);
     var rate = _rate[0]; var setRate = _rate[1];
-    var financed = price - down;
+    var _balaoFreq = useState("none");
+    var balaoFreq = _balaoFreq[0]; var setBalaoFreq = _balaoFreq[1];
+    var _balaoPct = useState(5);
+    var balaoPct = _balaoPct[0]; var setBalaoPct = _balaoPct[1];
+
+    var totalEntrada = down + bemVal;
+    var saldo = price - totalEntrada;
+    if (saldo < 0) saldo = 0;
+
+    var balaoMeses = balaoFreq === "trimestral" ? 3 : balaoFreq === "semestral" ? 6 : balaoFreq === "anual" ? 12 : 0;
+    var numBaloes = balaoMeses > 0 ? Math.floor(months / balaoMeses) : 0;
+    var balaoValor = numBaloes > 0 ? Math.round(saldo * balaoPct / 100) : 0;
+    var totalBaloes = balaoValor * numBaloes;
+    var saldoParcelas = saldo - totalBaloes;
+    if (saldoParcelas < 0) saldoParcelas = 0;
+
     var mr = rate / 100;
-    var pmt = mr > 0 ? financed * (mr * Math.pow(1+mr,months)) / (Math.pow(1+mr,months)-1) : financed / months;
+    var pmt = months > 0 ? (mr > 0 ? saldoParcelas * (mr * Math.pow(1+mr,months)) / (Math.pow(1+mr,months)-1) : saldoParcelas / months) : 0;
+    var totalPago = totalEntrada + (pmt * months) + totalBaloes;
+
+    var comissao = price * (b.commission || 5) / 100;
+
     return (
       <div>
-        <div style={mT}>🏦 Simulador de Financiamento</div>
-        <div style={{fontSize:10,color:"#9A9590",marginBottom:4}}>{b.name} — Unidade {data.u.name}</div>
-        <div style={{fontSize:8,color:"#E8A94E",marginBottom:10}}>Índice: {defaultIndex} • {b.status==="ready"?"Pronto":"Em construção"}</div>
-        <div style={{padding:9,background:"rgba(76,175,125,0.06)",borderRadius:7,marginBottom:12,textAlign:"center"}}>
-          <div style={{fontSize:8,color:"#9A9590",textTransform:"uppercase",letterSpacing:1}}>Valor do Imóvel</div>
-          <div style={{fontSize:20,fontWeight:700,color:"#4CAF7D"}}>{fmt(price)}</div>
+        <div style={mT}>🏦 {t.simulator}</div>
+        <div style={{fontSize:10,color:"#9A9590",marginBottom:4}}>{b.name} — {data.u.name}</div>
+        <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:10}}>
+          <span style={{fontSize:8,padding:"2px 8px",borderRadius:4,background:"rgba(232,169,78,0.1)",color:"#E8A94E"}}>{defaultIndex}</span>
+          <span style={{fontSize:8,padding:"2px 8px",borderRadius:4,background:b.status==="ready"?"rgba(76,175,125,0.1)":"rgba(232,169,78,0.1)",color:b.status==="ready"?"#4CAF7D":"#E8A94E"}}>{b.status==="ready"?t.ready:t.construction}</span>
+          {b.incorporation && <span style={{fontSize:8,padding:"2px 8px",borderRadius:4,background:"rgba(91,143,212,0.1)",color:"#5B8FD4"}}>{b.incorporation}</span>}
+          <span style={{fontSize:8,padding:"2px 8px",borderRadius:4,background:"rgba(200,164,92,0.1)",color:G}}>{b.commission||5}% {t.commission}</span>
         </div>
-        <L>Entrada (R$)</L>
+        <div style={{padding:9,background:"rgba(76,175,125,0.06)",borderRadius:7,marginBottom:12,textAlign:"center"}}>
+          <div style={{fontSize:8,color:"#9A9590",textTransform:"uppercase",letterSpacing:1}}>{t.value}</div>
+          <div style={{fontSize:20,fontWeight:700,color:"#4CAF7D"}}>{fmt(price)}</div>
+          {showUsd && <div style={{fontSize:11,color:"#5B8FD4"}}>{fmtUsd(Math.round(price/(siteConfig.usdRate||5.80)))}</div>}
+        </div>
+
+        <div style={{fontSize:9,fontWeight:600,color:G,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>💰 Entrada</div>
+        <L>Valor da Entrada (R$)</L>
         <input style={mI} type="number" value={down} onChange={function(e){setDown(+e.target.value)}}/>
-        <div style={{fontSize:8,color:"#9A9590",marginBottom:6}}>= {((down/price)*100).toFixed(1)}% do valor (padrão: {defaultDown}%)</div>
-        <L>Prazo (meses)</L>
-        <div style={{display:"flex",gap:4,marginBottom:8,flexWrap:"wrap"}}>
-          {[24,36,48,60,72,120,180,240,300,360,420].map(function(m){return <span key={m} onClick={function(){setMonths(m)}} style={{padding:"4px 8px",borderRadius:4,fontSize:8,fontWeight:600,cursor:"pointer",background:months===m?b.color+"20":"#222",color:months===m?b.color:"#9A9590"}}>{m<120?m+"x":m/12+"a"}</span>})}
+        <div style={{fontSize:8,color:"#9A9590",marginBottom:8}}>= {price>0?((down/price)*100).toFixed(1):"0"}% (padrão: {defaultDown}%)</div>
+
+        <div style={{fontSize:9,fontWeight:600,color:G,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>🚗 Bem como parte do pagamento</div>
+        <L>Valor do Bem (R$)</L>
+        <input style={mI} type="number" value={bemVal||""} onChange={function(e){setBemVal(+e.target.value)}} placeholder="0"/>
+        <L>Descrição do Bem</L>
+        <input style={mI} value={bemDesc} onChange={function(e){setBemDesc(e.target.value)}} placeholder="Ex: Veículo Honda Civic 2024"/>
+
+        <div style={{fontSize:9,fontWeight:600,color:G,marginTop:8,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>📅 Parcelas Mensais</div>
+        <L>Prazo</L>
+        <div style={{display:"flex",gap:3,marginBottom:8,flexWrap:"wrap"}}>
+          {parcOpts.map(function(m){return <span key={m} onClick={function(){setMonths(m)}} style={{padding:"4px 7px",borderRadius:4,fontSize:8,fontWeight:600,cursor:"pointer",background:months===m?b.color+"20":"#222",color:months===m?b.color:"#9A9590"}}>{m}x</span>})}
         </div>
         <L>Taxa Mensal (%)</L>
-        <input style={mI} type="number" step="0.01" value={rate} onChange={function(e){setRate(+e.target.value)}}/>
-        <div style={{background:"#1e1e1d",borderRadius:8,padding:11,marginTop:8}}>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-            <div><div style={{fontSize:7,color:"#9A9590",textTransform:"uppercase",letterSpacing:1}}>Entrada</div><div style={{fontSize:14,fontWeight:700,color:G}}>{fmt(down)}</div></div>
-            <div><div style={{fontSize:7,color:"#9A9590",textTransform:"uppercase",letterSpacing:1}}>Financiado</div><div style={{fontSize:14,fontWeight:700,color:"#5B8FD4"}}>{fmt(financed)}</div></div>
-            <div><div style={{fontSize:7,color:"#9A9590",textTransform:"uppercase",letterSpacing:1}}>Parcela</div><div style={{fontSize:18,fontWeight:700,color:"#4CAF7D"}}>{fmt(pmt)}</div></div>
-            <div><div style={{fontSize:7,color:"#9A9590",textTransform:"uppercase",letterSpacing:1}}>Total Pago</div><div style={{fontSize:14,fontWeight:700,color:"#D4735B"}}>{fmt(down+pmt*months)}</div></div>
+        <input style={mI} type="number" step="0.01" value={rate} onChange={function(e){setRate(+e.target.value)}} placeholder="0 = sem juros"/>
+
+        <div style={{fontSize:9,fontWeight:600,color:G,marginTop:8,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>🎈 Parcelas Balão (reforços)</div>
+        <L>Frequência</L>
+        <div style={{display:"flex",gap:4,marginBottom:6}}>
+          {[{v:"none",l:"Nenhuma"},{v:"trimestral",l:"Trimestral"},{v:"semestral",l:"Semestral"},{v:"anual",l:"Anual"}].map(function(o){
+            return <span key={o.v} onClick={function(){setBalaoFreq(o.v)}} style={{padding:"4px 8px",borderRadius:4,fontSize:8,fontWeight:600,cursor:"pointer",background:balaoFreq===o.v?b.color+"20":"#222",color:balaoFreq===o.v?b.color:"#9A9590"}}>{o.l}</span>
+          })}
+        </div>
+        {balaoFreq !== "none" && <div>
+          <L>% do saldo por balão</L>
+          <input style={mI} type="number" step="0.5" value={balaoPct} onChange={function(e){setBalaoPct(+e.target.value)}}/>
+          <div style={{fontSize:8,color:"#9A9590",marginBottom:6}}>{numBaloes} balões de {fmt(balaoValor)} = {fmt(totalBaloes)}</div>
+        </div>}
+
+        <div style={{background:"#1e1e1d",borderRadius:8,padding:12,marginTop:10}}>
+          <div style={{fontSize:9,fontWeight:600,color:G,marginBottom:8,textTransform:"uppercase",letterSpacing:1}}>📊 Resumo da Simulação</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+            <div><div style={{fontSize:7,color:"#9A9590",textTransform:"uppercase"}}>Entrada</div><div style={{fontSize:13,fontWeight:700,color:G}}>{fmt(down)}</div></div>
+            {bemVal > 0 && <div><div style={{fontSize:7,color:"#9A9590",textTransform:"uppercase"}}>Bem ({bemDesc||"—"})</div><div style={{fontSize:13,fontWeight:700,color:"#E8A94E"}}>{fmt(bemVal)}</div></div>}
+            <div><div style={{fontSize:7,color:"#9A9590",textTransform:"uppercase"}}>Saldo Financiado</div><div style={{fontSize:13,fontWeight:700,color:"#5B8FD4"}}>{fmt(saldo)}</div></div>
+            <div><div style={{fontSize:7,color:"#9A9590",textTransform:"uppercase"}}>Parcela Mensal ({months}x)</div><div style={{fontSize:16,fontWeight:700,color:"#4CAF7D"}}>{fmt(pmt)}</div></div>
+            {numBaloes > 0 && <div><div style={{fontSize:7,color:"#9A9590",textTransform:"uppercase"}}>Balão {balaoFreq} ({numBaloes}x)</div><div style={{fontSize:13,fontWeight:700,color:"#D4735B"}}>{fmt(balaoValor)}</div></div>}
+            <div><div style={{fontSize:7,color:"#9A9590",textTransform:"uppercase"}}>Total Pago</div><div style={{fontSize:13,fontWeight:700,color:"#D4735B"}}>{fmt(totalPago)}</div></div>
+            <div><div style={{fontSize:7,color:"#9A9590",textTransform:"uppercase"}}>Comissão ({b.commission||5}%)</div><div style={{fontSize:13,fontWeight:700,color:"#8B6FBF"}}>{fmt(comissao)}</div></div>
           </div>
         </div>
-        <div style={{fontSize:7,color:"#9A9590",marginTop:6,textAlign:"center"}}>Simulação estimativa</div>
+        <div style={{fontSize:7,color:"#9A9590",marginTop:6,textAlign:"center"}}>Simulação estimativa • {defaultIndex} • Valores sujeitos a alteração</div>
         <button onClick={function(){
-          var text = "🏦 *Simulação*\n🏢 " + data.b.name + " — " + data.u.name + "\n💰 Valor: " + fmt(price) + "\n💳 Entrada: " + fmt(down) + " (" + ((down/price)*100).toFixed(1) + "%)\n🏦 Financiado: " + fmt(financed) + "\n📅 Prazo: " + months + " meses\n📊 Parcela: *" + fmt(pmt) + "*\n📞 " + CT.phone;
+          var text = "🏦 *Simulação de Financiamento*\n🏢 " + b.name + " — " + data.u.name + "\n💰 Valor: " + fmt(price) + "\n💳 Entrada: " + fmt(down) + " (" + (price>0?((down/price)*100).toFixed(1):"0") + "%)" + (bemVal>0?"\n🚗 Bem: " + fmt(bemVal) + " (" + bemDesc + ")":"") + "\n🏦 Saldo: " + fmt(saldo) + "\n📅 " + months + " parcelas de *" + fmt(pmt) + "*" + (numBaloes>0?"\n🎈 " + numBaloes + " balões " + balaoFreq + " de " + fmt(balaoValor):"") + "\n💵 Total: " + fmt(totalPago) + "\n📊 Índice: " + defaultIndex + "\n📞 " + CT.phone;
           window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank");
-        }} style={{width:"100%",marginTop:8,padding:"9px",borderRadius:7,fontSize:10,fontWeight:600,background:"#25D366",color:"#fff",border:"none",cursor:"pointer"}}>💬 Enviar via WhatsApp</button>
-        <button style={mC} onClick={function(){setSimUnit(null)}}>Fechar</button>
+        }} style={{width:"100%",marginTop:8,padding:"9px",borderRadius:7,fontSize:10,fontWeight:600,background:"#25D366",color:"#fff",border:"none",cursor:"pointer"}}>💬 {t.send}</button>
+        <button style={mC} onClick={function(){setSimUnit(null)}}>{t.close}</button>
       </div>
     );
   }
@@ -768,8 +841,14 @@ function App() {
       </div>}
       <label style={{display:"flex",alignItems:"center",gap:6,fontSize:10,color:"#9A9590",marginBottom:8,cursor:"pointer"}}>
         <input type="checkbox" checked={c.heroOverlay!==false} onChange={function(e){setC(Object.assign({},c,{heroOverlay:e.target.checked}))}}/>
-        Overlay escuro sobre o banner (melhora legibilidade)
+        Overlay escuro sobre o banner
       </label>
+      <div style={{marginTop:8,padding:"8px 0",borderTop:"1px solid rgba(255,255,255,0.05)"}}>
+        <div style={{fontSize:9,fontWeight:600,color:G,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>💵 Cotação do Dólar</div>
+        <L>USD → BRL (R$)</L>
+        <input style={mI} type="number" step="0.01" value={c.usdRate||5.80} onChange={function(e){setC(Object.assign({},c,{usdRate:+e.target.value}))}} placeholder="5.80"/>
+        <div style={{fontSize:8,color:"#9A9590"}}>Usado quando o corretor ativa "Mostrar em USD"</div>
+      </div>
       <button style={mP(G)} onClick={function(){setSiteConfig(c);window.localStorage.setItem("portal-site-config",JSON.stringify(c));setMdl(null);msg("Configurações salvas!")}}>Salvar</button>
       <button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
     </div>;
@@ -845,7 +924,7 @@ function App() {
   }
 
   function AddBldM() {
-    var _f = useState({name:"",subtitle:"",emoji:"🏢",color:"#5B8FD4",tag:"Novo",status:"construction",commission:5}); var f = _f[0]; var setF = _f[1];
+    var _f = useState({name:"",subtitle:"",emoji:"🏢",color:"#5B8FD4",tag:"Novo",status:"construction",commission:5,incorporation:""}); var f = _f[0]; var setF = _f[1];
     return <div><div style={mT}>＋ Novo Empreendimento</div>
       <L>Nome</L><input style={mI} placeholder="Ed. Novo" value={f.name} onChange={function(e){setF(Object.assign({},f,{name:e.target.value}))}}/>
       <L>Descrição</L><input style={mI} value={f.subtitle} onChange={function(e){setF(Object.assign({},f,{subtitle:e.target.value}))}}/>
@@ -853,6 +932,7 @@ function App() {
       <L>Cor</L><div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}}>{CLR.map(function(cl){return <span key={cl} onClick={function(){setF(Object.assign({},f,{color:cl}))}} style={{width:24,height:24,borderRadius:4,background:cl,cursor:"pointer",border:f.color===cl?"2px solid #fff":"2px solid transparent"}}/>})}</div>
       <L>Tag</L><input style={mI} value={f.tag} onChange={function(e){setF(Object.assign({},f,{tag:e.target.value}))}}/>
       <L>Comissão (%)</L><input style={mI} type="number" step="0.5" value={f.commission} onChange={function(e){setF(Object.assign({},f,{commission:+e.target.value}))}}/>
+      <L>Nº Incorporação / Registro</L><input style={mI} value={f.incorporation} onChange={function(e){setF(Object.assign({},f,{incorporation:e.target.value}))}} placeholder="Ex: R4-41.637 ou Pré-Lançamento"/>
       <L>Status</L><select style={mI} value={f.status} onChange={function(e){setF(Object.assign({},f,{status:e.target.value}))}}><option value="construction">Em Construção</option><option value="ready">Pronto</option></select>
       <button style={mP("#4CAF7D")} onClick={function(){if(!f.name.trim()){msg("Nome obrigatório");return}var id=f.name.toLowerCase().replace(/[^a-z0-9]/g,"-").replace(/-+/g,"-");upd(function(d){return Object.assign({},d,{buildings:d.buildings.concat([Object.assign({},f,{id:id,gradient:"linear-gradient(135deg,"+f.color+"40,"+f.color+"80)",active:true,constructionPct:f.status==="ready"?100:0,constructionHistory:[],cubBase:2920,cubCurrent:2920,cubHistory:[],units:[],photos:[],plants:[],documents:[],notices:[]})])})});setMdl(null);msg("Criado!")}}>Criar</button><button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
     </div>;
@@ -861,7 +941,7 @@ function App() {
   function EditBldM() {
     var b = D.buildings.find(function(x){return x.id===mdl.bid});
     var fin = b.financing || {};
-    var _f = useState({name:b.name,subtitle:b.subtitle,emoji:b.emoji,color:b.color,tag:b.tag,cubBase:b.cubBase,commission:b.commission||5,finEntrada:fin.entradaPct||20,finParcelas:fin.parcelas||360,finTaxa:fin.taxaMensal||0.85,finIndice:fin.indice||"CUB-SC"}); var f = _f[0]; var setF = _f[1];
+    var _f = useState({name:b.name,subtitle:b.subtitle,emoji:b.emoji,color:b.color,tag:b.tag,cubBase:b.cubBase,commission:b.commission||5,incorporation:b.incorporation||"",finEntrada:fin.entradaPct||30,finParcelas:fin.parcelas||48,finTaxa:fin.taxaMensal||0,finIndice:fin.indice||"CUB-SC",finParcelasOpcoes:fin.parcelasOpcoes||"24,36,48,60,72,96,120"}); var f = _f[0]; var setF = _f[1];
     return <div><div style={mT}>✏️ {b.name}</div>
       <L>Nome</L><input style={mI} value={f.name} onChange={function(e){setF(Object.assign({},f,{name:e.target.value}))}}/>
       <L>Descrição</L><input style={mI} value={f.subtitle} onChange={function(e){setF(Object.assign({},f,{subtitle:e.target.value}))}}/>
@@ -870,16 +950,18 @@ function App() {
       <L>Tag</L><input style={mI} value={f.tag} onChange={function(e){setF(Object.assign({},f,{tag:e.target.value}))}}/>
       <L>CUB Base</L><input style={mI} type="number" step="0.01" value={f.cubBase} onChange={function(e){setF(Object.assign({},f,{cubBase:+e.target.value}))}}/>
       <L>Comissão (%)</L><input style={mI} type="number" step="0.5" value={f.commission} onChange={function(e){setF(Object.assign({},f,{commission:+e.target.value}))}}/>
+      <L>Nº Incorporação / Registro</L><input style={mI} value={f.incorporation} onChange={function(e){setF(Object.assign({},f,{incorporation:e.target.value}))}} placeholder="Ex: R4-41.637 ou Pré-Lançamento"/>
       <div style={{marginTop:8,padding:"8px 0",borderTop:"1px solid rgba(255,255,255,0.05)"}}>
         <div style={{fontSize:9,fontWeight:600,color:G,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>⚙️ Config. Financiamento</div>
         <L>Entrada padrão (%)</L><input style={mI} type="number" step="1" value={f.finEntrada} onChange={function(e){setF(Object.assign({},f,{finEntrada:+e.target.value}))}}/>
         <L>Parcelas padrão</L><input style={mI} type="number" value={f.finParcelas} onChange={function(e){setF(Object.assign({},f,{finParcelas:+e.target.value}))}}/>
-        <L>Taxa mensal padrão (%)</L><input style={mI} type="number" step="0.01" value={f.finTaxa} onChange={function(e){setF(Object.assign({},f,{finTaxa:+e.target.value}))}}/>
+        <L>Opções de parcelas (separar por vírgula)</L><input style={mI} value={f.finParcelasOpcoes} onChange={function(e){setF(Object.assign({},f,{finParcelasOpcoes:e.target.value}))}} placeholder="24,36,48,60,72,120"/>
+        <L>Taxa mensal padrão (%)</L><input style={mI} type="number" step="0.01" value={f.finTaxa} onChange={function(e){setF(Object.assign({},f,{finTaxa:+e.target.value}))}} placeholder="0 = sem juros"/>
         <L>Índice de correção</L><select style={mI} value={f.finIndice} onChange={function(e){setF(Object.assign({},f,{finIndice:e.target.value}))}}>
           <option value="CUB-SC">CUB-SC</option><option value="INCC">INCC</option><option value="IPCA">IPCA</option><option value="IGP-M">IGP-M</option><option value="CUB-SC + INCC">CUB-SC até entrega + INCC após</option><option value="Outro">Outro</option>
         </select>
       </div>
-      <button style={mP(b.color)} onClick={function(){upB(b.id,Object.assign({},f,{gradient:"linear-gradient(135deg,"+f.color+"40,"+f.color+"80)",financing:{entradaPct:f.finEntrada,parcelas:f.finParcelas,taxaMensal:f.finTaxa,indice:f.finIndice}}));setMdl(null);msg("Salvo!")}}>Salvar</button><button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
+      <button style={mP(b.color)} onClick={function(){upB(b.id,Object.assign({},f,{gradient:"linear-gradient(135deg,"+f.color+"40,"+f.color+"80)",financing:{entradaPct:f.finEntrada,parcelas:f.finParcelas,taxaMensal:f.finTaxa,indice:f.finIndice,parcelasOpcoes:f.finParcelasOpcoes}}));setMdl(null);msg("Salvo!")}}>Salvar</button><button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
     </div>;
   }
 
@@ -897,6 +979,10 @@ function App() {
         <h1 style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:"clamp(28px, 5vw, 48px)",fontWeight:700,lineHeight:1.1,marginBottom:7,position:"relative"}}>Portal do <span style={{color:G}}>Corretor</span></h1>
         <p style={{fontSize:"clamp(11px, 1.5vw, 16px)",color:"#9A9590",maxWidth:500,margin:"0 auto",lineHeight:1.6,position:"relative"}}>Empreendimentos, tabelas com correção CUB/SC, simulador e materiais.</p>
         {adm && <div onClick={function(){setAdm(false);msg("Admin off")}} style={{marginTop:10,display:"inline-flex",alignItems:"center",gap:5,padding:"4px 12px",background:"rgba(76,175,125,0.1)",borderRadius:20,fontSize:9,fontWeight:600,color:"#4CAF7D",cursor:"pointer",position:"relative"}}>🔓 Admin — sair</div>}
+        <div style={{marginTop:10,display:"flex",justifyContent:"center",gap:6}}>
+          <button onClick={function(){setLang(lang==="pt"?"es":"pt")}} style={{padding:"4px 12px",borderRadius:20,fontSize:9,fontWeight:600,background:"rgba(91,143,212,0.1)",color:"#5B8FD4",border:"1px solid rgba(91,143,212,0.2)",cursor:"pointer"}}>{lang==="pt"?"🇪🇸 Español":"🇧🇷 Português"}</button>
+          <button onClick={function(){setShowUsd(!showUsd)}} style={{padding:"4px 12px",borderRadius:20,fontSize:9,fontWeight:600,background:showUsd?"rgba(76,175,125,0.1)":"rgba(200,164,92,0.1)",color:showUsd?"#4CAF7D":G,border:"1px solid "+(showUsd?"rgba(76,175,125,0.2)":"rgba(200,164,92,0.2)"),cursor:"pointer"}}>{showUsd?t.showBrl:t.showUsd}</button>
+        </div>
       </div>
 
       {/* CONTACT */}
