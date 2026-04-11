@@ -6,9 +6,21 @@
 <meta name="theme-color" content="#0f0f0e"/>
 <meta name="description" content="Portal do Corretor - MK Realty & D&SS Incorporação"/>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏢</text></svg>"/>
-<title>Central do Corretor</title>
+<title>Portal do Corretor</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
-<style>body{margin:0;background:#0f0f0e;font-family:'DM Sans',system-ui,sans-serif}#root{min-height:100vh}</style>
+<style>
+body{margin:0;background:#0f0f0e;font-family:'DM Sans',system-ui,sans-serif}
+#root{min-height:100vh}
+@media(min-width:768px){
+  .bld-grid{display:grid!important;grid-template-columns:1fr 1fr!important;gap:14px!important}
+  .kpi-grid{grid-template-columns:repeat(6,1fr)!important}
+  .photo-grid{grid-template-columns:1fr 1fr 1fr!important}
+  .manage-grid{display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px!important}
+}
+@media(min-width:1024px){
+  .bld-grid{grid-template-columns:1fr 1fr 1fr!important}
+}
+</style>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -299,6 +311,9 @@ function App() {
   const [compare, setCompare] = useState([]);
   const [simUnit, setSimUnit] = useState(null);
   const [printHtml, setPrintHtml] = useState(null);
+  const [siteConfig, setSiteConfig] = useState(function(){
+    try { var raw = window.localStorage.getItem("portal-site-config"); return raw ? JSON.parse(raw) : {bgColor:"#0f0f0e",heroBanner:"",heroOverlay:true}; } catch(e){ return {bgColor:"#0f0f0e",heroBanner:"",heroOverlay:true}; }
+  });
 
   useEffect(() => {
     (async () => {
@@ -391,15 +406,16 @@ function App() {
   // ═══ HOME ═══
   function HomeView() {
     return (
-      <div style={{padding:"14px 12px"}}>
+      <div style={{padding:"14px clamp(12px, 3vw, 40px)"}}>
         <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:12}}>
           <span style={{fontSize:18}}>🏢</span>
           <span style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:16,fontWeight:600,flex:1}}>Empreendimentos</span>
           <span style={{fontSize:8,color:"#9A9590",background:"#1a1a19",padding:"3px 8px",borderRadius:20}}>{vis.length} ativos</span>
         </div>
+        <div className="bld-grid">
         {vis.map(function(b) {
           return (
-            <div key={b.id} onClick={function(){go(b.id)}} style={{background:"#1a1a19",borderRadius:12,overflow:"hidden",border:"1px solid rgba(255,255,255,0.04)",marginBottom:10,cursor:"pointer"}}>
+            <div key={b.id} onClick={function(){go(b.id)}} style={{background:"#1a1a19",borderRadius:12,overflow:"hidden",border:"1px solid rgba(255,255,255,0.04)",cursor:"pointer"}}>
               <div style={{height:100,background:b.gradient,display:"flex",alignItems:"center",justifyContent:"center",fontSize:34,position:"relative"}}>
                 {b.emoji}
                 <span style={{position:"absolute",top:7,right:7,padding:"3px 8px",borderRadius:16,fontSize:8,fontWeight:700,background:b.color,color:"#fff"}}>{b.tag}</span>
@@ -421,6 +437,7 @@ function App() {
             </div>
           );
         })}
+        </div>
       </div>
     );
   }
@@ -438,13 +455,13 @@ function App() {
     recentChanges.sort(function(a,b){return (b.date||"").localeCompare(a.date||"")});
 
     return (
-      <div style={{padding:"14px 12px"}}>
+      <div style={{padding:"14px clamp(12px, 3vw, 40px)"}}>
         <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:14}}>
           <span style={{fontSize:18}}>📊</span>
           <span style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:16,fontWeight:600,flex:1}}>Dashboard</span>
           <button onClick={printAll} style={Object.assign({},mb(G),{fontSize:8})}>🖨️ Relatório</button>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:7,marginBottom:14}}>
+        <div className="kpi-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:7,marginBottom:14}}>
           {[{n:stats.totalU,l:"Unidades",c:"#F5F0E8"},{n:stats.avail,l:"Disponíveis",c:"#4CAF7D"},{n:stats.reserved,l:"Reservadas",c:"#E8A94E"},{n:stats.sold,l:"Vendidas",c:"#D45B5B"},{n:stats.bldCount,l:"Empreend.",c:"#5B8FD4"},{n:fmt(stats.totalVal),l:"VGV Total",c:G,small:true}].map(function(s,i){
             return <div key={i} style={{background:"#1a1a19",borderRadius:9,padding:"10px 8px",textAlign:"center",border:"1px solid rgba(255,255,255,0.03)"}}><div style={{fontSize:s.small?11:20,fontWeight:700,color:s.c,lineHeight:1.2}}>{s.n}</div><div style={{fontSize:7,color:"#9A9590",textTransform:"uppercase",letterSpacing:.5,marginTop:2}}>{s.l}</div></div>;
           })}
@@ -483,7 +500,7 @@ function App() {
   // ═══ MANAGE ═══
   function ManageView() {
     return (
-      <div style={{padding:"14px 12px"}}>
+      <div style={{padding:"14px clamp(12px, 3vw, 40px)"}}>
         <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:12}}>
           <span style={{fontSize:18}}>⚙️</span>
           <span style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:16,fontWeight:600,flex:1}}>Gerenciar</span>
@@ -522,7 +539,7 @@ function App() {
     var tabs = [{id:"table",i:"📊",l:"Tabela"},{id:"photos",i:"📸",l:"Fotos"},{id:"plants",i:"📐",l:"Plantas"},{id:"docs",i:"📄",l:"Docs"},{id:"notices",i:"📢",l:"Avisos"}];
 
     return (
-      <div style={{padding:"14px 12px"}}>
+      <div style={{padding:"14px clamp(12px, 3vw, 40px)"}}>
         <button onClick={function(){setVw("home")}} style={{background:"none",border:"none",color:G,fontSize:11,fontWeight:600,cursor:"pointer",padding:"4px 0",marginBottom:8}}>← Voltar</button>
         <div style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:20,fontWeight:700,color:bld.color,marginBottom:2}}>{bld.name}</div>
         <div style={{fontSize:10,color:"#9A9590",marginBottom:10}}>{bld.subtitle}</div>
@@ -566,14 +583,14 @@ function App() {
           </div>}
           <div style={{overflowX:"auto"}}>
             <table style={{width:"100%",borderCollapse:"separate",borderSpacing:0,borderRadius:7,overflow:"hidden",fontSize:9}}>
-              <thead><tr><th style={thS}>Unid.</th><th style={thS}>Área</th><th style={thS}>Valor</th><th style={thS}>R$/m²</th><th style={thS}>Status</th><th style={thS}>Ações</th></tr></thead>
+              <thead><tr><th style={thS}>Unid.</th><th style={thS}>Área</th><th style={thS}>Valor</th>{adm && <th style={thS}>R$/m²</th>}<th style={thS}>Status</th><th style={thS}>Ações</th></tr></thead>
               <tbody>{filtered.map(function(u){
                 var p=cp(u,bld); var isSel=compare.indexOf(u.id)!==-1;
                 return <tr key={u.id} style={{background:isSel?"rgba(91,143,212,0.06)":"transparent"}}>
                   <td style={Object.assign({},tdS,{fontWeight:600})}>{u.name}</td>
                   <td style={tdS}>{u.area}m²</td>
                   <td style={Object.assign({},tdS,{fontWeight:700,color:"#4CAF7D"})}>{p > 0 ? fmt(p) : "—"}</td>
-                  <td style={Object.assign({},tdS,{fontSize:8,color:"#9A9590"})}>{p > 0 ? fmt(Math.round(p/u.area)) : "—"}</td>
+                  {adm && <td style={Object.assign({},tdS,{fontSize:8,color:"#9A9590"})}>{p > 0 ? fmt(Math.round(p/u.area)) : "—"}</td>}
                   <td style={tdS}><span style={{display:"inline-flex",alignItems:"center",gap:3,fontSize:8,fontWeight:600,color:sC[u.status]}}><span style={{width:5,height:5,borderRadius:"50%",background:sC[u.status]}}/>{sL[u.status]}</span></td>
                   <td style={tdS}><div style={{display:"flex",gap:2,flexWrap:"wrap"}}>
                     <button onClick={function(e){e.stopPropagation();shareUnit(u,bld)}} style={Object.assign({},mb("#25D366"),{fontSize:7,padding:"3px 6px"})}>💬</button>
@@ -594,7 +611,7 @@ function App() {
 
         {dtab==="photos" && <div>
           {adm && <div style={{fontSize:8,color:"#E8A94E",marginBottom:8,padding:"5px 8px",background:"rgba(232,169,78,0.04)",borderRadius:5}}>📸 Upload em breve</div>}
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+          <div className="photo-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
             {["Fachada","Living","Suíte Master","Lazer","Cozinha","Vista"].map(function(l,i){
               return <div key={i} style={{aspectRatio:"1",borderRadius:8,border:"2px dashed rgba(255,255,255,0.06)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,fontSize:8,color:"#9A9590",background:bld.color+"04"}}><span style={{fontSize:22}}>📸</span>{l}</div>;
             })}
@@ -642,7 +659,7 @@ function App() {
       for (var i=0;i<D.buildings.length;i++){var b=D.buildings[i];var u=b.units.find(function(x){return x.id===id});if(u)return{u:u,b:b}}return null;
     }).filter(Boolean);
     return (
-      <div style={{padding:"14px 12px"}}>
+      <div style={{padding:"14px clamp(12px, 3vw, 40px)"}}>
         <button onClick={function(){setVw("detail")}} style={{background:"none",border:"none",color:G,fontSize:11,fontWeight:600,cursor:"pointer",marginBottom:10}}>← Voltar</button>
         <div style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:18,fontWeight:600,marginBottom:14}}>⚖️ Comparativo</div>
         <div style={{overflowX:"auto"}}>
@@ -666,12 +683,18 @@ function App() {
   // ═══ SIMULATOR MODAL ═══
   function SimModal() {
     var data = simUnit;
-    var price = cp(data.u, data.b);
-    var _down = useState(Math.round(price * 0.2));
+    var b = data.b;
+    var price = cp(data.u, b);
+    var finConfig = b.financing || {};
+    var defaultDown = finConfig.entradaPct || 20;
+    var defaultMonths = finConfig.parcelas || 360;
+    var defaultRate = finConfig.taxaMensal || 0.85;
+    var defaultIndex = finConfig.indice || "CUB-SC";
+    var _down = useState(Math.round(price * defaultDown / 100));
     var down = _down[0]; var setDown = _down[1];
-    var _months = useState(360);
+    var _months = useState(defaultMonths);
     var months = _months[0]; var setMonths = _months[1];
-    var _rate = useState(0.85);
+    var _rate = useState(defaultRate);
     var rate = _rate[0]; var setRate = _rate[1];
     var financed = price - down;
     var mr = rate / 100;
@@ -679,17 +702,18 @@ function App() {
     return (
       <div>
         <div style={mT}>🏦 Simulador de Financiamento</div>
-        <div style={{fontSize:10,color:"#9A9590",marginBottom:10}}>{data.b.name} — Unidade {data.u.name}</div>
+        <div style={{fontSize:10,color:"#9A9590",marginBottom:4}}>{b.name} — Unidade {data.u.name}</div>
+        <div style={{fontSize:8,color:"#E8A94E",marginBottom:10}}>Índice: {defaultIndex} • {b.status==="ready"?"Pronto":"Em construção"}</div>
         <div style={{padding:9,background:"rgba(76,175,125,0.06)",borderRadius:7,marginBottom:12,textAlign:"center"}}>
           <div style={{fontSize:8,color:"#9A9590",textTransform:"uppercase",letterSpacing:1}}>Valor do Imóvel</div>
           <div style={{fontSize:20,fontWeight:700,color:"#4CAF7D"}}>{fmt(price)}</div>
         </div>
         <L>Entrada (R$)</L>
         <input style={mI} type="number" value={down} onChange={function(e){setDown(+e.target.value)}}/>
-        <div style={{fontSize:8,color:"#9A9590",marginBottom:6}}>= {((down/price)*100).toFixed(1)}% do valor</div>
+        <div style={{fontSize:8,color:"#9A9590",marginBottom:6}}>= {((down/price)*100).toFixed(1)}% do valor (padrão: {defaultDown}%)</div>
         <L>Prazo (meses)</L>
-        <div style={{display:"flex",gap:4,marginBottom:8}}>
-          {[120,180,240,300,360,420].map(function(m){return <span key={m} onClick={function(){setMonths(m)}} style={{padding:"4px 8px",borderRadius:4,fontSize:8,fontWeight:600,cursor:"pointer",background:months===m?data.b.color+"20":"#222",color:months===m?data.b.color:"#9A9590"}}>{m/12}a</span>})}
+        <div style={{display:"flex",gap:4,marginBottom:8,flexWrap:"wrap"}}>
+          {[24,36,48,60,72,120,180,240,300,360,420].map(function(m){return <span key={m} onClick={function(){setMonths(m)}} style={{padding:"4px 8px",borderRadius:4,fontSize:8,fontWeight:600,cursor:"pointer",background:months===m?b.color+"20":"#222",color:months===m?b.color:"#9A9590"}}>{m<120?m+"x":m/12+"a"}</span>})}
         </div>
         <L>Taxa Mensal (%)</L>
         <input style={mI} type="number" step="0.01" value={rate} onChange={function(e){setRate(+e.target.value)}}/>
@@ -721,7 +745,34 @@ function App() {
     if (mdl.t === "notice") return <NoticeM/>;
     if (mdl.t === "addBld") return <AddBldM/>;
     if (mdl.t === "editBld") return <EditBldM/>;
+    if (mdl.t === "siteSettings") return <SiteSettingsM/>;
     return null;
+  }
+
+  function SiteSettingsM() {
+    var _c = useState(Object.assign({},siteConfig)); var c = _c[0]; var setC = _c[1];
+    return <div>
+      <div style={mT}>🎨 Configurações Gerais</div>
+      <L>Cor de Fundo</L>
+      <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:8}}>
+        {["#0f0f0e","#111827","#1a1a2e","#0d1117","#1b2838","#0e1a0e","#1a0e0e","#0e0e1a"].map(function(clr){
+          return <span key={clr} onClick={function(){setC(Object.assign({},c,{bgColor:clr}))}} style={{width:30,height:30,borderRadius:6,background:clr,cursor:"pointer",border:c.bgColor===clr?"2px solid #C8A45C":"2px solid rgba(255,255,255,0.1)"}}/>
+        })}
+      </div>
+      <L>Cor personalizada (hex)</L>
+      <input style={mI} value={c.bgColor} onChange={function(e){setC(Object.assign({},c,{bgColor:e.target.value}))}} placeholder="#0f0f0e"/>
+      <L>URL do Banner (imagem de fundo do header)</L>
+      <input style={mI} value={c.heroBanner||""} onChange={function(e){setC(Object.assign({},c,{heroBanner:e.target.value}))}} placeholder="https://exemplo.com/banner.jpg"/>
+      {c.heroBanner && <div style={{marginBottom:8}}>
+        <div style={{height:80,borderRadius:8,overflow:"hidden",backgroundImage:"url("+c.heroBanner+")",backgroundSize:"cover",backgroundPosition:"center",border:"1px solid rgba(255,255,255,0.1)"}}/>
+      </div>}
+      <label style={{display:"flex",alignItems:"center",gap:6,fontSize:10,color:"#9A9590",marginBottom:8,cursor:"pointer"}}>
+        <input type="checkbox" checked={c.heroOverlay!==false} onChange={function(e){setC(Object.assign({},c,{heroOverlay:e.target.checked}))}}/>
+        Overlay escuro sobre o banner (melhora legibilidade)
+      </label>
+      <button style={mP(G)} onClick={function(){setSiteConfig(c);window.localStorage.setItem("portal-site-config",JSON.stringify(c));setMdl(null);msg("Configurações salvas!")}}>Salvar</button>
+      <button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
+    </div>;
   }
 
   function LoginM() {
@@ -809,7 +860,8 @@ function App() {
 
   function EditBldM() {
     var b = D.buildings.find(function(x){return x.id===mdl.bid});
-    var _f = useState({name:b.name,subtitle:b.subtitle,emoji:b.emoji,color:b.color,tag:b.tag,cubBase:b.cubBase,commission:b.commission||5}); var f = _f[0]; var setF = _f[1];
+    var fin = b.financing || {};
+    var _f = useState({name:b.name,subtitle:b.subtitle,emoji:b.emoji,color:b.color,tag:b.tag,cubBase:b.cubBase,commission:b.commission||5,finEntrada:fin.entradaPct||20,finParcelas:fin.parcelas||360,finTaxa:fin.taxaMensal||0.85,finIndice:fin.indice||"CUB-SC"}); var f = _f[0]; var setF = _f[1];
     return <div><div style={mT}>✏️ {b.name}</div>
       <L>Nome</L><input style={mI} value={f.name} onChange={function(e){setF(Object.assign({},f,{name:e.target.value}))}}/>
       <L>Descrição</L><input style={mI} value={f.subtitle} onChange={function(e){setF(Object.assign({},f,{subtitle:e.target.value}))}}/>
@@ -818,38 +870,49 @@ function App() {
       <L>Tag</L><input style={mI} value={f.tag} onChange={function(e){setF(Object.assign({},f,{tag:e.target.value}))}}/>
       <L>CUB Base</L><input style={mI} type="number" step="0.01" value={f.cubBase} onChange={function(e){setF(Object.assign({},f,{cubBase:+e.target.value}))}}/>
       <L>Comissão (%)</L><input style={mI} type="number" step="0.5" value={f.commission} onChange={function(e){setF(Object.assign({},f,{commission:+e.target.value}))}}/>
-      <button style={mP(b.color)} onClick={function(){upB(b.id,Object.assign({},f,{gradient:"linear-gradient(135deg,"+f.color+"40,"+f.color+"80)"}));setMdl(null);msg("Salvo!")}}>Salvar</button><button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
+      <div style={{marginTop:8,padding:"8px 0",borderTop:"1px solid rgba(255,255,255,0.05)"}}>
+        <div style={{fontSize:9,fontWeight:600,color:G,marginBottom:6,textTransform:"uppercase",letterSpacing:1}}>⚙️ Config. Financiamento</div>
+        <L>Entrada padrão (%)</L><input style={mI} type="number" step="1" value={f.finEntrada} onChange={function(e){setF(Object.assign({},f,{finEntrada:+e.target.value}))}}/>
+        <L>Parcelas padrão</L><input style={mI} type="number" value={f.finParcelas} onChange={function(e){setF(Object.assign({},f,{finParcelas:+e.target.value}))}}/>
+        <L>Taxa mensal padrão (%)</L><input style={mI} type="number" step="0.01" value={f.finTaxa} onChange={function(e){setF(Object.assign({},f,{finTaxa:+e.target.value}))}}/>
+        <L>Índice de correção</L><select style={mI} value={f.finIndice} onChange={function(e){setF(Object.assign({},f,{finIndice:e.target.value}))}}>
+          <option value="CUB-SC">CUB-SC</option><option value="INCC">INCC</option><option value="IPCA">IPCA</option><option value="IGP-M">IGP-M</option><option value="CUB-SC + INCC">CUB-SC até entrega + INCC após</option><option value="Outro">Outro</option>
+        </select>
+      </div>
+      <button style={mP(b.color)} onClick={function(){upB(b.id,Object.assign({},f,{gradient:"linear-gradient(135deg,"+f.color+"40,"+f.color+"80)",financing:{entradaPct:f.finEntrada,parcelas:f.finParcelas,taxaMensal:f.finTaxa,indice:f.finIndice}}));setMdl(null);msg("Salvo!")}}>Salvar</button><button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
     </div>;
   }
 
   // ═══ MAIN RENDER ═══
   return (
-    <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",background:"#0f0f0e",color:"#F5F0E8",minHeight:"100vh",maxWidth:480,margin:"0 auto",position:"relative",paddingBottom:80}}>
+    <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",background:siteConfig.bgColor||"#0f0f0e",color:"#F5F0E8",minHeight:"100vh",maxWidth:960,margin:"0 auto",position:"relative",paddingBottom:80}}>
       <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
       <style>{String.raw`@keyframes p{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.85)}}div::-webkit-scrollbar{display:none}`}</style>
 
       {/* HERO */}
-      <div style={{padding:"44px 20px 24px",textAlign:"center",background:"linear-gradient(170deg,#0f0f0e,#1c1914,#0f0f0e)",position:"relative",overflow:"hidden"}}>
+      <div style={{padding:"44px 20px 24px",textAlign:"center",background:siteConfig.heroBanner ? "url("+siteConfig.heroBanner+") center/cover no-repeat" : "linear-gradient(170deg,"+(siteConfig.bgColor||"#0f0f0e")+",#1c1914,"+(siteConfig.bgColor||"#0f0f0e")+")",position:"relative",overflow:"hidden"}}>
+        {siteConfig.heroBanner && siteConfig.heroOverlay!==false && <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.65)",pointerEvents:"none"}}/>}
         <div style={{position:"absolute",top:"-40%",left:"-40%",width:"180%",height:"180%",background:"radial-gradient(ellipse at 50% 50%,rgba(200,164,92,0.05) 0%,transparent 65%)",pointerEvents:"none"}}/>
-        <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"rgba(200,164,92,0.1)",border:"1px solid rgba(200,164,92,0.2)",padding:"5px 13px",borderRadius:50,fontSize:9,fontWeight:700,letterSpacing:2,textTransform:"uppercase",color:G,marginBottom:14,position:"relative"}}><span style={{width:5,height:5,background:"#4CAF7D",borderRadius:"50%",animation:"p 2s infinite"}}/>Portal Exclusivo</div>
-        <h1 style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:30,fontWeight:700,lineHeight:1.1,marginBottom:7,position:"relative"}}>Central do <span style={{color:G}}>Corretor</span></h1>
-        <p style={{fontSize:11,color:"#9A9590",maxWidth:310,margin:"0 auto",lineHeight:1.6,position:"relative"}}>Empreendimentos, tabelas com correção CUB/SC, simulador e materiais.</p>
+        <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"rgba(200,164,92,0.1)",border:"1px solid rgba(200,164,92,0.2)",padding:"6px 16px",borderRadius:50,fontSize:10,fontWeight:700,letterSpacing:2,textTransform:"uppercase",color:G,marginBottom:14,position:"relative"}}><span style={{width:5,height:5,background:"#4CAF7D",borderRadius:"50%",animation:"p 2s infinite"}}/>Portal Exclusivo</div>
+        <h1 style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:"clamp(28px, 5vw, 48px)",fontWeight:700,lineHeight:1.1,marginBottom:7,position:"relative"}}>Portal do <span style={{color:G}}>Corretor</span></h1>
+        <p style={{fontSize:"clamp(11px, 1.5vw, 16px)",color:"#9A9590",maxWidth:500,margin:"0 auto",lineHeight:1.6,position:"relative"}}>Empreendimentos, tabelas com correção CUB/SC, simulador e materiais.</p>
         {adm && <div onClick={function(){setAdm(false);msg("Admin off")}} style={{marginTop:10,display:"inline-flex",alignItems:"center",gap:5,padding:"4px 12px",background:"rgba(76,175,125,0.1)",borderRadius:20,fontSize:9,fontWeight:600,color:"#4CAF7D",cursor:"pointer",position:"relative"}}>🔓 Admin — sair</div>}
       </div>
 
       {/* CONTACT */}
       <div style={{display:"flex",borderTop:"1px solid rgba(200,164,92,0.1)",borderBottom:"1px solid rgba(200,164,92,0.1)",background:"rgba(200,164,92,0.02)"}}>
-        {[{href:"mailto:"+CT.email,i:"✉️",l:"E-mail"},{href:"tel:"+CT.phone,i:"📞",l:"Ligar"},{href:CT.ig[0].u,i:"📷",l:"MK Realty",t:"_blank"},{href:CT.ig[1].u,i:"📷",l:"D&SS",t:"_blank"}].map(function(x,i){
-          return <a key={i} href={x.href} target={x.t} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:3,padding:"8px 3px",fontSize:8,fontWeight:600,color:G,textDecoration:"none",borderRight:i<3?"1px solid rgba(200,164,92,0.08)":"none"}}>{x.i} {x.l}</a>;
+        {[{href:"mailto:"+CT.email,i:"\u2709\uFE0F",l:"E-mail"},{href:"tel:"+CT.phone,i:"\uD83D\uDCDE",l:"Ligar"},{href:CT.ig[0].u,i:"\uD83C\uDF10",l:"MK Realty",t:"_blank",isIg:true},{href:CT.ig[1].u,i:"\uD83C\uDF10",l:"D&SS",t:"_blank",isIg:true}].map(function(x,i){
+          return <a key={i} href={x.href} target={x.t} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:3,padding:"8px 3px",fontSize:8,fontWeight:600,color:G,textDecoration:"none",borderRight:i<3?"1px solid rgba(200,164,92,0.08)":"none"}}>{x.isIg ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg> : x.i} {x.l}</a>;
         })}
       </div>
 
       {/* NAV */}
-      <div style={{position:"sticky",top:0,zIndex:100,background:"#0f0f0e",padding:"10px 10px 0",borderBottom:"1px solid rgba(255,255,255,0.03)"}}>
+      <div style={{position:"sticky",top:0,zIndex:100,background:siteConfig.bgColor||"#0f0f0e",padding:"10px 10px 0",borderBottom:"1px solid rgba(255,255,255,0.03)"}}>
         <div style={{display:"flex",gap:4,overflowX:"auto",paddingBottom:9,scrollbarWidth:"none"}}>
           <TabBtn active={vw==="home"} onClick={function(){setVw("home")}}>🏠 Início</TabBtn>
           {adm && <TabBtn active={vw==="dash"} green onClick={function(){setVw("dash")}}>📊 Dashboard</TabBtn>}
           {adm && <TabBtn active={vw==="manage"} green onClick={function(){setVw("manage")}}>⚙️ Gerenciar</TabBtn>}
+          {adm && <TabBtn active={false} green onClick={function(){setMdl({t:"siteSettings"})}}>🎨 Config</TabBtn>}
           {vis.map(function(b){return <TabBtn key={b.id} active={vw==="detail"&&sel===b.id} onClick={function(){go(b.id)}}>{b.name.replace("Ed. ","").replace("Imóveis de ","")}</TabBtn>})}
         </div>
       </div>
@@ -863,7 +926,7 @@ function App() {
       {/* FOOTER */}
       <div style={{textAlign:"center",padding:"20px 16px",borderTop:"1px solid rgba(255,255,255,0.03)",marginTop:12}}>
         <div style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:12,color:G,marginBottom:4}}>MK Realty & D&SS Incorporação</div>
-        <div style={{fontSize:8,color:"#9A9590",lineHeight:1.8}}>✉️ {CT.email} • 📞 {CT.phone}<br/>📷 {CT.ig.map(function(i){return i.h}).join(" • ")}</div>
+        <div style={{fontSize:8,color:"#9A9590",lineHeight:1.8}}>✉️ {CT.email} • 📞 {CT.phone}<br/>IG: {CT.ig.map(function(i){return i.h}).join(" • ")}</div>
         <div style={{fontSize:7,color:"#555",marginTop:5}}>Portal exclusivo para corretores parceiros • MK Realty & D&SS Incorporação Ltda • 2026</div>
       </div>
 
@@ -872,6 +935,7 @@ function App() {
         {vw==="detail" && bld && <button onClick={function(){printBld(bld.id)}} style={fab("#3B82F6")}>🖨️</button>}
         <a href={"https://wa.me/"+CT.wa+"?text="+encodeURIComponent("Olá! Vim pelo Portal do Corretor 🏢")} target="_blank" style={Object.assign({},fab("#25D366"),{textDecoration:"none"})}>💬</a>
         {!adm && <button onClick={function(){setMdl({t:"login"})}} style={fab(G)}>🔐</button>}
+        {adm && <button onClick={function(){setAdm(false);msg("Admin desativado")}} style={Object.assign({},fab("#D45B5B"),{fontSize:12,fontWeight:700})}>✕</button>}
       </div>
 
       {mdl && <div onClick={function(){setMdl(null)}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
