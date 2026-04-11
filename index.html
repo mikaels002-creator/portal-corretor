@@ -1031,11 +1031,19 @@ function App() {
           📌 Consulte o CUB/SC atualizado em: <strong>sinduscon-sc.com.br</strong> → CUB Mensal.<br/>
           O valor correto é o CUB Médio R-8N (Residencial) em R$/m².
         </div>
-        <L>INCC (% mensal)</L>
-        <input style={mI} type="number" step="0.01" value={c.incc||0} onChange={function(e){setC(Object.assign({},c,{incc:+e.target.value}))}}/>
-        <L>IPCA (% mensal)</L>
-        <input style={mI} type="number" step="0.01" value={c.ipca||0} onChange={function(e){setC(Object.assign({},c,{ipca:+e.target.value}))}}/>
-        <div style={{fontSize:9,color:"#9A9590"}}>Estes valores são exibidos no rodapé do portal para os corretores.</div>
+        <div style={{marginTop:10,padding:"8px 0",borderTop:"1px solid rgba(255,255,255,0.03)"}}>
+          <L>INCC (% mensal)</L>
+          <input style={mI} value={c.incc||""} onChange={function(e){setC(Object.assign({},c,{incc:e.target.value.replace(",",".")}))}} placeholder="Ex: 0,50 ou 0.50"/>
+          <L>Mês de referência INCC</L>
+          <input style={mI} value={c.inccDate||""} onChange={function(e){setC(Object.assign({},c,{inccDate:e.target.value}))}} placeholder="Ex: Março/2026"/>
+        </div>
+        <div style={{marginTop:6,padding:"8px 0",borderTop:"1px solid rgba(255,255,255,0.03)"}}>
+          <L>IPCA (% mensal)</L>
+          <input style={mI} value={c.ipca||""} onChange={function(e){setC(Object.assign({},c,{ipca:e.target.value.replace(",",".")}))}} placeholder="Ex: 0,43 ou 0.43"/>
+          <L>Mês de referência IPCA</L>
+          <input style={mI} value={c.ipcaDate||""} onChange={function(e){setC(Object.assign({},c,{ipcaDate:e.target.value}))}} placeholder="Ex: Março/2026"/>
+        </div>
+        <div style={{fontSize:9,color:"#9A9590",marginTop:6}}>Estes valores e referências são exibidos no rodapé do portal para os corretores.</div>
       </div>
       <button style={mP(G)} onClick={function(){setSiteConfig(c);window.localStorage.setItem("portal-site-config",JSON.stringify(c));setMdl(null);msg("Configurações salvas!")}}>Salvar</button>
       <button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
@@ -1321,11 +1329,13 @@ function App() {
           </div>
           <div style={{padding:"8px 12px",background:"#1a1a19",borderRadius:8,border:"1px solid rgba(255,255,255,0.04)",textAlign:"center",minWidth:80}}>
             <div style={{fontSize:8,color:"#9A9590",textTransform:"uppercase",letterSpacing:1,marginBottom:2}}>INCC</div>
-            <div style={{fontSize:13,fontWeight:700,color:"#4CAF7D"}}>{(siteConfig.incc||0).toFixed(2)}%</div>
+            <div style={{fontSize:13,fontWeight:700,color:"#4CAF7D"}}>{parseFloat(siteConfig.incc||0).toFixed(2)}%</div>
+            <div style={{fontSize:7,color:"#666"}}>{siteConfig.inccDate||"—"}</div>
           </div>
           <div style={{padding:"8px 12px",background:"#1a1a19",borderRadius:8,border:"1px solid rgba(255,255,255,0.04)",textAlign:"center",minWidth:80}}>
             <div style={{fontSize:8,color:"#9A9590",textTransform:"uppercase",letterSpacing:1,marginBottom:2}}>IPCA</div>
-            <div style={{fontSize:13,fontWeight:700,color:"#E8A94E"}}>{(siteConfig.ipca||0).toFixed(2)}%</div>
+            <div style={{fontSize:13,fontWeight:700,color:"#E8A94E"}}>{parseFloat(siteConfig.ipca||0).toFixed(2)}%</div>
+            <div style={{fontSize:7,color:"#666"}}>{siteConfig.ipcaDate||"—"}</div>
           </div>
         </div>
         <div style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:13,color:G,marginBottom:4}}>MK Realty & D&SS Incorporação</div>
