@@ -357,26 +357,15 @@ function App() {
       .catch(function(e){console.log("USD fetch error:",e)});
   };
 
-  // Auto-fetch CUB/SC from Banco Central do Brasil (série 7495)
+  // Auto-fetch CUB/SC - manual only (SINDUSCON-SC não tem API pública)
+  // Valor deve ser atualizado manualmente nas Configurações Gerais
   var fetchCubSC = function(){
-    fetch("https://api.bcb.gov.br/dados/serie/bcdata.sgs.7495/dados/ultimos/1?formato=json")
-      .then(function(r){return r.json()})
-      .then(function(data){
-        if(data && data.length > 0){
-          var val = parseFloat(data[0].valor);
-          var dt = data[0].data;
-          var nc = Object.assign({},siteConfig,{cubSC:val,cubSCDate:dt,cubSCLastFetch:new Date().toLocaleString("pt-BR")});
-          setSiteConfig(nc);
-          window.localStorage.setItem("portal-site-config",JSON.stringify(nc));
-        }
-      })
-      .catch(function(e){console.log("CUB fetch error:",e)});
+    msg("CUB/SC: atualize manualmente. Consulte sinduscon-sc.com.br");
   };
 
   useEffect(function(){
     fetchUsdRate();
-    fetchCubSC();
-    var interval = setInterval(function(){fetchUsdRate();fetchCubSC()}, 3600000);
+    var interval = setInterval(function(){fetchUsdRate()}, 3600000);
     return function(){clearInterval(interval)};
   },[]);
 
@@ -1031,16 +1020,17 @@ function App() {
       </div>
       <div style={{marginTop:10,padding:"10px 0",borderTop:"1px solid rgba(255,255,255,0.05)"}}>
         <div style={{fontSize:11,fontWeight:600,color:G,marginBottom:8,textTransform:"uppercase",letterSpacing:1}}>📊 Indicadores Econômicos</div>
-        <L>CUB/SC (R$/m²) — vírgula ou ponto</L>
+        <L>CUB/SC (R$/m²)</L>
         <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:4}}>
-          <input style={Object.assign({},mI,{marginBottom:0,flex:1})} value={c.cubSC||""} onChange={function(e){setC(Object.assign({},c,{cubSC:e.target.value.replace(",",".")}))}} placeholder="3.028,45"/>
+          <input style={Object.assign({},mI,{marginBottom:0,flex:1,fontSize:16,fontWeight:700})} value={c.cubSC||""} onChange={function(e){setC(Object.assign({},c,{cubSC:e.target.value.replace(",",".")}))}} placeholder="3028.45"/>
           <button onClick={function(){try{navigator.clipboard.writeText(String(c.cubSC||""));msg("CUB copiado!")}catch(e){}}} style={Object.assign({},mb("#4CAF7D"),{fontSize:10,whiteSpace:"nowrap"})}>📋</button>
         </div>
-        <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:8}}>
-          <button onClick={function(){fetchCubSC();msg("Buscando CUB/SC...")}} style={Object.assign({},mb("#5B8FD4"),{fontSize:10})}>🔄 Buscar CUB atualizado (BCB)</button>
-          {c.cubSCDate && <span style={{fontSize:8,color:"#9A9590"}}>Ref: {c.cubSCDate}</span>}
+        <L>Mês de referência</L>
+        <input style={mI} value={c.cubSCDate||""} onChange={function(e){setC(Object.assign({},c,{cubSCDate:e.target.value}))}} placeholder="Ex: Março/2026"/>
+        <div style={{fontSize:9,color:"#E8A94E",marginBottom:6,padding:"6px 8px",background:"rgba(232,169,78,0.06)",borderRadius:5}}>
+          📌 Consulte o CUB/SC atualizado em: <strong>sinduscon-sc.com.br</strong> → CUB Mensal.<br/>
+          O valor correto é o CUB Médio R-8N (Residencial) em R$/m².
         </div>
-        <div style={{fontSize:9,color:"#9A9590",marginBottom:6}}>Fonte: Banco Central do Brasil (série 7495). Atualização automática a cada hora.</div>
         <L>INCC (% mensal)</L>
         <input style={mI} type="number" step="0.01" value={c.incc||0} onChange={function(e){setC(Object.assign({},c,{incc:+e.target.value}))}}/>
         <L>IPCA (% mensal)</L>
@@ -1177,12 +1167,12 @@ function App() {
     var parsedV = parseBR(v);
     return <div><div style={mT}>📈 Atualizar CUB/SC</div>
       <div style={{padding:10,background:"rgba(76,175,125,0.06)",borderRadius:8,marginBottom:12}}>
-        <div style={{fontSize:9,color:"#9A9590",textTransform:"uppercase",letterSpacing:1,marginBottom:3}}>CUB/SC Referência (Config. Gerais)</div>
+        <div style={{fontSize:9,color:"#9A9590",textTransform:"uppercase",letterSpacing:1,marginBottom:3}}>CUB/SC Referência {siteConfig.cubSCDate?"("+siteConfig.cubSCDate+")":""}</div>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <span style={{fontSize:18,fontWeight:700,color:"#4CAF7D"}}>R$ {fmtBR(globalCub)}</span>
           <button onClick={function(){setV(fmtBR(globalCub));msg("CUB copiado!")}} style={Object.assign({},mb("#4CAF7D"),{fontSize:10})}>📋 Usar este valor</button>
         </div>
-        <div style={{fontSize:8,color:"#9A9590",marginTop:4}}>Atualize o CUB de referência nas Configurações Gerais (🎨)</div>
+        <div style={{fontSize:8,color:"#E8A94E",marginTop:4}}>Fonte: sinduscon-sc.com.br • Atualize nas Config. Gerais (🎨)</div>
       </div>
       <div style={{fontSize:11,color:"#9A9590",marginBottom:8}}>CUB atual deste empreendimento: <strong style={{color:"#F5F0E8"}}>R$ {fmtBR(b.cubCurrent)}</strong></div>
       {b.cubHistory.length>0 && <div style={{marginBottom:10}}>
