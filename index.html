@@ -688,28 +688,61 @@ function App() {
               return <div key={i} style={{aspectRatio:"1",borderRadius:8,overflow:"hidden",position:"relative",border:"1px solid rgba(255,255,255,0.06)"}}>
                 <img src={photo.url} alt={photo.label||""} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
                 <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"4px 8px",background:"rgba(0,0,0,0.6)",fontSize:9,color:"#fff"}}>{photo.label||"Foto "+(i+1)}</div>
-                {adm && <button onClick={function(){var photos=bld.photos.filter(function(_,j){return j!==i});upB(bld.id,{photos:photos});msg("Foto removida")}} style={{position:"absolute",top:4,right:4,width:22,height:22,borderRadius:"50%",background:"rgba(213,91,91,0.9)",color:"#fff",border:"none",fontSize:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>}
+                {adm && <button onClick={function(){var photos=bld.photos.filter(function(_,j){return j!==i});upB(bld.id,{photos:photos});msg("Foto removida")}} style={{position:"absolute",top:4,right:4,width:24,height:24,borderRadius:"50%",background:"rgba(213,91,91,0.9)",color:"#fff",border:"none",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>}
               </div>;
             }) : null}
-            {(!bld.photos || bld.photos.length === 0) && <div style={{aspectRatio:"1",borderRadius:8,border:"2px dashed rgba(255,255,255,0.06)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4,fontSize:10,color:"#9A9590",gridColumn:"1/-1"}}><span style={{fontSize:30}}>📸</span>{adm?"Adicione fotos abaixo":"Nenhuma foto disponível"}</div>}
+            {(!bld.photos || bld.photos.length === 0) && <div style={{aspectRatio:"1",borderRadius:8,border:"2px dashed rgba(255,255,255,0.06)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4,fontSize:11,color:"#9A9590",gridColumn:"1/-1"}}><span style={{fontSize:30}}>📸</span>{adm?"Toque abaixo para adicionar fotos":"Nenhuma foto disponível"}</div>}
           </div>
-          {adm && <div style={{marginTop:12,padding:12,background:"#1a1a19",borderRadius:8,border:"1px solid rgba(255,255,255,0.04)"}}>
-            <div style={{fontSize:11,fontWeight:600,color:G,marginBottom:8}}>＋ Adicionar Foto</div>
-            <L>URL da Imagem</L>
-            <input id="newPhotoUrl" style={mI} placeholder="https://exemplo.com/foto.jpg"/>
-            <L>Legenda</L>
-            <input id="newPhotoLabel" style={mI} placeholder="Ex: Fachada, Living, Piscina..."/>
-            <button style={mP(bld.color)} onClick={function(){
-              var url=document.getElementById("newPhotoUrl").value;
-              var label=document.getElementById("newPhotoLabel").value;
-              if(!url.trim()){msg("Cole a URL da imagem");return}
-              var photos=(bld.photos||[]).concat([{url:url,label:label||"Foto"}]);
-              upB(bld.id,{photos:photos});
-              document.getElementById("newPhotoUrl").value="";
-              document.getElementById("newPhotoLabel").value="";
-              msg("Foto adicionada!");
-            }}>Adicionar Foto</button>
-            <div style={{fontSize:9,color:"#9A9590",marginTop:6}}>Dica: hospede as imagens no Google Drive, Imgur ou seu servidor e cole o link aqui.</div>
+          {adm && <div style={{marginTop:12,padding:14,background:"#1a1a19",borderRadius:10,border:"1px solid rgba(255,255,255,0.04)"}}>
+            <div style={{fontSize:12,fontWeight:600,color:G,marginBottom:10}}>📸 Adicionar Foto</div>
+            <label style={{display:"block",padding:"20px",border:"2px dashed "+bld.color+"50",borderRadius:8,textAlign:"center",cursor:"pointer",background:bld.color+"08",marginBottom:8}}>
+              <input type="file" accept="image/*" multiple style={{display:"none"}} onChange={function(e){
+                var files = e.target.files;
+                if(!files||!files.length) return;
+                Array.from(files).forEach(function(file){
+                  var reader = new FileReader();
+                  reader.onload = function(ev){
+                    var img = new Image();
+                    img.onload = function(){
+                      var canvas = document.createElement("canvas");
+                      var MAX = 1200;
+                      var w = img.width; var h = img.height;
+                      if(w > MAX){ h = h * MAX / w; w = MAX; }
+                      if(h > MAX){ w = w * MAX / h; h = MAX; }
+                      canvas.width = w; canvas.height = h;
+                      var ctx = canvas.getContext("2d");
+                      ctx.drawImage(img, 0, 0, w, h);
+                      var dataUrl = canvas.toDataURL("image/jpeg", 0.75);
+                      var label = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
+                      var photos = (bld.photos || []).concat([{url: dataUrl, label: label}]);
+                      upB(bld.id, {photos: photos});
+                      msg("Foto adicionada!");
+                    };
+                    img.src = ev.target.result;
+                  };
+                  reader.readAsDataURL(file);
+                });
+                e.target.value = "";
+              }}/>
+              <div style={{fontSize:24,marginBottom:6}}>📁</div>
+              <div style={{fontSize:12,fontWeight:600,color:bld.color}}>Toque para selecionar fotos</div>
+              <div style={{fontSize:10,color:"#9A9590",marginTop:4}}>Selecione do celular ou computador • Múltiplas fotos de uma vez</div>
+            </label>
+            <div style={{fontSize:12,fontWeight:600,color:"#9A9590",margin:"12px 0 6px",textAlign:"center"}}>— ou cole um link —</div>
+            <div style={{display:"flex",gap:6}}>
+              <input id="newPhotoUrl" style={Object.assign({},mI,{flex:1,marginBottom:0})} placeholder="https://link-da-imagem.jpg"/>
+              <input id="newPhotoLabel" style={Object.assign({},mI,{width:100,marginBottom:0})} placeholder="Legenda"/>
+              <button onClick={function(){
+                var url=document.getElementById("newPhotoUrl").value;
+                var label=document.getElementById("newPhotoLabel").value;
+                if(!url.trim()){msg("Cole a URL");return}
+                var photos=(bld.photos||[]).concat([{url:url,label:label||"Foto"}]);
+                upB(bld.id,{photos:photos});
+                document.getElementById("newPhotoUrl").value="";
+                document.getElementById("newPhotoLabel").value="";
+                msg("Foto adicionada!");
+              }} style={Object.assign({},mb(bld.color),{fontSize:11,padding:"8px 14px",whiteSpace:"nowrap"})}>＋</button>
+            </div>
           </div>}
         </div>}
 
