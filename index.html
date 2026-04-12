@@ -326,31 +326,35 @@ function App() {
   const [lang, setLang] = useState("pt");
   const [showUsd, setShowUsd] = useState(false);
   const [siteConfig, setSiteConfig] = useState(function(){
-    try { var raw = window.localStorage.getItem("portal-site-config"); return raw ? JSON.parse(raw) : {bgColor:"#0f0f0e",heroBanner:"",heroOverlay:true,usdRate:5.80,usdCustom:"",cubSC:3028.45,incc:0.50,ipca:0.43,waNumber:"5547992134870",reportLogo:"",supabaseUrl:"",supabaseKey:""}; } catch(e){ return {bgColor:"#0f0f0e",heroBanner:"",heroOverlay:true,usdRate:5.80,usdCustom:"",cubSC:3028.45,incc:0.50,ipca:0.43,waNumber:"5547992134870",reportLogo:"",supabaseUrl:"",supabaseKey:""}; }
+    try { var raw = window.localStorage.getItem("portal-site-config"); return raw ? JSON.parse(raw) : {bgColor:"#0f0f0e",heroBanner:"",heroOverlay:true,usdRate:5.80,usdCustom:"",cubSC:3028.45,incc:0.50,ipca:0.43,waNumber:"5547992134870",reportLogo:"",supabaseUrl:"https://zztqlktqevfdxjyzvand.supabase.co",supabaseKey:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp6dHFsa3RxZXZmZHhqeXp2YW5kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MzI3NjMsImV4cCI6MjA5MTUwODc2M30.xl4LFZoPDR9q78-y9tcyLgaSSLb_oQFrcm2hjmnb-Mg"}; } catch(e){ return {bgColor:"#0f0f0e",heroBanner:"",heroOverlay:true,usdRate:5.80,usdCustom:"",cubSC:3028.45,incc:0.50,ipca:0.43,waNumber:"5547992134870",reportLogo:"",supabaseUrl:"https://zztqlktqevfdxjyzvand.supabase.co",supabaseKey:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp6dHFsa3RxZXZmZHhqeXp2YW5kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MzI3NjMsImV4cCI6MjA5MTUwODc2M30.xl4LFZoPDR9q78-y9tcyLgaSSLb_oQFrcm2hjmnb-Mg"}; }
   });
 
   // Supabase upload helper
+  var SB_URL = "https://zztqlktqevfdxjyzvand.supabase.co";
+  var SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp6dHFsa3RxZXZmZHhqeXp2YW5kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MzI3NjMsImV4cCI6MjA5MTUwODc2M30.xl4LFZoPDR9q78-y9tcyLgaSSLb_oQFrcm2hjmnb-Mg";
   var getSupabase = function(){
-    if(!siteConfig.supabaseUrl || !siteConfig.supabaseKey) return null;
-    try { return window.supabase.createClient(siteConfig.supabaseUrl, siteConfig.supabaseKey); } catch(e){ return null; }
+    var url = siteConfig.supabaseUrl || SB_URL;
+    var key = siteConfig.supabaseKey || SB_KEY;
+    if(!url || !key) return null;
+    try { return window.supabase.createClient(url, key); } catch(e){ return null; }
   };
 
   var uploadFile = function(file, folder, callback){
     var sb = getSupabase();
     if(!sb){
-      // Fallback: base64 local (só aparece neste dispositivo)
+      msg("⚠️ Supabase não conectado — arquivo salvo apenas neste dispositivo");
       var reader = new FileReader();
       reader.onload = function(ev){
         if(file.type.indexOf("image") !== -1){
           var img = new Image();
           img.onload = function(){
             var canvas = document.createElement("canvas");
-            var MAX = 1200; var w = img.width; var h = img.height;
+            var MAX = 800; var w = img.width; var h = img.height;
             if(w > MAX){ h = h * MAX / w; w = MAX; }
             if(h > MAX){ w = w * MAX / h; h = MAX; }
             canvas.width = w; canvas.height = h;
             canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-            callback(canvas.toDataURL("image/jpeg", 0.75), file.name);
+            callback(canvas.toDataURL("image/jpeg", 0.6), file.name);
           };
           img.src = ev.target.result;
         } else {
@@ -360,13 +364,15 @@ function App() {
       reader.readAsDataURL(file);
       return;
     }
-    // Upload to Supabase Storage
+    msg("☁️ Enviando...");
     var fileName = folder + "/" + Date.now() + "-" + file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    var sbUrl = siteConfig.supabaseUrl || SB_URL;
     sb.storage.from("arquivos").upload(fileName, file, {upsert:true}).then(function(res){
       if(res.error){msg("Erro: " + res.error.message); return;}
-      var publicUrl = siteConfig.supabaseUrl + "/storage/v1/object/public/arquivos/" + fileName;
+      var publicUrl = sbUrl + "/storage/v1/object/public/arquivos/" + fileName;
       callback(publicUrl, file.name);
-    }).catch(function(e){msg("Erro no upload"); console.log(e);});
+      msg("☁️ Upload concluído!");
+    }).catch(function(e){msg("Erro no upload: " + (e.message||"")); console.log(e);});
   };
   var t = TR[lang] || TR.pt;
   var sl = lang === "es" ? sLes : sL;
@@ -378,6 +384,19 @@ function App() {
   useEffect(() => {
     (async () => {
       try { const raw = window.localStorage.getItem(SK); if (raw) setD(JSON.parse(raw)); } catch (e) {}
+      // Auto-inject Supabase credentials if missing
+      try {
+        var raw = window.localStorage.getItem("portal-site-config");
+        if(raw){
+          var cfg = JSON.parse(raw);
+          if(!cfg.supabaseUrl || !cfg.supabaseKey){
+            cfg.supabaseUrl = cfg.supabaseUrl || SB_URL;
+            cfg.supabaseKey = cfg.supabaseKey || SB_KEY;
+            window.localStorage.setItem("portal-site-config", JSON.stringify(cfg));
+            setSiteConfig(cfg);
+          }
+        }
+      } catch(e){}
       setRdy(true);
     })();
   }, []);
