@@ -381,10 +381,30 @@ function App() {
   var getUsdRate = function(){ var custom = parseFloat(siteConfig.usdCustom); return (custom && custom > 0) ? custom : (siteConfig.usdRate || 5.80); };
   var fmtV = function(v){ return showUsd ? fmtUsd(Math.round(v / getUsdRate())) : fmt(v); };
 
+  // Cloud sync: save/load portal data via Supabase Storage
+  var cloudSave = function(key, data){
+    var sb = getSupabase();
+    if(!sb) return;
+    var blob = new Blob([JSON.stringify(data)], {type:"application/json"});
+    sb.storage.from("arquivos").upload("portal-data/"+key+".json", blob, {upsert:true,contentType:"application/json"})
+      .then(function(res){ if(res.error) console.log("Cloud save error:",res.error.message); })
+      .catch(function(e){ console.log("Cloud save fail:",e); });
+  };
+
+  var cloudLoad = function(key, callback){
+    var sb = getSupabase();
+    if(!sb){ callback(null); return; }
+    var url = (siteConfig.supabaseUrl||SB_URL)+"/storage/v1/object/public/arquivos/portal-data/"+key+".json?t="+Date.now();
+    fetch(url).then(function(r){ if(r.ok) return r.json(); throw new Error("not found"); })
+      .then(function(data){ callback(data); })
+      .catch(function(e){ callback(null); });
+  };
+
   useEffect(() => {
     (async () => {
+      // Load local first
       try { const raw = window.localStorage.getItem(SK); if (raw) setD(JSON.parse(raw)); } catch (e) {}
-      // Auto-inject Supabase credentials if missing
+      // Auto-inject Supabase credentials
       try {
         var raw = window.localStorage.getItem("portal-site-config");
         if(raw){
@@ -397,6 +417,16 @@ function App() {
           }
         }
       } catch(e){}
+      // Then load from cloud (overrides local)
+      cloudLoad("buildings", function(data){
+        if(data){ setD(data); try{window.localStorage.setItem(SK,JSON.stringify(data))}catch(e){} }
+      });
+      cloudLoad("config", function(data){
+        if(data){ setSiteConfig(data); try{window.localStorage.setItem("portal-site-config",JSON.stringify(data))}catch(e){} }
+      });
+      cloudLoad("brokers", function(data){
+        if(data){ setBrokers(data); try{window.localStorage.setItem("portal-brokers",JSON.stringify(data))}catch(e){} }
+      });
       setRdy(true);
     })();
   }, []);
@@ -424,7 +454,7 @@ function App() {
     return function(){clearInterval(interval)};
   },[]);
 
-  const sv = useCallback(async (d) => { try { window.localStorage.setItem(SK, JSON.stringify(d)); } catch (e) {} }, []);
+  const sv = useCallback(async (d) => { try { window.localStorage.setItem(SK, JSON.stringify(d)); } catch (e) {} cloudSave("buildings", d); }, []);
 
   const upd = (fn) => {
     setD((p) => { const n = fn(p); sv(n); return n; });
@@ -1192,7 +1222,7 @@ function App() {
           4. Settings → API → copiar Project URL e anon key → colar acima
         </div>
       </div>
-      <button style={mP(G)} onClick={function(){setSiteConfig(c);window.localStorage.setItem("portal-site-config",JSON.stringify(c));setMdl(null);msg("Configurações salvas!")}}>Salvar</button>
+      <button style={mP(G)} onClick={function(){setSiteConfig(c);window.localStorage.setItem("portal-site-config",JSON.stringify(c));cloudSave("config",c);setMdl(null);msg("Configurações salvas!")}}>Salvar</button>
       <button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
     </div>;
   }
@@ -1224,7 +1254,7 @@ function App() {
         var newBroker = Object.assign({},f,{id:"bk-"+Date.now(),datacadastro:new Date().toLocaleDateString("pt-BR"),hora:new Date().toLocaleTimeString("pt-BR")});
         var updated = brokers.concat([newBroker]);
         setBrokers(updated);
-        window.localStorage.setItem("portal-brokers",JSON.stringify(updated));
+        window.localStorage.setItem("portal-brokers",JSON.stringify(updated));cloudSave("brokers",updated);
         var mailto = "mailto:"+CT.email+"?subject=Novo+Corretor+Cadastrado+-+"+encodeURIComponent(f.nome)+"&body="+encodeURIComponent("Novo corretor cadastrado no Portal:\n\nNome: "+f.nome+"\nImobiliária: "+f.imobiliaria+"\nCidade: "+f.cidade+"\nTelefone: "+f.telefone+"\nE-mail: "+f.email+"\nData: "+newBroker.datacadastro+" "+newBroker.hora);
         try{window.open(mailto,"_blank")}catch(e){}
         setSent(true);
@@ -1258,7 +1288,7 @@ function App() {
               <button onClick={function(){
                 var updated = brokers.filter(function(x){return x.id!==b.id});
                 setBrokers(updated);
-                window.localStorage.setItem("portal-brokers",JSON.stringify(updated));
+                window.localStorage.setItem("portal-brokers",JSON.stringify(updated));cloudSave("brokers",updated);
                 msg("Corretor removido");
               }} style={mb("#D45B5B")}>🗑️</button>
             </div>
@@ -1272,7 +1302,7 @@ function App() {
           window.open(mailto,"_blank");
         }}>📧 Enviar lista por e-mail</button>
         <button style={Object.assign({},mC,{marginTop:6})} onClick={function(){
-          if(confirm("Limpar todos os "+brokers.length+" cadastros?")){setBrokers([]);window.localStorage.setItem("portal-brokers","[]");msg("Lista limpa")}
+          if(confirm("Limpar todos os "+brokers.length+" cadastros?")){setBrokers([]);window.localStorage.setItem("portal-brokers","[]");cloudSave("brokers",[]);msg("Lista limpa")}
         }}>🗑️ Limpar todos</button>
       </div>}
       <button style={Object.assign({},mC,{marginTop:6})} onClick={function(){setMdl(null)}}>{t.close}</button>
