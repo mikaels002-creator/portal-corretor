@@ -1129,10 +1129,28 @@ function App() {
           </div>
         </div>
         <div style={{fontSize:7,color:"#9A9590",marginTop:6,textAlign:"center"}}>Simulação estimativa • {defaultIndex} • Valores sujeitos a alteração</div>
+        {loggedBroker && myClients.length > 0 && <div style={{marginTop:10}}>
+          <div style={{fontSize:11,fontWeight:600,color:G,marginBottom:6}}>📨 Enviar proposta para cliente:</div>
+          <div style={{maxHeight:150,overflow:"auto",marginBottom:6}}>
+            {myClients.map(function(cl){return <div key={cl.id} onClick={function(){
+              var coverUrl = b.coverPhoto || "";
+              var proposalText = "🏢 *" + b.name + "*\n" + b.subtitle + "\n\n" + (b.incorporation?"📋 "+b.incorporation+"\n":"") + "📐 Unidade: *" + data.u.name + "* — " + data.u.area + "m²\n💰 Valor: *" + fmt(price) + "*\n\n🏦 *Proposta de Financiamento*\n💳 Entrada: " + fmt(down) + " (" + (price>0?((down/price)*100).toFixed(1):"0") + "%)" + (bemVal>0?"\n🚗 Bem: " + fmt(bemVal) + " (" + bemDesc + ")":"") + "\n🏦 Saldo: " + fmt(saldo) + "\n📅 " + months + " parcelas de *" + fmt(pmt) + "*" + (numBaloes>0?"\n🎈 " + numBaloes + " balões " + balaoFreq + " de " + fmt(balaoValor):"") + "\n💵 Total: *" + fmt(totalPago) + "*\n📊 Índice: " + defaultIndex + (coverUrl?"\n\n🖼️ Veja o empreendimento: " + coverUrl:"") + "\n\n👤 Corretor: " + loggedBroker.nome + "\n📞 " + (loggedBroker.telefone||CT.phone);
+              window.open("https://wa.me/" + cl.telefone.replace(/[^0-9]/g,"") + "?text=" + encodeURIComponent(proposalText), "_blank");
+            }} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",background:"#222",borderRadius:6,marginBottom:4,cursor:"pointer",border:"1px solid rgba(255,255,255,0.04)"}}>
+              <div style={{width:30,height:30,borderRadius:"50%",background:"#25D366"+"20",display:"flex",alignItems:"center",justifyContent:"center"}}><WaIcon size={14}/></div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:12,fontWeight:600}}>{cl.nome}</div>
+                <div style={{fontSize:9,color:"#9A9590"}}>{cl.telefone} {cl.cidade?" • "+cl.cidade:""}</div>
+              </div>
+              <span style={{fontSize:9,color:"#25D366",fontWeight:600}}>Enviar →</span>
+            </div>})}
+          </div>
+        </div>}
         <button onClick={function(){
-          var text = "🏦 *Simulação de Financiamento*\n🏢 " + b.name + " — " + data.u.name + "\n💰 Valor: " + fmt(price) + "\n💳 Entrada: " + fmt(down) + " (" + (price>0?((down/price)*100).toFixed(1):"0") + "%)" + (bemVal>0?"\n🚗 Bem: " + fmt(bemVal) + " (" + bemDesc + ")":"") + "\n🏦 Saldo: " + fmt(saldo) + "\n📅 " + months + " parcelas de *" + fmt(pmt) + "*" + (numBaloes>0?"\n🎈 " + numBaloes + " balões " + balaoFreq + " de " + fmt(balaoValor):"") + "\n💵 Total: " + fmt(totalPago) + "\n📊 Índice: " + defaultIndex + "\n📞 " + CT.phone;
+          var coverUrl = b.coverPhoto || "";
+          var text = "🏢 *" + b.name + "*\n" + b.subtitle + "\n\n🏦 *Simulação de Financiamento*\n📐 Unidade: " + data.u.name + " — " + data.u.area + "m²\n💰 Valor: " + fmt(price) + "\n💳 Entrada: " + fmt(down) + " (" + (price>0?((down/price)*100).toFixed(1):"0") + "%)" + (bemVal>0?"\n🚗 Bem: " + fmt(bemVal) + " (" + bemDesc + ")":"") + "\n🏦 Saldo: " + fmt(saldo) + "\n📅 " + months + " parcelas de *" + fmt(pmt) + "*" + (numBaloes>0?"\n🎈 " + numBaloes + " balões " + balaoFreq + " de " + fmt(balaoValor):"") + "\n💵 Total: " + fmt(totalPago) + "\n📊 Índice: " + defaultIndex + (coverUrl?"\n\n🖼️ "+coverUrl:"") + "\n\n📞 " + CT.phone;
           window.open("https://wa.me/" + waNum + "?text=" + encodeURIComponent(text), "_blank");
-        }} style={{width:"100%",marginTop:8,padding:"11px",borderRadius:7,fontSize:13,fontWeight:600,background:"#25D366",color:"#fff",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}><WaIcon size={16}/> {t.send}</button>
+        }} style={{width:"100%",marginTop:8,padding:"11px",borderRadius:7,fontSize:13,fontWeight:600,background:"#25D366",color:"#fff",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}><WaIcon size={16}/> {loggedBroker?"Enviar para outro número":t.send}</button>
         <button style={Object.assign({},mP("#3B82F6"),{display:"flex",alignItems:"center",justifyContent:"center",gap:6})} onClick={function(){printSim(b,data.u,price,down,bemVal,bemDesc,saldo,months,pmt,balaoFreq,numBaloes,balaoValor,totalBaloes,totalPago,comissao,defaultIndex);setSimUnit(null)}}>🖨️ {t.export}</button>
         <button style={mC} onClick={function(){setSimUnit(null)}}>{t.close}</button>
       </div>
@@ -1405,7 +1423,7 @@ function App() {
   }
 
   function AddClientM() {
-    var _f = useState({nome:"",telefone:"",email:"",interesse:"",empreendimento:"",orcamento:"",observacoes:"",status:"lead"}); var f = _f[0]; var setF = _f[1];
+    var _f = useState({nome:"",telefone:"",email:"",pais:"Brasil",estado:"",cidade:"",empreendimento:"",orcamento:"",observacoes:"",status:"lead"}); var f = _f[0]; var setF = _f[1];
     var bkr = mdl.broker || loggedBroker;
     return <div>
       <div style={mT}>＋ Novo Cliente</div>
@@ -1415,6 +1433,12 @@ function App() {
       <input style={mI} value={f.telefone} onChange={function(e){setF(Object.assign({},f,{telefone:e.target.value}))}} placeholder="+55 47 99999-9999" type="tel"/>
       <L>E-mail</L>
       <input style={mI} value={f.email} onChange={function(e){setF(Object.assign({},f,{email:e.target.value}))}} placeholder="cliente@email.com"/>
+      <div style={{display:"flex",gap:6}}>
+        <div style={{flex:1}}><L>País</L><input style={mI} value={f.pais} onChange={function(e){setF(Object.assign({},f,{pais:e.target.value}))}} placeholder="Brasil"/></div>
+        <div style={{flex:1}}><L>Estado</L><input style={mI} value={f.estado} onChange={function(e){setF(Object.assign({},f,{estado:e.target.value}))}} placeholder="SC"/></div>
+      </div>
+      <L>Cidade *</L>
+      <input style={mI} value={f.cidade} onChange={function(e){setF(Object.assign({},f,{cidade:e.target.value}))}} placeholder="Ex: Bombinhas, Córdoba..."/>
       <L>Empreendimento de Interesse</L>
       <select style={mI} value={f.empreendimento} onChange={function(e){setF(Object.assign({},f,{empreendimento:e.target.value}))}}>
         <option value="">Selecione...</option>
@@ -1443,12 +1467,17 @@ function App() {
 
   function EditClientM() {
     var c = mdl.client;
-    var _f = useState(Object.assign({},c)); var f = _f[0]; var setF = _f[1];
+    var _f = useState(Object.assign({pais:"",estado:"",cidade:""},c)); var f = _f[0]; var setF = _f[1];
     return <div>
       <div style={mT}>✏️ Editar Cliente</div>
       <L>Nome</L><input style={mI} value={f.nome} onChange={function(e){setF(Object.assign({},f,{nome:e.target.value}))}}/>
       <L>Telefone</L><input style={mI} value={f.telefone} onChange={function(e){setF(Object.assign({},f,{telefone:e.target.value}))}}/>
       <L>E-mail</L><input style={mI} value={f.email} onChange={function(e){setF(Object.assign({},f,{email:e.target.value}))}}/>
+      <div style={{display:"flex",gap:6}}>
+        <div style={{flex:1}}><L>País</L><input style={mI} value={f.pais||""} onChange={function(e){setF(Object.assign({},f,{pais:e.target.value}))}}/></div>
+        <div style={{flex:1}}><L>Estado</L><input style={mI} value={f.estado||""} onChange={function(e){setF(Object.assign({},f,{estado:e.target.value}))}}/></div>
+      </div>
+      <L>Cidade</L><input style={mI} value={f.cidade||""} onChange={function(e){setF(Object.assign({},f,{cidade:e.target.value}))}}/>
       <L>Empreendimento</L>
       <select style={mI} value={f.empreendimento} onChange={function(e){setF(Object.assign({},f,{empreendimento:e.target.value}))}}>
         <option value="">Selecione...</option>
@@ -1475,18 +1504,30 @@ function App() {
     var _search = useState(""); var search = _search[0]; var setSearch = _search[1];
     var _filterBroker = useState("all"); var filterBroker = _filterBroker[0]; var setFilterBroker = _filterBroker[1];
     var _filterStatus = useState("all"); var filterStatus = _filterStatus[0]; var setFilterStatus = _filterStatus[1];
+    var _filterLocal = useState(""); var filterLocal = _filterLocal[0]; var setFilterLocal = _filterLocal[1];
+
+    var allLocations = [];
+    clients.forEach(function(c){
+      var loc = [c.cidade,c.estado,c.pais].filter(Boolean).join(", ");
+      if(loc && allLocations.indexOf(loc)===-1) allLocations.push(loc);
+    });
+
     var filtered = clients.filter(function(c){
       if(filterBroker!=="all" && c.brokerId!==filterBroker) return false;
       if(filterStatus!=="all" && c.status!==filterStatus) return false;
-      if(search && (c.nome+c.telefone+c.email+c.empreendimento+c.brokerName).toLowerCase().indexOf(search.toLowerCase())===-1) return false;
+      if(filterLocal){
+        var clientLoc = [c.cidade,c.estado,c.pais].join(" ").toLowerCase();
+        if(clientLoc.indexOf(filterLocal.toLowerCase())===-1) return false;
+      }
+      if(search && (c.nome+c.telefone+c.email+c.empreendimento+c.brokerName+(c.cidade||"")+(c.estado||"")+(c.pais||"")).toLowerCase().indexOf(search.toLowerCase())===-1) return false;
       return true;
     });
     var statusColors = {lead:"#5B8FD4",contato:"#E8A94E",visita:"#8B6FBF",proposta:"#C8A45C",fechado:"#4CAF7D",perdido:"#D45B5B"};
     var statusLabels = {lead:"Lead",contato:"Contato",visita:"Visitou",proposta:"Proposta",fechado:"Fechado",perdido:"Perdido"};
     return <div>
       <div style={mT}>👥 Todos os Clientes ({clients.length})</div>
-      <input style={mI} value={search} onChange={function(e){setSearch(e.target.value)}} placeholder="Buscar cliente, corretor, empreendimento..."/>
-      <div style={{display:"flex",gap:4,marginBottom:8,flexWrap:"wrap"}}>
+      <input style={mI} value={search} onChange={function(e){setSearch(e.target.value)}} placeholder="🔍 Buscar por nome, cidade, país, corretor..."/>
+      <div style={{display:"flex",gap:4,marginBottom:4,flexWrap:"wrap"}}>
         <select style={Object.assign({},mI,{width:"auto",flex:1})} value={filterBroker} onChange={function(e){setFilterBroker(e.target.value)}}>
           <option value="all">Todos os corretores</option>
           {brokers.map(function(b){return <option key={b.id} value={b.id}>{b.nome}</option>})}
@@ -1496,10 +1537,15 @@ function App() {
           {Object.keys(statusLabels).map(function(s){return <option key={s} value={s}>{statusLabels[s]}</option>})}
         </select>
       </div>
+      <input style={mI} value={filterLocal} onChange={function(e){setFilterLocal(e.target.value)}} placeholder="📍 Filtrar por localidade: cidade, estado ou país"/>
+      {filterLocal==="" && allLocations.length>0 && <div style={{display:"flex",gap:3,marginBottom:8,flexWrap:"wrap"}}>
+        {allLocations.slice(0,10).map(function(loc){return <span key={loc} onClick={function(){setFilterLocal(loc.split(",")[0].trim())}} style={{padding:"3px 8px",borderRadius:4,fontSize:9,fontWeight:600,cursor:"pointer",background:"#1e1e1d",color:"#9A9590"}}>📍 {loc}</span>})}
+      </div>}
       <div style={{fontSize:11,color:"#9A9590",marginBottom:8}}>{filtered.length} clientes encontrados</div>
       <div style={{maxHeight:400,overflow:"auto"}}>
         {filtered.map(function(c){
           var sc = statusColors[c.status]||"#9A9590";
+          var locStr = [c.cidade,c.estado,c.pais].filter(Boolean).join(", ");
           return <div key={c.id} style={{background:"#222",borderRadius:8,padding:12,marginBottom:8,border:"1px solid rgba(255,255,255,0.04)",borderLeft:"3px solid "+sc}}>
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
               <div style={{flex:1}}>
@@ -1509,6 +1555,7 @@ function App() {
               <span style={{padding:"2px 8px",borderRadius:4,fontSize:9,fontWeight:600,background:sc+"20",color:sc}}>{statusLabels[c.status]||c.status}</span>
             </div>
             <div style={{display:"flex",gap:6,fontSize:9,color:"#9A9590",marginBottom:4,flexWrap:"wrap"}}>
+              {locStr && <span>📍 {locStr}</span>}
               {c.empreendimento && <span>🏢 {c.empreendimento}</span>}
               {c.orcamento && <span>💰 {c.orcamento}</span>}
               <span>👤 {c.brokerName||"—"}</span>
@@ -1729,16 +1776,24 @@ function App() {
           <button onClick={function(){logoutBroker();setVw("home");msg("Sessão encerrada")}} style={mb("#D45B5B")}>Sair</button>
         </div>
 
-        <button onClick={function(){setMdl({t:"addClient",broker:loggedBroker})}} style={{width:"100%",padding:"12px",borderRadius:9,fontSize:13,fontWeight:600,background:"rgba(76,175,125,0.07)",color:"#4CAF7D",border:"1px dashed rgba(76,175,125,0.3)",cursor:"pointer",marginBottom:14}}>＋ Novo Cliente</button>
+        <button onClick={function(){setMdl({t:"addClient",broker:loggedBroker})}} style={{width:"100%",padding:"12px",borderRadius:9,fontSize:13,fontWeight:600,background:"rgba(76,175,125,0.07)",color:"#4CAF7D",border:"1px dashed rgba(76,175,125,0.3)",cursor:"pointer",marginBottom:10}}>＋ Novo Cliente</button>
 
-        <div style={{display:"flex",gap:4,marginBottom:12,flexWrap:"wrap"}}>
+        <input id="brokerClientSearch" style={Object.assign({},mI,{marginBottom:6})} placeholder="🔍 Buscar por nome, cidade, país..." onChange={function(){}}/>
+
+        <div style={{display:"flex",gap:4,marginBottom:10,flexWrap:"wrap"}}>
           {[{v:"all",l:"Todos",c:"#9A9590"},{v:"lead",l:"📥 Leads",c:"#5B8FD4"},{v:"contato",l:"📞 Contato",c:"#E8A94E"},{v:"visita",l:"🏠 Visita",c:"#8B6FBF"},{v:"proposta",l:"📋 Proposta",c:"#C8A45C"},{v:"fechado",l:"✅ Fechado",c:"#4CAF7D"}].map(function(s){
             var count = s.v==="all"?myClients.length:myClients.filter(function(c){return c.status===s.v}).length;
             return <span key={s.v} onClick={function(){setFilter(s.v)}} style={{padding:"5px 10px",borderRadius:6,fontSize:10,fontWeight:600,cursor:"pointer",background:filter===s.v?s.c+"20":"#1e1e1d",color:filter===s.v?s.c:"#9A9590"}}>{s.l} ({count})</span>
           })}
         </div>
 
-        {myClients.filter(function(c){return filter==="all"||c.status===filter}).map(function(c){
+        {myClients.filter(function(c){
+          if(filter!=="all" && c.status!==filter) return false;
+          var searchEl = document.getElementById("brokerClientSearch");
+          var q = searchEl ? searchEl.value.toLowerCase() : "";
+          if(q && (c.nome+c.telefone+(c.cidade||"")+(c.estado||"")+(c.pais||"")+(c.email||"")).toLowerCase().indexOf(q)===-1) return false;
+          return true;
+        }).map(function(c){
           var sc = {lead:"#5B8FD4",contato:"#E8A94E",visita:"#8B6FBF",proposta:"#C8A45C",fechado:"#4CAF7D",perdido:"#D45B5B"}[c.status]||"#9A9590";
           var sl2 = {lead:"Lead",contato:"Contato",visita:"Visitou",proposta:"Proposta",fechado:"Fechado",perdido:"Perdido"}[c.status]||c.status;
           return <div key={c.id} style={{background:"#1a1a19",borderRadius:10,padding:14,marginBottom:8,border:"1px solid rgba(255,255,255,0.04)",borderLeft:"3px solid "+sc}}>
@@ -1751,6 +1806,7 @@ function App() {
               <span style={{padding:"3px 10px",borderRadius:5,fontSize:10,fontWeight:600,background:sc+"15",color:sc}}>{sl2}</span>
             </div>
             <div style={{display:"flex",gap:6,fontSize:10,color:"#9A9590",marginBottom:6,flexWrap:"wrap"}}>
+              {(c.cidade||c.pais) && <span>📍 {[c.cidade,c.estado,c.pais].filter(Boolean).join(", ")}</span>}
               {c.empreendimento && <span>🏢 {c.empreendimento}</span>}
               {c.orcamento && <span>💰 {c.orcamento}</span>}
               {c.email && <span>✉️ {c.email}</span>}
@@ -1765,7 +1821,13 @@ function App() {
           </div>;
         })}
 
-        {myClients.filter(function(c){return filter==="all"||c.status===filter}).length===0 && <div style={{textAlign:"center",padding:"30px",color:"#9A9590"}}>
+        {myClients.filter(function(c){
+          if(filter!=="all" && c.status!==filter) return false;
+          var searchEl2 = document.getElementById("brokerClientSearch");
+          var q2 = searchEl2 ? searchEl2.value.toLowerCase() : "";
+          if(q2 && (c.nome+c.telefone+(c.cidade||"")+(c.estado||"")+(c.pais||"")+(c.email||"")).toLowerCase().indexOf(q2)===-1) return false;
+          return true;
+        }).length===0 && <div style={{textAlign:"center",padding:"30px",color:"#9A9590"}}>
           <div style={{fontSize:30,marginBottom:8}}>📋</div>
           <div style={{fontSize:13}}>Nenhum cliente cadastrado ainda</div>
           <div style={{fontSize:11,marginTop:4}}>Toque em "+ Novo Cliente" para começar</div>
