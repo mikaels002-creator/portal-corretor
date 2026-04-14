@@ -1150,7 +1150,7 @@ function App() {
     if (mdl.t === "addBld") return <AddBldM/>;
     if (mdl.t === "editBld") return <EditBldM/>;
     if (mdl.t === "siteSettings") return <SiteSettingsM/>;
-    if (mdl.t === "brokerRegister") return <BrokerRegisterM/>;
+    if (mdl.t === "brokerRegister") return <BrokerLoginM/>;
     if (mdl.t === "brokerList") return <BrokerListM/>;
     if (mdl.t === "brokerLogin") return <BrokerLoginM/>;
     if (mdl.t === "addClient") return <AddClientM/>;
@@ -1335,25 +1335,71 @@ function App() {
   }
 
   function BrokerLoginM() {
+    var _tab = useState("login"); var tab = _tab[0]; var setTab = _tab[1];
     var _email = useState(""); var email = _email[0]; var setEmail = _email[1];
-    var _phone = useState(""); var phone = _phone[0]; var setPhone = _phone[1];
+    var _pass = useState(""); var pass = _pass[0]; var setPass = _pass[1];
+    var _f = useState({nome:"",imobiliaria:"",cidade:"",telefone:"",email:"",senha:""}); var f = _f[0]; var setF = _f[1];
+    var _sent = useState(false); var sent = _sent[0]; var setSent = _sent[1];
+
+    if(sent) return <div style={{textAlign:"center",padding:"20px 0"}}>
+      <div style={{fontSize:40,marginBottom:12}}>✅</div>
+      <div style={{fontSize:16,fontWeight:600,color:"#4CAF7D",marginBottom:6}}>Cadastro realizado!</div>
+      <div style={{fontSize:12,color:"#9A9590",marginBottom:16}}>Agora faça login com seu e-mail e senha.</div>
+      <button style={mP(G)} onClick={function(){setSent(false);setTab("login")}}>Fazer Login</button>
+    </div>;
+
     return <div>
-      <div style={mT}>🔑 Acesso do Corretor</div>
-      <div style={{fontSize:11,color:"#9A9590",marginBottom:12}}>Use o e-mail ou telefone que cadastrou no portal.</div>
-      <L>E-mail</L>
-      <input style={mI} value={email} onChange={function(e){setEmail(e.target.value)}} placeholder="corretor@email.com" type="email"/>
-      <L>ou Telefone</L>
-      <input style={mI} value={phone} onChange={function(e){setPhone(e.target.value)}} placeholder="+55 47 99999-9999" type="tel"/>
-      <button style={mP("#4CAF7D")} onClick={function(){
-        var found = brokers.find(function(b){
-          return (email && b.email && b.email.toLowerCase()===email.toLowerCase()) || (phone && b.telefone && b.telefone.replace(/[^0-9]/g,"")===phone.replace(/[^0-9]/g,""));
-        });
-        if(!found){msg("Corretor não encontrado. Cadastre-se primeiro.");return}
-        loginBroker(found);
-        setMdl(null);
-        setVw("clients");
-        msg("Bem-vindo, "+found.nome+"!");
-      }}>Entrar</button>
+      <div style={mT}>🔑 Área do Corretor</div>
+      <div style={{display:"flex",gap:0,marginBottom:14,borderRadius:8,overflow:"hidden",border:"1px solid rgba(255,255,255,0.08)"}}>
+        <button onClick={function(){setTab("login")}} style={{flex:1,padding:"10px",fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:tab==="login"?G+"20":"#1a1a19",color:tab==="login"?G:"#9A9590"}}>Entrar</button>
+        <button onClick={function(){setTab("cadastro")}} style={{flex:1,padding:"10px",fontSize:12,fontWeight:600,border:"none",cursor:"pointer",background:tab==="cadastro"?"rgba(76,175,125,0.15)":"#1a1a19",color:tab==="cadastro"?"#4CAF7D":"#9A9590"}}>Cadastrar</button>
+      </div>
+
+      {tab==="login" && <div>
+        <L>E-mail</L>
+        <input style={mI} value={email} onChange={function(e){setEmail(e.target.value)}} placeholder="corretor@email.com" type="email"/>
+        <L>Senha</L>
+        <input style={mI} value={pass} onChange={function(e){setPass(e.target.value)}} placeholder="Sua senha" type="password"/>
+        <button style={mP(G)} onClick={function(){
+          if(!email.trim()||!pass.trim()){msg("Preencha e-mail e senha");return}
+          var found = brokers.find(function(b){
+            return b.email && b.email.toLowerCase()===email.toLowerCase() && b.senha===pass;
+          });
+          if(!found){msg("E-mail ou senha incorretos");return}
+          loginBroker(found);
+          setMdl(null);
+          setVw("clients");
+          msg("Bem-vindo, "+found.nome+"!");
+        }}>Entrar</button>
+      </div>}
+
+      {tab==="cadastro" && <div>
+        <L>Nome completo *</L>
+        <input style={mI} value={f.nome} onChange={function(e){setF(Object.assign({},f,{nome:e.target.value}))}} placeholder="Seu nome"/>
+        <L>Imobiliária / Empresa</L>
+        <input style={mI} value={f.imobiliaria} onChange={function(e){setF(Object.assign({},f,{imobiliaria:e.target.value}))}} placeholder="Nome da imobiliária"/>
+        <L>Cidade</L>
+        <input style={mI} value={f.cidade} onChange={function(e){setF(Object.assign({},f,{cidade:e.target.value}))}} placeholder="Sua cidade"/>
+        <L>Telefone *</L>
+        <input style={mI} value={f.telefone} onChange={function(e){setF(Object.assign({},f,{telefone:e.target.value}))}} placeholder="+55 47 99999-9999" type="tel"/>
+        <L>E-mail *</L>
+        <input style={mI} value={f.email} onChange={function(e){setF(Object.assign({},f,{email:e.target.value}))}} placeholder="corretor@email.com" type="email"/>
+        <L>Senha *</L>
+        <input style={mI} value={f.senha} onChange={function(e){setF(Object.assign({},f,{senha:e.target.value}))}} placeholder="Crie uma senha" type="password"/>
+        <button style={mP("#4CAF7D")} onClick={function(){
+          if(!f.nome.trim()||!f.telefone.trim()||!f.email.trim()||!f.senha.trim()){msg("Nome, telefone, e-mail e senha obrigatórios");return}
+          var exists = brokers.find(function(b){return b.email && b.email.toLowerCase()===f.email.toLowerCase()});
+          if(exists){msg("E-mail já cadastrado. Faça login.");setTab("login");return}
+          var newBroker = Object.assign({},f,{id:"bk-"+Date.now(),datacadastro:new Date().toLocaleDateString("pt-BR"),hora:new Date().toLocaleTimeString("pt-BR")});
+          var updated = brokers.concat([newBroker]);
+          setBrokers(updated);
+          window.localStorage.setItem("portal-brokers",JSON.stringify(updated));cloudSave("brokers",updated);
+          var mailto = "mailto:"+CT.email+"?subject=Novo+Corretor+Cadastrado+-+"+encodeURIComponent(f.nome)+"&body="+encodeURIComponent("Novo corretor cadastrado no Portal:\n\nNome: "+f.nome+"\nImobiliária: "+f.imobiliaria+"\nCidade: "+f.cidade+"\nTelefone: "+f.telefone+"\nE-mail: "+f.email+"\nData: "+newBroker.datacadastro+" "+newBroker.hora);
+          try{window.open(mailto,"_blank")}catch(e){}
+          setSent(true);
+        }}>Cadastrar</button>
+      </div>}
+
       <button style={mC} onClick={function(){setMdl(null)}}>{t.close}</button>
     </div>;
   }
@@ -1752,7 +1798,7 @@ function App() {
         </div>
         <div style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:13,color:G,marginBottom:4}}>MK Realty & D&SS Incorporação</div>
         <div style={{fontSize:10,color:"#9A9590",lineHeight:1.8}}>✉️ {CT.email} • 📞 {CT.phone}<br/>IG: {CT.ig.map(function(i){return i.h}).join(" • ")}</div>
-        <button onClick={function(){setMdl({t:"brokerRegister"})}} style={{marginTop:10,padding:"10px 24px",borderRadius:8,fontSize:12,fontWeight:600,background:G+"20",color:G,border:"1px solid "+G+"40",cursor:"pointer",display:"inline-flex",alignItems:"center",gap:6}}>📋 {lang==="es"?"Regístrese para recibir novedades":"Cadastre-se para receber novidades"}</button>
+        <button onClick={function(){setMdl({t:"brokerLogin"})}} style={{marginTop:10,padding:"10px 24px",borderRadius:8,fontSize:12,fontWeight:600,background:G+"20",color:G,border:"1px solid "+G+"40",cursor:"pointer",display:"inline-flex",alignItems:"center",gap:6}}>🔑 {lang==="es"?"Área del Corredor":"Área do Corretor"}</button>
         <div style={{fontSize:8,color:"#555",marginTop:8}}>{lang==="es"?"Portal exclusivo para corredores • MK Realty & D&SS Incorporação Ltda • 2026":"Portal exclusivo para corretores parceiros • MK Realty & D&SS Incorporação Ltda • 2026"}</div>
       </div>
 
