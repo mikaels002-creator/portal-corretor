@@ -321,6 +321,12 @@ function App() {
   const [sel, setSel] = useState(null);
   const [dtab, setDtab] = useState("table");
   const [adm, setAdm] = useState(false);
+  const [loggedBroker, setLoggedBroker] = useState(function(){
+    try { var raw = window.localStorage.getItem("portal-logged-broker"); return raw ? JSON.parse(raw) : null; } catch(e){ return null; }
+  });
+  const [clients, setClients] = useState(function(){
+    try { var raw = window.localStorage.getItem("portal-clients"); return raw ? JSON.parse(raw) : []; } catch(e){ return []; }
+  });
   const [mdl, setMdl] = useState(null);
   const [toast, setToast] = useState(null);
   const [rdy, setRdy] = useState(false);
@@ -415,13 +421,15 @@ function App() {
     try { const raw = window.localStorage.getItem(SK); if (raw) setD(JSON.parse(raw)); } catch (e) {}
     try { var raw2 = window.localStorage.getItem("portal-site-config"); if(raw2){ var cfg=JSON.parse(raw2); if(!cfg.supabaseUrl){cfg.supabaseUrl=SB_URL;cfg.supabaseKey=SB_KEY;window.localStorage.setItem("portal-site-config",JSON.stringify(cfg));} setSiteConfig(cfg); } } catch(e){}
     try { var raw3 = window.localStorage.getItem("portal-brokers"); if(raw3) setBrokers(JSON.parse(raw3)); } catch(e){}
+    try { var raw4 = window.localStorage.getItem("portal-clients"); if(raw4) setClients(JSON.parse(raw4)); } catch(e){}
     setRdy(true);
 
     // Then sync from cloud in parallel (updates in background)
-    Promise.all([cloudLoad("buildings"), cloudLoad("config"), cloudLoad("brokers")]).then(function(results){
+    Promise.all([cloudLoad("buildings"), cloudLoad("config"), cloudLoad("brokers"), cloudLoad("clients")]).then(function(results){
       if(results[0]){ setD(results[0]); try{window.localStorage.setItem(SK,JSON.stringify(results[0]))}catch(e){} }
       if(results[1]){ setSiteConfig(results[1]); try{window.localStorage.setItem("portal-site-config",JSON.stringify(results[1]))}catch(e){} }
       if(results[2]){ setBrokers(results[2]); try{window.localStorage.setItem("portal-brokers",JSON.stringify(results[2]))}catch(e){} }
+      if(results[3]){ setClients(results[3]); try{window.localStorage.setItem("portal-clients",JSON.stringify(results[3]))}catch(e){} }
     });
   }, []);
 
@@ -459,6 +467,24 @@ function App() {
       return Object.assign({}, d, { buildings: d.buildings.map((b) => b.id === id ? Object.assign({}, b, ch) : b) });
     });
   };
+
+  var saveClients = function(list){
+    setClients(list);
+    try{window.localStorage.setItem("portal-clients",JSON.stringify(list))}catch(e){}
+    cloudSave("clients",list);
+  };
+
+  var loginBroker = function(broker){
+    setLoggedBroker(broker);
+    try{window.localStorage.setItem("portal-logged-broker",JSON.stringify(broker))}catch(e){}
+  };
+
+  var logoutBroker = function(){
+    setLoggedBroker(null);
+    try{window.localStorage.removeItem("portal-logged-broker")}catch(e){}
+  };
+
+  var myClients = loggedBroker ? clients.filter(function(c){return c.brokerId===loggedBroker.id}) : [];
 
   const msg = (m) => { setToast(m); setTimeout(() => setToast(null), 2500); };
   const bld = D.buildings.find((b) => b.id === sel);
@@ -758,12 +784,12 @@ function App() {
                   <td style={Object.assign({},tdS,{fontWeight:700,color:"#4CAF7D"})}>{p > 0 ? fmtV(p) : "—"}</td>
                   {adm && <td style={Object.assign({},tdS,{fontSize:8,color:"#9A9590"})}>{p > 0 ? fmtV(Math.round(p/u.area)) : "—"}</td>}
                   <td style={tdS}><span style={{display:"inline-flex",alignItems:"center",gap:3,fontSize:8,fontWeight:600,color:sC[u.status]}}><span style={{width:5,height:5,borderRadius:"50%",background:sC[u.status]}}/>{sl[u.status]}</span></td>
-                  <td style={tdS}><div style={{display:"flex",gap:2,flexWrap:"wrap"}}>
-                    <button onClick={function(e){e.stopPropagation();shareUnit(u,bld)}} style={Object.assign({},mb("#25D366"),{fontSize:7,padding:"3px 6px",display:"flex",alignItems:"center",gap:2})}><WaIcon size={10}/></button>
-                    <button onClick={function(e){e.stopPropagation();setSimUnit({u:u,b:bld})}} style={Object.assign({},mb("#5B8FD4"),{fontSize:7,padding:"3px 6px"})}>🏦</button>
-                    <button onClick={function(e){e.stopPropagation();setCompare(function(c){return c.indexOf(u.id)!==-1?c.filter(function(x){return x!==u.id}):c.concat([u.id])})}} style={Object.assign({},mb(isSel?"#D45B5B":"#8B6FBF"),{fontSize:7,padding:"3px 6px"})}>{isSel?"✕":"⚖️"}</button>
-                    {adm && <button onClick={function(){setMdl({t:"editUnit",bid:bld.id,u:Object.assign({},u)})}} style={Object.assign({},mb(bld.color),{fontSize:7,padding:"3px 6px"})}>✏️</button>}
-                    {adm && <button onClick={function(){upB(bld.id,{units:bld.units.filter(function(x){return x.id!==u.id})});msg("Removida")}} style={Object.assign({},mb("#D45B5B"),{fontSize:7,padding:"3px 6px"})}>🗑️</button>}
+                  <td style={tdS}><div style={{display:"flex",gap:3,flexWrap:"wrap",alignItems:"center"}}>
+                    <button onClick={function(e){e.stopPropagation();setSimUnit({u:u,b:bld})}} style={{padding:"5px 12px",borderRadius:6,fontSize:10,fontWeight:700,background:"#5B8FD4",color:"#fff",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:4,whiteSpace:"nowrap"}}>🏦 Simular</button>
+                    <button onClick={function(e){e.stopPropagation();shareUnit(u,bld)}} style={Object.assign({},mb("#25D366"),{fontSize:8,padding:"4px 7px",display:"flex",alignItems:"center",gap:2})}><WaIcon size={11}/></button>
+                    <button onClick={function(e){e.stopPropagation();setCompare(function(c){return c.indexOf(u.id)!==-1?c.filter(function(x){return x!==u.id}):c.concat([u.id])})}} style={Object.assign({},mb(isSel?"#D45B5B":"#8B6FBF"),{fontSize:8,padding:"4px 7px"})}>{isSel?"✕":"⚖️"}</button>
+                    {adm && <button onClick={function(){setMdl({t:"editUnit",bid:bld.id,u:Object.assign({},u)})}} style={Object.assign({},mb(bld.color),{fontSize:8,padding:"4px 7px"})}>✏️</button>}
+                    {adm && <button onClick={function(){upB(bld.id,{units:bld.units.filter(function(x){return x.id!==u.id})});msg("Removida")}} style={Object.assign({},mb("#D45B5B"),{fontSize:8,padding:"4px 7px"})}>🗑️</button>}
                   </div></td>
                 </tr>;
               })}</tbody>
@@ -1126,6 +1152,10 @@ function App() {
     if (mdl.t === "siteSettings") return <SiteSettingsM/>;
     if (mdl.t === "brokerRegister") return <BrokerRegisterM/>;
     if (mdl.t === "brokerList") return <BrokerListM/>;
+    if (mdl.t === "brokerLogin") return <BrokerLoginM/>;
+    if (mdl.t === "addClient") return <AddClientM/>;
+    if (mdl.t === "editClient") return <EditClientM/>;
+    if (mdl.t === "adminClients") return <AdminClientsM/>;
     return null;
   }
 
@@ -1301,6 +1331,153 @@ function App() {
         }}>🗑️ Limpar todos</button>
       </div>}
       <button style={Object.assign({},mC,{marginTop:6})} onClick={function(){setMdl(null)}}>{t.close}</button>
+    </div>;
+  }
+
+  function BrokerLoginM() {
+    var _email = useState(""); var email = _email[0]; var setEmail = _email[1];
+    var _phone = useState(""); var phone = _phone[0]; var setPhone = _phone[1];
+    return <div>
+      <div style={mT}>🔑 Acesso do Corretor</div>
+      <div style={{fontSize:11,color:"#9A9590",marginBottom:12}}>Use o e-mail ou telefone que cadastrou no portal.</div>
+      <L>E-mail</L>
+      <input style={mI} value={email} onChange={function(e){setEmail(e.target.value)}} placeholder="corretor@email.com" type="email"/>
+      <L>ou Telefone</L>
+      <input style={mI} value={phone} onChange={function(e){setPhone(e.target.value)}} placeholder="+55 47 99999-9999" type="tel"/>
+      <button style={mP("#4CAF7D")} onClick={function(){
+        var found = brokers.find(function(b){
+          return (email && b.email && b.email.toLowerCase()===email.toLowerCase()) || (phone && b.telefone && b.telefone.replace(/[^0-9]/g,"")===phone.replace(/[^0-9]/g,""));
+        });
+        if(!found){msg("Corretor não encontrado. Cadastre-se primeiro.");return}
+        loginBroker(found);
+        setMdl(null);
+        setVw("clients");
+        msg("Bem-vindo, "+found.nome+"!");
+      }}>Entrar</button>
+      <button style={mC} onClick={function(){setMdl(null)}}>{t.close}</button>
+    </div>;
+  }
+
+  function AddClientM() {
+    var _f = useState({nome:"",telefone:"",email:"",interesse:"",empreendimento:"",orcamento:"",observacoes:"",status:"lead"}); var f = _f[0]; var setF = _f[1];
+    var bkr = mdl.broker || loggedBroker;
+    return <div>
+      <div style={mT}>＋ Novo Cliente</div>
+      <L>Nome Completo *</L>
+      <input style={mI} value={f.nome} onChange={function(e){setF(Object.assign({},f,{nome:e.target.value}))}} placeholder="Nome do cliente"/>
+      <L>Telefone *</L>
+      <input style={mI} value={f.telefone} onChange={function(e){setF(Object.assign({},f,{telefone:e.target.value}))}} placeholder="+55 47 99999-9999" type="tel"/>
+      <L>E-mail</L>
+      <input style={mI} value={f.email} onChange={function(e){setF(Object.assign({},f,{email:e.target.value}))}} placeholder="cliente@email.com"/>
+      <L>Empreendimento de Interesse</L>
+      <select style={mI} value={f.empreendimento} onChange={function(e){setF(Object.assign({},f,{empreendimento:e.target.value}))}}>
+        <option value="">Selecione...</option>
+        {D.buildings.filter(function(b){return b.active}).map(function(b){return <option key={b.id} value={b.name}>{b.name}</option>})}
+      </select>
+      <L>Orçamento</L>
+      <input style={mI} value={f.orcamento} onChange={function(e){setF(Object.assign({},f,{orcamento:e.target.value}))}} placeholder="Ex: R$ 800.000 a R$ 1.200.000"/>
+      <L>Status</L>
+      <div style={{display:"flex",gap:4,marginBottom:8,flexWrap:"wrap"}}>
+        {[{v:"lead",l:"📥 Lead",c:"#5B8FD4"},{v:"contato",l:"📞 Em contato",c:"#E8A94E"},{v:"visita",l:"🏠 Visitou",c:"#8B6FBF"},{v:"proposta",l:"📋 Proposta",c:"#C8A45C"},{v:"fechado",l:"✅ Fechado",c:"#4CAF7D"},{v:"perdido",l:"❌ Perdido",c:"#D45B5B"}].map(function(s){
+          return <span key={s.v} onClick={function(){setF(Object.assign({},f,{status:s.v}))}} style={{padding:"4px 10px",borderRadius:5,fontSize:10,fontWeight:600,cursor:"pointer",background:f.status===s.v?s.c+"20":"#222",color:f.status===s.v?s.c:"#9A9590",border:f.status===s.v?"1px solid "+s.c+"40":"1px solid transparent"}}>{s.l}</span>
+        })}
+      </div>
+      <L>Observações</L>
+      <textarea style={Object.assign({},mI,{height:60,resize:"vertical"})} value={f.observacoes} onChange={function(e){setF(Object.assign({},f,{observacoes:e.target.value}))}} placeholder="Notas sobre o cliente..."/>
+      <button style={mP("#4CAF7D")} onClick={function(){
+        if(!f.nome.trim()||!f.telefone.trim()){msg("Nome e telefone obrigatórios");return}
+        var newClient = Object.assign({},f,{id:"cl-"+Date.now(),brokerId:bkr.id,brokerName:bkr.nome,createdAt:new Date().toLocaleDateString("pt-BR"),updatedAt:new Date().toLocaleDateString("pt-BR")});
+        saveClients(clients.concat([newClient]));
+        setMdl(null);
+        msg("Cliente cadastrado!");
+      }}>Cadastrar Cliente</button>
+      <button style={mC} onClick={function(){setMdl(null)}}>{t.close}</button>
+    </div>;
+  }
+
+  function EditClientM() {
+    var c = mdl.client;
+    var _f = useState(Object.assign({},c)); var f = _f[0]; var setF = _f[1];
+    return <div>
+      <div style={mT}>✏️ Editar Cliente</div>
+      <L>Nome</L><input style={mI} value={f.nome} onChange={function(e){setF(Object.assign({},f,{nome:e.target.value}))}}/>
+      <L>Telefone</L><input style={mI} value={f.telefone} onChange={function(e){setF(Object.assign({},f,{telefone:e.target.value}))}}/>
+      <L>E-mail</L><input style={mI} value={f.email} onChange={function(e){setF(Object.assign({},f,{email:e.target.value}))}}/>
+      <L>Empreendimento</L>
+      <select style={mI} value={f.empreendimento} onChange={function(e){setF(Object.assign({},f,{empreendimento:e.target.value}))}}>
+        <option value="">Selecione...</option>
+        {D.buildings.filter(function(b){return b.active}).map(function(b){return <option key={b.id} value={b.name}>{b.name}</option>})}
+      </select>
+      <L>Orçamento</L><input style={mI} value={f.orcamento} onChange={function(e){setF(Object.assign({},f,{orcamento:e.target.value}))}}/>
+      <L>Status</L>
+      <div style={{display:"flex",gap:4,marginBottom:8,flexWrap:"wrap"}}>
+        {[{v:"lead",l:"📥 Lead",c:"#5B8FD4"},{v:"contato",l:"📞 Contato",c:"#E8A94E"},{v:"visita",l:"🏠 Visitou",c:"#8B6FBF"},{v:"proposta",l:"📋 Proposta",c:"#C8A45C"},{v:"fechado",l:"✅ Fechado",c:"#4CAF7D"},{v:"perdido",l:"❌ Perdido",c:"#D45B5B"}].map(function(s){
+          return <span key={s.v} onClick={function(){setF(Object.assign({},f,{status:s.v}))}} style={{padding:"4px 10px",borderRadius:5,fontSize:10,fontWeight:600,cursor:"pointer",background:f.status===s.v?s.c+"20":"#222",color:f.status===s.v?s.c:"#9A9590",border:f.status===s.v?"1px solid "+s.c+"40":"1px solid transparent"}}>{s.l}</span>
+        })}
+      </div>
+      <L>Observações</L><textarea style={Object.assign({},mI,{height:60,resize:"vertical"})} value={f.observacoes} onChange={function(e){setF(Object.assign({},f,{observacoes:e.target.value}))}}/>
+      <button style={mP(G)} onClick={function(){
+        var updated = clients.map(function(x){return x.id===f.id?Object.assign({},f,{updatedAt:new Date().toLocaleDateString("pt-BR")}):x});
+        saveClients(updated);
+        setMdl(null);msg("Cliente atualizado!");
+      }}>Salvar</button>
+      <button style={mC} onClick={function(){setMdl(null)}}>{t.close}</button>
+    </div>;
+  }
+
+  function AdminClientsM() {
+    var _search = useState(""); var search = _search[0]; var setSearch = _search[1];
+    var _filterBroker = useState("all"); var filterBroker = _filterBroker[0]; var setFilterBroker = _filterBroker[1];
+    var _filterStatus = useState("all"); var filterStatus = _filterStatus[0]; var setFilterStatus = _filterStatus[1];
+    var filtered = clients.filter(function(c){
+      if(filterBroker!=="all" && c.brokerId!==filterBroker) return false;
+      if(filterStatus!=="all" && c.status!==filterStatus) return false;
+      if(search && (c.nome+c.telefone+c.email+c.empreendimento+c.brokerName).toLowerCase().indexOf(search.toLowerCase())===-1) return false;
+      return true;
+    });
+    var statusColors = {lead:"#5B8FD4",contato:"#E8A94E",visita:"#8B6FBF",proposta:"#C8A45C",fechado:"#4CAF7D",perdido:"#D45B5B"};
+    var statusLabels = {lead:"Lead",contato:"Contato",visita:"Visitou",proposta:"Proposta",fechado:"Fechado",perdido:"Perdido"};
+    return <div>
+      <div style={mT}>👥 Todos os Clientes ({clients.length})</div>
+      <input style={mI} value={search} onChange={function(e){setSearch(e.target.value)}} placeholder="Buscar cliente, corretor, empreendimento..."/>
+      <div style={{display:"flex",gap:4,marginBottom:8,flexWrap:"wrap"}}>
+        <select style={Object.assign({},mI,{width:"auto",flex:1})} value={filterBroker} onChange={function(e){setFilterBroker(e.target.value)}}>
+          <option value="all">Todos os corretores</option>
+          {brokers.map(function(b){return <option key={b.id} value={b.id}>{b.nome}</option>})}
+        </select>
+        <select style={Object.assign({},mI,{width:"auto",flex:1})} value={filterStatus} onChange={function(e){setFilterStatus(e.target.value)}}>
+          <option value="all">Todos os status</option>
+          {Object.keys(statusLabels).map(function(s){return <option key={s} value={s}>{statusLabels[s]}</option>})}
+        </select>
+      </div>
+      <div style={{fontSize:11,color:"#9A9590",marginBottom:8}}>{filtered.length} clientes encontrados</div>
+      <div style={{maxHeight:400,overflow:"auto"}}>
+        {filtered.map(function(c){
+          var sc = statusColors[c.status]||"#9A9590";
+          return <div key={c.id} style={{background:"#222",borderRadius:8,padding:12,marginBottom:8,border:"1px solid rgba(255,255,255,0.04)",borderLeft:"3px solid "+sc}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:600}}>{c.nome}</div>
+                <div style={{fontSize:10,color:"#9A9590"}}>{c.telefone} {c.email?" • "+c.email:""}</div>
+              </div>
+              <span style={{padding:"2px 8px",borderRadius:4,fontSize:9,fontWeight:600,background:sc+"20",color:sc}}>{statusLabels[c.status]||c.status}</span>
+            </div>
+            <div style={{display:"flex",gap:6,fontSize:9,color:"#9A9590",marginBottom:4,flexWrap:"wrap"}}>
+              {c.empreendimento && <span>🏢 {c.empreendimento}</span>}
+              {c.orcamento && <span>💰 {c.orcamento}</span>}
+              <span>👤 {c.brokerName||"—"}</span>
+              <span>📅 {c.createdAt}</span>
+            </div>
+            {c.observacoes && <div style={{fontSize:10,color:"#bbb",padding:"4px 0",borderTop:"1px solid rgba(255,255,255,0.03)",marginTop:4}}>{c.observacoes}</div>}
+            <div style={{display:"flex",gap:4,marginTop:6}}>
+              <button onClick={function(){setMdl({t:"editClient",client:c})}} style={mb(G)}>✏️</button>
+              {c.telefone && <a href={"https://wa.me/"+c.telefone.replace(/[^0-9]/g,"")} target="_blank" style={Object.assign({},mb("#25D366"),{textDecoration:"none",display:"flex",alignItems:"center"})}><WaIcon size={11}/></a>}
+              <button onClick={function(){if(confirm("Remover "+c.nome+"?")){saveClients(clients.filter(function(x){return x.id!==c.id}));msg("Removido")}}} style={mb("#D45B5B")}>🗑️</button>
+            </div>
+          </div>;
+        })}
+      </div>
+      <button style={mC} onClick={function(){setMdl(null)}}>{t.close}</button>
     </div>;
   }
 
@@ -1480,8 +1657,12 @@ function App() {
             cloudSave("buildings",D);
             cloudSave("config",siteConfig);
             cloudSave("brokers",brokers);
+            cloudSave("clients",clients);
             msg("☁️ Sincronizando com a nuvem...");
           }}>☁️ Sync</TabBtn>}
+          {adm && <TabBtn active={false} green onClick={function(){setMdl({t:"adminClients"})}}>👥 Clientes ({clients.length})</TabBtn>}
+          {loggedBroker && <TabBtn active={vw==="clients"} onClick={function(){setVw("clients")}}>📋 Meus Clientes</TabBtn>}
+          {!loggedBroker && !adm && <TabBtn active={false} onClick={function(){setMdl({t:"brokerLogin"})}}>🔑 Área do Corretor</TabBtn>}
           {vis.map(function(b){return <TabBtn key={b.id} active={vw==="detail"&&sel===b.id} onClick={function(){go(b.id)}}>{b.name.replace("Ed. ","").replace("Imóveis de ","")}</TabBtn>})}
         </div>
       </div>
@@ -1491,6 +1672,59 @@ function App() {
       {vw==="manage" && adm && <ManageView/>}
       {vw==="detail" && bld && <DetailView/>}
       {vw==="compare" && <CompareView/>}
+
+      {vw==="clients" && loggedBroker && <div style={{padding:"14px clamp(12px, 3vw, 40px)"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+          <div style={{width:40,height:40,borderRadius:"50%",background:G+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:700,color:G}}>{loggedBroker.nome[0].toUpperCase()}</div>
+          <div style={{flex:1}}>
+            <div style={{fontSize:14,fontWeight:600}}>{loggedBroker.nome}</div>
+            <div style={{fontSize:10,color:"#9A9590"}}>{loggedBroker.imobiliaria||""} • {myClients.length} clientes</div>
+          </div>
+          <button onClick={function(){logoutBroker();setVw("home");msg("Sessão encerrada")}} style={mb("#D45B5B")}>Sair</button>
+        </div>
+
+        <button onClick={function(){setMdl({t:"addClient",broker:loggedBroker})}} style={{width:"100%",padding:"12px",borderRadius:9,fontSize:13,fontWeight:600,background:"rgba(76,175,125,0.07)",color:"#4CAF7D",border:"1px dashed rgba(76,175,125,0.3)",cursor:"pointer",marginBottom:14}}>＋ Novo Cliente</button>
+
+        <div style={{display:"flex",gap:4,marginBottom:12,flexWrap:"wrap"}}>
+          {[{v:"all",l:"Todos",c:"#9A9590"},{v:"lead",l:"📥 Leads",c:"#5B8FD4"},{v:"contato",l:"📞 Contato",c:"#E8A94E"},{v:"visita",l:"🏠 Visita",c:"#8B6FBF"},{v:"proposta",l:"📋 Proposta",c:"#C8A45C"},{v:"fechado",l:"✅ Fechado",c:"#4CAF7D"}].map(function(s){
+            var count = s.v==="all"?myClients.length:myClients.filter(function(c){return c.status===s.v}).length;
+            return <span key={s.v} onClick={function(){setFilter(s.v)}} style={{padding:"5px 10px",borderRadius:6,fontSize:10,fontWeight:600,cursor:"pointer",background:filter===s.v?s.c+"20":"#1e1e1d",color:filter===s.v?s.c:"#9A9590"}}>{s.l} ({count})</span>
+          })}
+        </div>
+
+        {myClients.filter(function(c){return filter==="all"||c.status===filter}).map(function(c){
+          var sc = {lead:"#5B8FD4",contato:"#E8A94E",visita:"#8B6FBF",proposta:"#C8A45C",fechado:"#4CAF7D",perdido:"#D45B5B"}[c.status]||"#9A9590";
+          var sl2 = {lead:"Lead",contato:"Contato",visita:"Visitou",proposta:"Proposta",fechado:"Fechado",perdido:"Perdido"}[c.status]||c.status;
+          return <div key={c.id} style={{background:"#1a1a19",borderRadius:10,padding:14,marginBottom:8,border:"1px solid rgba(255,255,255,0.04)",borderLeft:"3px solid "+sc}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+              <div style={{width:36,height:36,borderRadius:"50%",background:sc+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,fontWeight:700,color:sc}}>{c.nome[0].toUpperCase()}</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:14,fontWeight:600}}>{c.nome}</div>
+                <div style={{fontSize:10,color:"#9A9590"}}>{c.telefone}</div>
+              </div>
+              <span style={{padding:"3px 10px",borderRadius:5,fontSize:10,fontWeight:600,background:sc+"15",color:sc}}>{sl2}</span>
+            </div>
+            <div style={{display:"flex",gap:6,fontSize:10,color:"#9A9590",marginBottom:6,flexWrap:"wrap"}}>
+              {c.empreendimento && <span>🏢 {c.empreendimento}</span>}
+              {c.orcamento && <span>💰 {c.orcamento}</span>}
+              {c.email && <span>✉️ {c.email}</span>}
+            </div>
+            {c.observacoes && <div style={{fontSize:10,color:"#bbb",padding:"6px 0",borderTop:"1px solid rgba(255,255,255,0.03)"}}>{c.observacoes}</div>}
+            <div style={{display:"flex",gap:4,marginTop:6}}>
+              <button onClick={function(){setMdl({t:"editClient",client:c})}} style={mb(G)}>✏️ Editar</button>
+              {c.telefone && <a href={"https://wa.me/"+c.telefone.replace(/[^0-9]/g,"")} target="_blank" style={Object.assign({},mb("#25D366"),{textDecoration:"none",display:"flex",alignItems:"center",gap:3})}><WaIcon size={11}/> WhatsApp</a>}
+              {c.telefone && <a href={"tel:"+c.telefone} style={Object.assign({},mb("#5B8FD4"),{textDecoration:"none"})}>📞 Ligar</a>}
+              <button onClick={function(){if(confirm("Remover "+c.nome+"?")){saveClients(clients.filter(function(x){return x.id!==c.id}));msg("Removido")}}} style={mb("#D45B5B")}>🗑️</button>
+            </div>
+          </div>;
+        })}
+
+        {myClients.filter(function(c){return filter==="all"||c.status===filter}).length===0 && <div style={{textAlign:"center",padding:"30px",color:"#9A9590"}}>
+          <div style={{fontSize:30,marginBottom:8}}>📋</div>
+          <div style={{fontSize:13}}>Nenhum cliente cadastrado ainda</div>
+          <div style={{fontSize:11,marginTop:4}}>Toque em "+ Novo Cliente" para começar</div>
+        </div>}
+      </div>}
 
       {/* FOOTER */}
       <div style={{textAlign:"center",padding:"20px 16px",borderTop:"1px solid rgba(255,255,255,0.03)",marginTop:12}}>
