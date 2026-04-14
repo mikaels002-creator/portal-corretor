@@ -3,10 +3,18 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
-<meta name="theme-color" content="#0f0f0e"/>
+<meta name="theme-color" content="#C8A45C"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Portal MK"/>
+<link rel="apple-touch-icon" href="/icon-192.png"/>
+<link rel="manifest" href="/manifest.json"/>
 <meta name="description" content="Portal do Corretor - MK Realty & D&SS Incorporação"/>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏢</text></svg>"/>
 <title>Portal do Corretor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"/>
+<link rel="preconnect" href="https://zztqlktqevfdxjyzvand.supabase.co"/>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
 body{margin:0;background:#0f0f0e;font-family:'DM Sans',system-ui,sans-serif}
@@ -343,7 +351,7 @@ function App() {
   var uploadFile = function(file, folder, callback){
     var sb = getSupabase();
     if(!sb){
-      msg("⚠️ Supabase não conectado — arquivo salvo apenas neste dispositivo");
+      msg("⚠️ Supabase não conectado");
       var reader = new FileReader();
       reader.onload = function(ev){
         if(file.type.indexOf("image") !== -1){
@@ -365,15 +373,15 @@ function App() {
       reader.readAsDataURL(file);
       return;
     }
-    msg("☁️ Enviando...");
+    msg("☁️ Enviando " + file.name.substring(0,20) + "...");
     var fileName = folder + "/" + Date.now() + "-" + file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
     var sbUrl = siteConfig.supabaseUrl || SB_URL;
     sb.storage.from("arquivos").upload(fileName, file, {upsert:true}).then(function(res){
-      if(res.error){msg("Erro: " + res.error.message); return;}
+      if(res.error){msg("❌ " + res.error.message); return;}
       var publicUrl = sbUrl + "/storage/v1/object/public/arquivos/" + fileName;
       callback(publicUrl, file.name);
-      msg("☁️ Upload concluído!");
-    }).catch(function(e){msg("Erro no upload: " + (e.message||"")); console.log(e);});
+      msg("✅ " + file.name.substring(0,20) + " enviado!");
+    }).catch(function(e){msg("❌ Falha: " + (e.message||"")); console.log(e);});
   };
   var t = TR[lang] || TR.pt;
   var sl = lang === "es" ? sLes : sL;
@@ -383,53 +391,38 @@ function App() {
   var fmtV = function(v){ return showUsd ? fmtUsd(Math.round(v / getUsdRate())) : fmt(v); };
 
   // Cloud sync: save/load portal data via Supabase Storage
+  var _saveTimers = {};
   var cloudSave = function(key, data){
     var sb = getSupabase();
     if(!sb) return;
-    var blob = new Blob([JSON.stringify(data)], {type:"application/json"});
-    sb.storage.from("arquivos").upload("portal-data/"+key+".json", blob, {upsert:true,contentType:"application/json"})
-      .then(function(res){ if(res.error) console.log("Cloud save error:",res.error.message); })
-      .catch(function(e){ console.log("Cloud save fail:",e); });
+    // Debounce: wait 1.5s after last change before saving to cloud
+    if(_saveTimers[key]) clearTimeout(_saveTimers[key]);
+    _saveTimers[key] = setTimeout(function(){
+      var blob = new Blob([JSON.stringify(data)], {type:"application/json"});
+      sb.storage.from("arquivos").upload("portal-data/"+key+".json", blob, {upsert:true,contentType:"application/json"})
+        .then(function(res){ if(res.error) console.log("Cloud save error:",res.error.message); })
+        .catch(function(e){ console.log("Cloud save fail:",e); });
+    }, 1500);
   };
 
-  var cloudLoad = function(key, callback){
-    var sb = getSupabase();
-    if(!sb){ callback(null); return; }
-    var url = (siteConfig.supabaseUrl||SB_URL)+"/storage/v1/object/public/arquivos/portal-data/"+key+".json?t="+Date.now();
-    fetch(url).then(function(r){ if(r.ok) return r.json(); throw new Error("not found"); })
-      .then(function(data){ callback(data); })
-      .catch(function(e){ callback(null); });
+  var cloudLoad = function(key){
+    var url = (SB_URL)+"/storage/v1/object/public/arquivos/portal-data/"+key+".json?t="+Date.now();
+    return fetch(url).then(function(r){ if(r.ok) return r.json(); return null; }).catch(function(){ return null; });
   };
 
   useEffect(() => {
-    (async () => {
-      // Load local first
-      try { const raw = window.localStorage.getItem(SK); if (raw) setD(JSON.parse(raw)); } catch (e) {}
-      // Auto-inject Supabase credentials
-      try {
-        var raw = window.localStorage.getItem("portal-site-config");
-        if(raw){
-          var cfg = JSON.parse(raw);
-          if(!cfg.supabaseUrl || !cfg.supabaseKey){
-            cfg.supabaseUrl = cfg.supabaseUrl || SB_URL;
-            cfg.supabaseKey = cfg.supabaseKey || SB_KEY;
-            window.localStorage.setItem("portal-site-config", JSON.stringify(cfg));
-            setSiteConfig(cfg);
-          }
-        }
-      } catch(e){}
-      // Then load from cloud (overrides local)
-      cloudLoad("buildings", function(data){
-        if(data){ setD(data); try{window.localStorage.setItem(SK,JSON.stringify(data))}catch(e){} }
-      });
-      cloudLoad("config", function(data){
-        if(data){ setSiteConfig(data); try{window.localStorage.setItem("portal-site-config",JSON.stringify(data))}catch(e){} }
-      });
-      cloudLoad("brokers", function(data){
-        if(data){ setBrokers(data); try{window.localStorage.setItem("portal-brokers",JSON.stringify(data))}catch(e){} }
-      });
-      setRdy(true);
-    })();
+    // Show local data immediately
+    try { const raw = window.localStorage.getItem(SK); if (raw) setD(JSON.parse(raw)); } catch (e) {}
+    try { var raw2 = window.localStorage.getItem("portal-site-config"); if(raw2){ var cfg=JSON.parse(raw2); if(!cfg.supabaseUrl){cfg.supabaseUrl=SB_URL;cfg.supabaseKey=SB_KEY;window.localStorage.setItem("portal-site-config",JSON.stringify(cfg));} setSiteConfig(cfg); } } catch(e){}
+    try { var raw3 = window.localStorage.getItem("portal-brokers"); if(raw3) setBrokers(JSON.parse(raw3)); } catch(e){}
+    setRdy(true);
+
+    // Then sync from cloud in parallel (updates in background)
+    Promise.all([cloudLoad("buildings"), cloudLoad("config"), cloudLoad("brokers")]).then(function(results){
+      if(results[0]){ setD(results[0]); try{window.localStorage.setItem(SK,JSON.stringify(results[0]))}catch(e){} }
+      if(results[1]){ setSiteConfig(results[1]); try{window.localStorage.setItem("portal-site-config",JSON.stringify(results[1]))}catch(e){} }
+      if(results[2]){ setBrokers(results[2]); try{window.localStorage.setItem("portal-brokers",JSON.stringify(results[2]))}catch(e){} }
+    });
   }, []);
 
   // Auto-fetch USD rate from AwesomeAPI
@@ -529,9 +522,10 @@ function App() {
   };
 
   if (!rdy) return (
-    <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",background:"#0f0f0e",color:"#9A9590",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:10}}>
-      <div style={{fontSize:30,animation:"p 1.5s infinite"}}>🏢</div>
-      <div style={{fontSize:12}}>Carregando...</div>
+    <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",background:siteConfig.bgColor||"#0f0f0e",color:"#9A9590",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:12}}>
+      <div style={{fontSize:34,animation:"p 1.5s infinite"}}>🏢</div>
+      <div style={{fontSize:14,fontWeight:600,color:"#F5F0E8"}}>Portal do Corretor</div>
+      <div style={{fontSize:11}}>Carregando...</div>
       <style>{String.raw`@keyframes p{0%,100%{opacity:1}50%{opacity:.3}}`}</style>
     </div>
   );
@@ -786,7 +780,7 @@ function App() {
             {(bld.photos && bld.photos.length > 0) ? bld.photos.map(function(photo,i){
               var isCover = bld.coverPhoto === photo.url;
               return <div key={i} style={{aspectRatio:"1",borderRadius:8,overflow:"hidden",position:"relative",border:isCover?"2px solid "+G:"1px solid rgba(255,255,255,0.06)",cursor:"pointer"}}>
-                <img src={photo.url} alt={photo.label||""} onClick={function(){setLightbox({photos:bld.photos,idx:i})}} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                <img loading="lazy" src={photo.url} alt={photo.label||""} onClick={function(){setLightbox({photos:bld.photos,idx:i})}} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
                 {isCover && <div style={{position:"absolute",top:4,left:4,padding:"2px 7px",borderRadius:4,fontSize:8,fontWeight:700,background:G,color:"#0f0f0e"}}>⭐ Capa</div>}
                 <div style={{position:"absolute",bottom:0,left:0,right:0,background:"rgba(0,0,0,0.7)",padding:"5px 8px"}}>
                   {adm ? <input value={photo.label||""} onChange={function(e){
@@ -1482,6 +1476,12 @@ function App() {
           {adm && <TabBtn active={vw==="dash"} green onClick={function(){setVw("dash")}}>📊 Dashboard</TabBtn>}
           {adm && <TabBtn active={vw==="manage"} green onClick={function(){setVw("manage")}}>⚙️ Gerenciar</TabBtn>}
           {adm && <TabBtn active={false} green onClick={function(){setMdl({t:"siteSettings"})}}>🎨 Config</TabBtn>}
+          {adm && <TabBtn active={false} green onClick={function(){
+            cloudSave("buildings",D);
+            cloudSave("config",siteConfig);
+            cloudSave("brokers",brokers);
+            msg("☁️ Sincronizando com a nuvem...");
+          }}>☁️ Sync</TabBtn>}
           {vis.map(function(b){return <TabBtn key={b.id} active={vw==="detail"&&sel===b.id} onClick={function(){go(b.id)}}>{b.name.replace("Ed. ","").replace("Imóveis de ","")}</TabBtn>})}
         </div>
       </div>
@@ -1542,7 +1542,7 @@ function App() {
         </div>
       </div>}
 
-      {toast && <div style={{position:"fixed",bottom:70,left:"50%",transform:"translateX(-50%)",background:"#2a2a28",color:"#F5F0E8",padding:"7px 15px",borderRadius:7,fontSize:10,fontWeight:500,zIndex:600,boxShadow:"0 4px 14px rgba(0,0,0,0.5)",whiteSpace:"nowrap"}}>{toast}</div>}
+      {toast && <div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",background:"#2a2a28",color:"#F5F0E8",padding:"10px 20px",borderRadius:10,fontSize:13,fontWeight:600,zIndex:600,boxShadow:"0 4px 20px rgba(0,0,0,0.6)",whiteSpace:"nowrap",maxWidth:"90vw",textAlign:"center",border:"1px solid rgba(255,255,255,0.08)"}}>{toast}</div>}
 
       {lightbox && <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.95)",zIndex:800,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}} onClick={function(){setLightbox(null)}}
         onTouchStart={function(e){if(e.touches.length===1)window._lbTouchX=e.touches[0].clientX}}
@@ -1598,6 +1598,17 @@ const L = function(props){return <label style={{fontSize:10,color:"#9A9590",font
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(React.createElement(React.StrictMode, null, React.createElement(App)));
+</script>
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('/sw.js').then(function(r){
+      console.log('SW registered');
+    }).catch(function(e){
+      console.log('SW failed:',e);
+    });
+  });
+}
 </script>
 </body>
 </html>
