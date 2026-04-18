@@ -673,50 +673,129 @@ function App(){
     );
   }
 
-  // ═══ MANAGE VIEW ═══
+  // ═══ MANAGE VIEW — DASHBOARD ═══
   function ManageView(){
+    // Calculate per-building stats
+    var bldStats = buildings.map(function(b){
+      var u=getUnits(b.id);
+      var av=u.filter(function(x){return x.status==="available"}).length;
+      var rs=u.filter(function(x){return x.status==="reserved"}).length;
+      var sd=u.filter(function(x){return x.status==="sold"}).length;
+      var vgv=u.reduce(function(s,x){return s+cp(x,b)},0);
+      return{b:b,units:u,av:av,rs:rs,sd:sd,total:u.length,vgv:vgv,pctSold:u.length>0?Math.round((sd+rs)/u.length*100):0};
+    });
+    var maxVgv=Math.max.apply(null,bldStats.map(function(s){return s.vgv||1}));
+
     return(
       <div style={{padding:"20px clamp(16px, 4vw, 48px)"}}>
-        <div className="au" style={{marginBottom:24}}>
-          <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:24,fontWeight:500,letterSpacing:"-0.02em"}}>Painel Administrativo</div>
-          <div style={{fontSize:12,color:"#4CAF7D",marginTop:4,display:"flex",alignItems:"center",gap:6}}><span style={{width:6,height:6,borderRadius:"50%",background:"#4CAF7D"}}/>Conectado ao Supabase</div>
+        <div className="au" style={{marginBottom:28}}>
+          <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:28,fontWeight:500,letterSpacing:"-0.02em"}}>Dashboard</div>
+          <div style={{fontSize:12,color:"#4CAF7D",marginTop:4,display:"flex",alignItems:"center",gap:6}}><span style={{width:6,height:6,borderRadius:"50%",background:"#4CAF7D"}}/>Conectado · Supabase</div>
         </div>
 
-        <div className="kpi-grid au" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:24}}>
-          {[{l:"Empreendimentos",v:stats.bldCount,c:"#F0EBE3",bg:"#111110"},{l:"Unidades",v:stats.totalU,c:"#F0EBE3",bg:"#111110"},{l:"Disponíveis",v:stats.avail,c:"#6BAF8D",bg:"#0d130e"},{l:"Reservadas",v:stats.reserved,c:"#C4A46E",bg:"#13110d"},{l:"Vendidas",v:stats.sold,c:"#C47070",bg:"#130d0d"},{l:"VGV Total",v:fmt(stats.totalVal),c:G,bg:"#13110d"}].map(function(k,i){
-            return <div key={i} style={{padding:16,background:k.bg,borderRadius:14,textAlign:"center",border:"1px solid rgba(255,255,255,0.03)"}}>
-              <div style={{fontSize:20,fontWeight:600,color:k.c,fontFamily:"'Cormorant Garamond',Georgia,serif"}}>{k.v}</div>
-              <div style={{fontSize:9,color:"#555",textTransform:"uppercase",letterSpacing:1.5,marginTop:4}}>{k.l}</div>
+        {/* KPI Row */}
+        <div className="kpi-grid au" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:28}}>
+          {[{l:"Empreendimentos",v:stats.bldCount,c:"#F0EBE3",icon:"🏢"},{l:"Total Unidades",v:stats.totalU,c:"#F0EBE3",icon:"📊"},{l:"Disponíveis",v:stats.avail,c:"#6BAF8D",icon:"✅"},{l:"Reservadas",v:stats.reserved,c:"#C4A46E",icon:"📋"},{l:"Vendidas",v:stats.sold,c:"#C47070",icon:"🔑"},{l:"VGV Total",v:fmt(stats.totalVal),c:G,icon:"💰"}].map(function(k,i){
+            return <div key={i} className="au" style={{padding:16,background:"#111110",borderRadius:14,border:"1px solid rgba(255,255,255,0.03)",animationDelay:i*50+"ms"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                <span style={{fontSize:9,color:"#555",textTransform:"uppercase",letterSpacing:1.5}}>{k.l}</span>
+                <span style={{fontSize:14}}>{k.icon}</span>
+              </div>
+              <div style={{fontSize:22,fontWeight:600,color:k.c,fontFamily:"'Cormorant Garamond',Georgia,serif"}}>{k.v}</div>
             </div>;
           })}
         </div>
 
-        <div style={{display:"flex",gap:8,marginBottom:24}}>
-          <button className="bh" onClick={function(){setMdl({t:"addBld"})}} style={{flex:1,padding:14,borderRadius:12,fontSize:13,fontWeight:500,background:"rgba(76,175,125,0.05)",color:"#6BAF8D",border:"1px solid rgba(76,175,125,0.12)",cursor:"pointer",textAlign:"center"}}>＋ Empreendimento</button>
-          <button className="bh" onClick={function(){setMdl({t:"brokerList"})}} style={{flex:1,padding:14,borderRadius:12,fontSize:13,fontWeight:500,background:"rgba(200,164,92,0.05)",color:G,border:"1px solid rgba(200,164,92,0.12)",cursor:"pointer",textAlign:"center"}}>Corretores · {brokers.length}</button>
-        </div>
-        <div style={{display:"flex",gap:8,marginBottom:24}}>
-          <button className="bh" onClick={exportBackup} style={{flex:1,padding:12,borderRadius:12,fontSize:12,fontWeight:500,background:"rgba(91,143,212,0.05)",color:"#7A9EC2",border:"1px solid rgba(91,143,212,0.12)",cursor:"pointer",textAlign:"center"}}>💾 Backup JSON</button>
-          <button className="bh" onClick={function(){setMdl({t:"siteSettings"})}} style={{flex:1,padding:12,borderRadius:12,fontSize:12,fontWeight:500,background:"rgba(255,255,255,0.02)",color:"#7A7570",border:"1px solid rgba(255,255,255,0.06)",cursor:"pointer",textAlign:"center"}}>⚙️ Configurações</button>
+        {/* ═══ CHART: Units by Building ═══ */}
+        <div className="au" style={{background:"#111110",borderRadius:16,padding:20,marginBottom:20,border:"1px solid rgba(255,255,255,0.03)",animationDelay:"200ms"}}>
+          <div style={{fontSize:13,fontWeight:600,color:"#F0EBE3",marginBottom:4}}>Distribuição de Unidades</div>
+          <div style={{fontSize:10,color:"#555",marginBottom:16}}>Por empreendimento · disponíveis / reservadas / vendidas</div>
+          {bldStats.filter(function(s){return s.total>0}).map(function(s,i){
+            return <div key={s.b.id} style={{marginBottom:14}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:5}}>
+                <span style={{fontSize:12,fontWeight:500}}>{s.b.emoji} {s.b.name}</span>
+                <span style={{fontSize:10,color:"#555"}}>{s.total} un.</span>
+              </div>
+              <div style={{display:"flex",height:8,borderRadius:4,overflow:"hidden",background:"rgba(255,255,255,0.03)"}}>
+                {s.av>0 && <div style={{width:(s.av/s.total*100)+"%",background:"#4CAF7D",transition:"width .5s"}}/>}
+                {s.rs>0 && <div style={{width:(s.rs/s.total*100)+"%",background:"#E8A94E",transition:"width .5s"}}/>}
+                {s.sd>0 && <div style={{width:(s.sd/s.total*100)+"%",background:"#D45B5B",transition:"width .5s"}}/>}
+              </div>
+              <div style={{display:"flex",gap:12,marginTop:4}}>
+                <span style={{fontSize:9,color:"#4CAF7D"}}>{s.av} disp.</span>
+                <span style={{fontSize:9,color:"#E8A94E"}}>{s.rs} res.</span>
+                <span style={{fontSize:9,color:"#D45B5B"}}>{s.sd} vend.</span>
+                <span style={{fontSize:9,color:"#555",marginLeft:"auto"}}>{s.pctSold}% comercializado</span>
+              </div>
+            </div>;
+          })}
+          <div style={{display:"flex",gap:16,marginTop:12,paddingTop:10,borderTop:"1px solid rgba(255,255,255,0.03)"}}>
+            <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:8,height:8,borderRadius:2,background:"#4CAF7D"}}/><span style={{fontSize:10,color:"#555"}}>Disponível</span></div>
+            <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:8,height:8,borderRadius:2,background:"#E8A94E"}}/><span style={{fontSize:10,color:"#555"}}>Reservado</span></div>
+            <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:8,height:8,borderRadius:2,background:"#D45B5B"}}/><span style={{fontSize:10,color:"#555"}}>Vendido</span></div>
+          </div>
         </div>
 
-        {buildings.map(function(b){
-          var units = getUnits(b.id);
-          return <div key={b.id} style={{background:"#111110",borderRadius:14,padding:16,marginBottom:10,border:"1px solid rgba(255,255,255,0.04)",opacity:b.active?1:0.6}}>
-            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-              <span style={{fontSize:18}}>{b.emoji}</span>
-              <div style={{flex:1}}><div style={{fontSize:12,fontWeight:600}}>{b.name}</div><div style={{fontSize:9,color:"#9A9590"}}>{units.length} un. • {b.active?"Ativo":"Oculto"} • {b.commission||5}%</div></div>
+        {/* ═══ CHART: VGV by Building ═══ */}
+        <div className="au" style={{background:"#111110",borderRadius:16,padding:20,marginBottom:20,border:"1px solid rgba(255,255,255,0.03)",animationDelay:"300ms"}}>
+          <div style={{fontSize:13,fontWeight:600,color:"#F0EBE3",marginBottom:4}}>VGV por Empreendimento</div>
+          <div style={{fontSize:10,color:"#555",marginBottom:16}}>Valor Geral de Vendas</div>
+          {bldStats.filter(function(s){return s.vgv>0}).map(function(s){
+            var pct=maxVgv>0?Math.round(s.vgv/maxVgv*100):0;
+            return <div key={s.b.id} style={{marginBottom:12}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
+                <span style={{fontSize:11,fontWeight:500}}>{s.b.name}</span>
+                <span style={{fontSize:11,fontWeight:600,color:G}}>{fmt(s.vgv)}</span>
+              </div>
+              <div style={{height:6,borderRadius:3,background:"rgba(255,255,255,0.03)",overflow:"hidden"}}>
+                <div style={{height:"100%",width:pct+"%",background:"linear-gradient(90deg,"+s.b.color+"80,"+s.b.color+")",borderRadius:3,transition:"width .8s ease"}}/>
+              </div>
+            </div>;
+          })}
+        </div>
+
+        {/* ═══ ACTIONS ═══ */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:24}}>
+          <button className="bh ch" onClick={function(){setMdl({t:"addBld"})}} style={{padding:16,borderRadius:14,fontSize:13,fontWeight:500,background:"#111110",color:"#6BAF8D",border:"1px solid rgba(76,175,125,0.1)",cursor:"pointer",textAlign:"center"}}>＋ Empreendimento</button>
+          <button className="bh ch" onClick={function(){setMdl({t:"brokerList"})}} style={{padding:16,borderRadius:14,fontSize:13,fontWeight:500,background:"#111110",color:G,border:"1px solid rgba(200,164,92,0.1)",cursor:"pointer",textAlign:"center"}}>👥 Corretores · {brokers.length}</button>
+          <button className="bh ch" onClick={exportBackup} style={{padding:16,borderRadius:14,fontSize:13,fontWeight:500,background:"#111110",color:"#7A9EC2",border:"1px solid rgba(91,143,212,0.1)",cursor:"pointer",textAlign:"center"}}>💾 Backup</button>
+          <button className="bh ch" onClick={function(){setMdl({t:"siteSettings"})}} style={{padding:16,borderRadius:14,fontSize:13,fontWeight:500,background:"#111110",color:"#7A7570",border:"1px solid rgba(255,255,255,0.04)",cursor:"pointer",textAlign:"center"}}>⚙️ Configurações</button>
+        </div>
+
+        {/* ═══ BUILDING MANAGEMENT ═══ */}
+        <div style={{fontSize:13,fontWeight:600,color:"#F0EBE3",marginBottom:12}}>Empreendimentos</div>
+        <div className="manage-grid">
+        {bldStats.map(function(s,i){
+          var b=s.b;
+          return <div key={b.id} className="au ch" style={{background:"#111110",borderRadius:16,padding:18,border:"1px solid rgba(255,255,255,0.03)",opacity:b.active?1:0.5,animationDelay:i*60+"ms"}}>
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+              <div style={{width:42,height:42,borderRadius:12,background:b.color+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>{b.emoji}</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:14,fontWeight:600}}>{b.name}</div>
+                <div style={{fontSize:10,color:"#555"}}>{s.total} un. · {b.commission||5}% · {b.active?"Ativo":"Oculto"}</div>
+              </div>
+              <div style={{textAlign:"right"}}>
+                <div style={{fontSize:13,fontWeight:600,color:G}}>{s.pctSold}%</div>
+                <div style={{fontSize:8,color:"#555"}}>comercializado</div>
+              </div>
             </div>
-            <div style={{display:"flex",gap:4,flexWrap:"wrap",alignItems:"center"}}>
-              <button className="bh" onClick={async function(){await DB.saveBuilding({id:b.id,active:!b.active});refreshBuildings();msg(b.active?"Oculto":"Ativado")}} style={mbtn(b.active?"#E8A94E":"#4CAF7D")}>{b.active?"👁️ Ocultar":"👁️ Ativar"}</button>
-              <button className="bh" onClick={function(){setMdl({t:"editBld",bid:b.id})}} style={mbtn(b.color)}>✏️ Editar</button>
-              {b.status==="construction" && <button className="bh" onClick={function(){setMdl({t:"obra",bid:b.id})}} style={mbtn("#E8A94E")}>🏗️ Obra</button>}
+            {/* Mini chart */}
+            {s.total>0 && <div style={{display:"flex",height:4,borderRadius:2,overflow:"hidden",background:"rgba(255,255,255,0.03)",marginBottom:12}}>
+              {s.av>0 && <div style={{width:(s.av/s.total*100)+"%",background:"#4CAF7D"}}/>}
+              {s.rs>0 && <div style={{width:(s.rs/s.total*100)+"%",background:"#E8A94E"}}/>}
+              {s.sd>0 && <div style={{width:(s.sd/s.total*100)+"%",background:"#D45B5B"}}/>}
+            </div>}
+            <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+              <button className="bh" onClick={async function(){await DB.saveBuilding({id:b.id,active:!b.active});refreshBuildings();msg(b.active?"Oculto":"Ativado")}} style={mbtn(b.active?"#E8A94E":"#4CAF7D")}>{b.active?"Ocultar":"Ativar"}</button>
+              <button className="bh" onClick={function(){setMdl({t:"editBld",bid:b.id})}} style={mbtn(b.color)}>✏️</button>
+              {b.status==="construction" && <button className="bh" onClick={function(){setMdl({t:"obra",bid:b.id})}} style={mbtn("#E8A94E")}>🏗️</button>}
               <button className="bh" onClick={function(){setMdl({t:"notice",bid:b.id})}} style={mbtn("#8B6FBF")}>📢</button>
-              <button className="bh" onClick={async function(){var newVal=b.cub_auto_update===false?true:false;await sb.from("buildings").update({cub_auto_update:newVal}).eq("id",b.id);rB();msg(newVal?"CUB ativado":"CUB desativado")}} style={mbtn(b.cub_auto_update===false?"#D45B5B":"#4CAF7D")}>{b.cub_auto_update===false?"📈 CUB Off":"📈 CUB On"}</button>
+              <button className="bh" onClick={async function(){var nv=b.cub_auto_update===false?true:false;await sb.from("buildings").update({cub_auto_update:nv}).eq("id",b.id);rB();msg(nv?"CUB ativado":"CUB desativado")}} style={mbtn(b.cub_auto_update===false?"#D45B5B":"#4CAF7D")}>{b.cub_auto_update===false?"CUB Off":"CUB On"}</button>
               <button className="bh" onClick={async function(){if(confirm('Excluir "'+b.name+'"?')){await DB.deleteBuilding(b.id);refreshBuildings();refreshUnits();msg("Excluído")}}} style={mbtn("#D45B5B")}>🗑️</button>
             </div>
           </div>;
         })}
+        </div>
       </div>
     );
   }
