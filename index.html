@@ -680,7 +680,7 @@ function App(){
               <button className="bh" onClick={function(){setMdl({t:"editBld",bid:b.id})}} style={mbtn(b.color)}>✏️ Editar</button>
               {b.status==="construction" && <button className="bh" onClick={function(){setMdl({t:"obra",bid:b.id})}} style={mbtn("#E8A94E")}>🏗️ Obra</button>}
               <button className="bh" onClick={function(){setMdl({t:"notice",bid:b.id})}} style={mbtn("#8B6FBF")}>📢</button>
-              <button className="bh" onClick={async function(){await DB.saveBuilding({id:b.id,cub_auto_update:b.cub_auto_update===false?true:false});refreshBuildings();msg(b.cub_auto_update===false?"CUB ativado":"CUB desativado")}} style={mbtn(b.cub_auto_update===false?"#D45B5B":"#4CAF7D")}>{b.cub_auto_update===false?"📈 CUB Off":"📈 CUB On"}</button>
+              <button className="bh" onClick={async function(){var newVal=b.cub_auto_update===false?true:false;await sb.from("buildings").update({cub_auto_update:newVal}).eq("id",b.id);rB();msg(newVal?"CUB ativado":"CUB desativado")}} style={mbtn(b.cub_auto_update===false?"#D45B5B":"#4CAF7D")}>{b.cub_auto_update===false?"📈 CUB Off":"📈 CUB On"}</button>
               <button className="bh" onClick={async function(){if(confirm('Excluir "'+b.name+'"?')){await DB.deleteBuilding(b.id);refreshBuildings();refreshUnits();msg("Excluído")}}} style={mbtn("#D45B5B")}>🗑️</button>
             </div>
           </div>;
@@ -869,7 +869,7 @@ function App(){
             var b=buildings[i];
             if(b.cub_auto_update!==false){
               var hist=(b.cub_history||[]).concat([{month:c.cub_sc_date||"Atualizado",value:newCub}]);
-              await DB.saveBuilding({id:b.id,cub_current:newCub,cub_history:hist});
+              await sb.from("buildings").update({cub_current:newCub,cub_history:hist}).eq("id",b.id);
             }
           }
           rB();
