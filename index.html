@@ -4,6 +4,12 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
 <meta name="theme-color" content="#0a0a09"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Portal Corretor"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%230a0a09' width='100' height='100' rx='20'/><text x='50' y='55' text-anchor='middle' dy='.35em' font-size='50'>🏢</text></svg>"/>
+<link rel="manifest" href="data:application/json,{%22name%22:%22Portal%20do%20Corretor%22,%22short_name%22:%22Corretor%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22%230a0a09%22,%22theme_color%22:%22%230a0a09%22,%22icons%22:[{%22src%22:%22data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%230a0a09' width='100' height='100' rx='20'/><text x='50' y='55' text-anchor='middle' dy='.35em' font-size='50'>🏢</text></svg>%22,%22sizes%22:%22512x512%22,%22type%22:%22image/svg+xml%22}]}"/>
 <meta name="description" content="Portal do Corretor - MK Realty & D&SS Incorporação"/>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏢</text></svg>"/>
 <title>Portal do Corretor</title>
@@ -264,6 +270,7 @@ function App(){
   var _mdl = useState(null); var mdl = _mdl[0]; var setMdl = _mdl[1];
   var _toast = useState(null); var toast = _toast[0]; var setToast = _toast[1];
   var _filter = useState("all"); var filter = _filter[0]; var setFilter = _filter[1];
+  var _search = useState(""); var search = _search[0]; var setSearch = _search[1];
   var _simUnit = useState(null); var simUnit = _simUnit[0]; var setSimUnit = _simUnit[1];
   var _printHtml = useState(null); var printHtml = _printHtml[0]; var setPrintHtml = _printHtml[1];
   var _lang = useState("pt"); var lang = _lang[0]; var setLang = _lang[1];
@@ -341,7 +348,7 @@ function App(){
   var vis = buildings.filter(function(b){return adm||b.active});
 
   // === NAVIGATION ===
-  var go = function(id){setSel(id);setVw("detail");setDtab("table");setFilter("all");setCompare([])};
+  var go = function(id){setSel(id);setVw("detail");setDtab("table");setFilter("all");setSearch("");setCompare([])};
 
   // Stats
   var stats = useMemo(function(){
@@ -430,6 +437,7 @@ function App(){
     var notices = getNotices(bld.id);
     var cover = getCover(bld.id);
     var filtered = filter==="all"?units:units.filter(function(u){return u.status===filter});
+    if(search){var sl2=search.toLowerCase();filtered=filtered.filter(function(u){return u.name.toLowerCase().indexOf(sl2)!==-1})}
 
     return(
       <div style={{padding:"20px clamp(16px, 4vw, 48px)"}}>
@@ -484,18 +492,22 @@ function App(){
             <span onClick={function(){setShowUsd(!showUsd)}} style={{padding:"6px 14px",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer",background:showUsd?"rgba(76,175,125,0.15)":"rgba(91,143,212,0.1)",color:showUsd?"#4CAF7D":"#5B8FD4",border:showUsd?"1px solid rgba(76,175,125,0.3)":"1px solid rgba(91,143,212,0.3)",display:"inline-flex",alignItems:"center",gap:5}}>{showUsd?"🇧🇷 R$ "+t.showBrl:"🇺🇸 $ "+t.showUsd}</span>
           </div>
 
-          <div style={{overflowX:"auto"}}>
-            <table style={{width:"100%",borderCollapse:"separate",borderSpacing:0,borderRadius:8,overflow:"hidden"}}>
+          {/* Search */}
+          <input value={search} onChange={function(e){setSearch(e.target.value)}} placeholder={"🔍 Buscar unidade..."} style={Object.assign({},mI,{background:"#111110",marginBottom:14,border:"1px solid rgba(255,255,255,0.04)"})}/>
+
+          <div style={{overflowX:"auto",borderRadius:14,border:"1px solid rgba(255,255,255,0.03)",overflow:"hidden"}}>
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
               <thead><tr><th style={thS}>{t.unit}</th><th style={thS}>{t.area}</th><th style={thS}>{t.value}{showUsd?" (USD)":""}</th>{adm && <th style={thS}>R$/m²</th>}<th style={thS}>{t.status}</th><th style={thS}>{t.actions}</th></tr></thead>
               <tbody>
-              {filtered.map(function(u){
+              {filtered.map(function(u,idx){
                 var p = cp(u, bld);
-                return <tr key={u.id}>
+                var rowBg = idx%2===0?"transparent":"rgba(255,255,255,0.01)";
+                return <tr key={u.id} style={{background:rowBg,transition:"background .15s"}} onMouseEnter={function(e){e.currentTarget.style.background="rgba(200,164,92,0.03)"}} onMouseLeave={function(e){e.currentTarget.style.background=rowBg}}>
                   <td style={Object.assign({},tdS,{fontWeight:600})}>{u.name}</td>
                   <td style={tdS}>{u.area}m²</td>
-                  <td style={Object.assign({},tdS,{fontWeight:700,color:"#4CAF7D"})}>{p>0?fmtV(p):"—"}</td>
-                  {adm && <td style={Object.assign({},tdS,{fontSize:9,color:"#9A9590"})}>{p>0?fmtV(Math.round(p/u.area)):"—"}</td>}
-                  <td style={tdS}><span style={{display:"inline-flex",alignItems:"center",gap:3,fontSize:9,fontWeight:600,color:sC[u.status]}}><span style={{width:5,height:5,borderRadius:"50%",background:sC[u.status]}}/>{sl[u.status]}</span></td>
+                  <td style={Object.assign({},tdS,{fontWeight:700,color:"#4CAF7D",fontSize:14})}>{p>0?fmtV(p):"—"}</td>
+                  {adm && <td style={Object.assign({},tdS,{fontSize:10,color:"#555"})}>{p>0?fmtV(Math.round(p/u.area)):"—"}</td>}
+                  <td style={tdS}><div style={{display:"inline-flex",alignItems:"center",gap:5,fontSize:11,fontWeight:600,color:sC[u.status],padding:"4px 10px",background:sC[u.status]+"0a",borderRadius:6}}><span style={{width:6,height:6,borderRadius:"50%",background:sC[u.status]}}/>{sl[u.status]}</div></td>
                   <td style={tdS}>
                     <div style={{display:"flex",gap:3}}>
                       <button onClick={function(e){e.stopPropagation();setSimUnit({u:u,b:bld})}} style={Object.assign({},mbtn(bld.color),{fontSize:8,padding:"3px 6px"})}>🏦</button>
@@ -510,8 +522,22 @@ function App(){
             </table>
           </div>
 
-          <div style={{display:"flex",gap:6,marginTop:10,flexWrap:"wrap"}}>
-            {["available","reserved","sold"].map(function(s){return <span key={s} style={{padding:"4px 10px",background:sC[s]+"10",borderRadius:5,fontSize:10,fontWeight:600,color:sC[s]}}>{sl[s]}: {units.filter(function(u){return u.status===s}).length}</span>})}
+          {/* Status Summary */}
+          <div style={{display:"flex",gap:8,marginTop:16,flexWrap:"wrap"}}>
+            {["available","reserved","sold"].map(function(s){var count=units.filter(function(u){return u.status===s}).length;var pct=units.length>0?Math.round(count/units.length*100):0;return <div key={s} style={{flex:1,minWidth:80,padding:"12px 14px",background:"#111110",borderRadius:12,border:"1px solid rgba(255,255,255,0.03)"}}>
+              <div style={{display:"flex",alignItems:"baseline",gap:4}}>
+                <span style={{fontSize:20,fontWeight:600,color:sC[s],fontFamily:"'Cormorant Garamond',Georgia,serif"}}>{count}</span>
+                <span style={{fontSize:10,color:"#555"}}>{pct}%</span>
+              </div>
+              <div style={{fontSize:9,color:"#555",textTransform:"uppercase",letterSpacing:1.5,marginTop:2}}>{sl[s]}</div>
+              <div style={{marginTop:6,height:3,background:"rgba(255,255,255,0.03)",borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:pct+"%",background:sC[s],borderRadius:2,transition:"width .5s"}}/></div>
+            </div>})}
+          </div>
+
+          {/* Export Buttons */}
+          <div style={{display:"flex",gap:8,marginTop:14}}>
+            <button className="bh" onClick={function(){printBld(bld.id)}} style={{flex:1,padding:"12px",borderRadius:10,fontSize:12,fontWeight:600,background:bld.color+"10",color:bld.color,border:"1px solid "+bld.color+"20",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>🖨️ PDF</button>
+            <button className="bh" onClick={function(){exportExcel(bld.id)}} style={{flex:1,padding:"12px",borderRadius:10,fontSize:12,fontWeight:600,background:"rgba(76,175,125,0.06)",color:"#6BAF8D",border:"1px solid rgba(76,175,125,0.12)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>📊 Excel</button>
           </div>
         </div>}
 
@@ -669,6 +695,10 @@ function App(){
           <button className="bh" onClick={function(){setMdl({t:"addBld"})}} style={{flex:1,padding:14,borderRadius:12,fontSize:13,fontWeight:500,background:"rgba(76,175,125,0.05)",color:"#6BAF8D",border:"1px solid rgba(76,175,125,0.12)",cursor:"pointer",textAlign:"center"}}>＋ Empreendimento</button>
           <button className="bh" onClick={function(){setMdl({t:"brokerList"})}} style={{flex:1,padding:14,borderRadius:12,fontSize:13,fontWeight:500,background:"rgba(200,164,92,0.05)",color:G,border:"1px solid rgba(200,164,92,0.12)",cursor:"pointer",textAlign:"center"}}>Corretores · {brokers.length}</button>
         </div>
+        <div style={{display:"flex",gap:8,marginBottom:24}}>
+          <button className="bh" onClick={exportBackup} style={{flex:1,padding:12,borderRadius:12,fontSize:12,fontWeight:500,background:"rgba(91,143,212,0.05)",color:"#7A9EC2",border:"1px solid rgba(91,143,212,0.12)",cursor:"pointer",textAlign:"center"}}>💾 Backup JSON</button>
+          <button className="bh" onClick={function(){setMdl({t:"siteSettings"})}} style={{flex:1,padding:12,borderRadius:12,fontSize:12,fontWeight:500,background:"rgba(255,255,255,0.02)",color:"#7A7570",border:"1px solid rgba(255,255,255,0.06)",cursor:"pointer",textAlign:"center"}}>⚙️ Configurações</button>
+        </div>
 
         {buildings.map(function(b){
           var units = getUnits(b.id);
@@ -692,6 +722,45 @@ function App(){
   }
 
   // ═══ SHARE UNIT ═══
+  // ═══ PDF EXPORT ═══
+  var printBld = function(bid){
+    var b=buildings.find(function(x){return x.id===bid});if(!b)return;
+    var units=getUnits(bid);
+    var logo=cfg.report_logo?"<img src='"+cfg.report_logo+"' style='max-height:50px;max-width:180px;margin-bottom:12px'/>":"";
+    var currency=showUsd?"USD":"BRL";
+    var usdWarn=showUsd?"<div style='margin:12px 0;padding:10px;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;font-size:10px;color:#856404;text-align:center'>⚠️ Valores em USD são referência. Cotação confirmada no dia da transação. Contratos em BRL. Ref: R$ "+getUsdRate().toFixed(2)+"</div>":"";
+    var rows=units.map(function(u){var p=cp(u,b);return "<tr><td>"+u.name+"</td><td>"+u.area+"m²</td><td style='font-weight:600;color:#2e7d52'>"+(p>0?fmtV(p):"—")+"</td><td style='color:"+sC[u.status]+";font-weight:600'>"+sL[u.status]+"</td></tr>"}).join("");
+    var html="<html><head><meta charset='UTF-8'><title>"+b.name+"</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Helvetica,sans-serif;padding:36px;color:#1a1a1a;max-width:780px;margin:0 auto}h1{font-size:24px;margin-bottom:4px}h2{font-size:12px;color:#888;font-weight:400;margin-bottom:18px}table{width:100%;border-collapse:collapse;margin-top:8px}th{background:#f5f0e8;padding:10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid #ddd}td{padding:10px;border-bottom:1px solid #eee;font-size:12px}.ft{margin-top:24px;padding-top:12px;border-top:1px solid #ddd;font-size:9px;color:#999;text-align:center}.badge{display:inline-block;padding:4px 12px;border-radius:16px;font-size:10px;font-weight:700;color:#fff;margin-bottom:12px}.cub{font-size:11px;color:#666;margin-bottom:10px;padding:8px 10px;background:#f8f6f2;border-radius:5px}</style></head><body>"+logo+"<h1>"+b.name+"</h1><h2>"+b.subtitle+"</h2><div class='badge' style='background:"+b.color+"'>"+(b.status==="ready"?"Pronto":"Em Construção — "+b.construction_pct+"%")+"</div><div class='cub'>CUB/SC: "+fmt(b.cub_base)+" → "+fmt(b.cub_current)+" ("+((b.cub_current/b.cub_base-1)*100).toFixed(2)+"%)</div>"+usdWarn+"<table><thead><tr><th>Unid.</th><th>Área</th><th>Valor"+(showUsd?" (USD)":"")+"</th><th>Status</th></tr></thead><tbody>"+rows+"</tbody></table><div class='ft'>MK Realty & D&SS Incorporação | "+CT.email+" | "+CT.phone+"<br>Gerado em "+new Date().toLocaleDateString("pt-BR")+"</div></body></html>";
+    var w=window.open("","_blank");if(w){w.document.write(html);w.document.close();setTimeout(function(){w.print()},500)}
+  };
+
+  // ═══ BACKUP / EXPORT ═══
+  var exportBackup = async function(){
+    msg("Exportando dados...");
+    var data={buildings:buildings,units:allUnits,photos:allPhotos,plants:allPlants,documents:allDocs,notices:allNotices,brokers:brokers,config:cfg,exportDate:new Date().toISOString()};
+    var json=JSON.stringify(data,null,2);
+    var blob=new Blob([json],{type:"application/json"});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement("a");
+    a.href=url;a.download="portal-backup-"+new Date().toISOString().slice(0,10)+".json";
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    msg("Backup exportado!");
+  };
+
+  // ═══ EXCEL EXPORT ═══
+  var exportExcel = function(bid){
+    var b=buildings.find(function(x){return x.id===bid});if(!b)return;
+    var units=getUnits(bid);
+    var csv="Unidade;Área (m²);Preço Base;Valor Corrigido;Status\n";
+    units.forEach(function(u){var p=cp(u,b);csv+=u.name+";"+u.area+";"+u.base_price+";"+p+";"+sL[u.status]+"\n"});
+    var blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement("a");a.href=url;a.download=b.name.replace(/[^a-zA-Z0-9]/g,"-")+".csv";
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    URL.revokeObjectURL(url);msg("Excel exportado!");
+  };
+
   var shareUnit = function(u,b){
     var p=cp(u,b);
     var text="🏢 *"+b.name+"*\n📍 Unidade: "+u.name+"\n📐 Área: "+u.area+"m²\n💰 Valor: "+fmt(p)+"\n"+(b.status==="construction"?"🏗️ Obra: "+b.construction_pct+"%":"✅ Pronto para morar")+"\n\n📞 "+CT.phone+"\n✉️ "+CT.email;
