@@ -3,20 +3,37 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
-<meta name="theme-color" content="#0f0f0e"/>
+<meta name="theme-color" content="#0a0a09"/>
 <meta name="description" content="Portal do Corretor - MK Realty & D&SS Incorporação"/>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏢</text></svg>"/>
 <title>Portal do Corretor</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
-body{margin:0;background:#0f0f0e;font-family:'DM Sans',system-ui,sans-serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a09;font-family:'DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
 #root{min-height:100vh}
+::selection{background:rgba(200,164,92,0.3)}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:rgba(200,164,92,0.15);border-radius:4px}
+input,select,textarea,button{font-family:inherit}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.9)}}
+@keyframes glow{0%,100%{box-shadow:0 0 20px rgba(200,164,92,0.08)}50%{box-shadow:0 0 40px rgba(200,164,92,0.16)}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+.au{animation:fadeUp .5s ease both}
+.ch{transition:all .25s ease}.ch:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(0,0,0,0.4)}
+.bh{transition:all .2s ease}.bh:hover{transform:translateY(-1px);filter:brightness(1.1)}
 @media(min-width:768px){
-  .bld-grid{display:grid!important;grid-template-columns:1fr 1fr!important;gap:14px!important}
-  .kpi-grid{grid-template-columns:repeat(6,1fr)!important}
+  .bld-grid{display:grid!important;grid-template-columns:1fr 1fr!important;gap:16px!important}
+  .kpi-grid{grid-template-columns:repeat(3,1fr)!important}
   .photo-grid{grid-template-columns:1fr 1fr 1fr!important}
+  .manage-grid{display:grid!important;grid-template-columns:1fr 1fr!important;gap:12px!important}
 }
-@media(min-width:1024px){.bld-grid{grid-template-columns:1fr 1fr 1fr!important}}
+@media(min-width:1024px){
+  .bld-grid{grid-template-columns:1fr 1fr 1fr!important}
+  .kpi-grid{grid-template-columns:repeat(6,1fr)!important}
+}
 </style>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -215,17 +232,17 @@ var DB = {
 // ═══════════════════════════════════════
 // SHARED STYLES
 // ═══════════════════════════════════════
-var fab = function(bg){return{width:48,height:48,borderRadius:"50%",background:bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,boxShadow:"0 3px 12px "+bg+"55",cursor:"pointer",border:"none"}};
-var mbtn = function(c){return{padding:"5px 11px",borderRadius:6,fontSize:10,fontWeight:600,background:c+"15",color:c,border:"1px solid "+c+"30",cursor:"pointer"}};
-var tgS = {padding:"4px 9px",background:"#1e1e1d",borderRadius:5,fontSize:10,fontWeight:500,color:"#aaa"};
-var thS = {background:"rgba(200,164,92,0.06)",color:G,padding:"9px 8px",textAlign:"left",fontWeight:600,fontSize:10,textTransform:"uppercase",letterSpacing:1};
-var tdS = {padding:"9px 8px",borderBottom:"1px solid rgba(255,255,255,0.025)",fontSize:12};
-var mT = {fontFamily:"'Playfair Display',Georgia,serif",fontSize:18,fontWeight:600,marginBottom:12,color:"#F5F0E8"};
-var mI = {width:"100%",padding:"10px 12px",background:"#222",border:"1px solid rgba(255,255,255,0.05)",borderRadius:7,color:"#F5F0E8",fontSize:13,fontFamily:"inherit",outline:"none",marginBottom:8};
-var mP = function(c){return{width:"100%",padding:"11px",borderRadius:7,fontSize:13,fontWeight:600,background:c||G,color:"#0f0f0e",border:"none",cursor:"pointer",marginTop:4}};
-var mC = {width:"100%",padding:"11px",borderRadius:7,fontSize:13,fontWeight:600,background:"transparent",color:"#9A9590",border:"1px solid rgba(255,255,255,0.05)",cursor:"pointer",marginTop:4};
-var L = function(props){return <label style={{fontSize:10,color:"#9A9590",fontWeight:600,display:"block",marginBottom:3,textTransform:"uppercase",letterSpacing:.5}}>{props.children}</label>};
-var TabBtn = function(props){return <div onClick={props.onClick} style={{flexShrink:0,padding:"8px 14px",borderRadius:50,fontSize:11,fontWeight:600,cursor:"pointer",border:props.active?"1px solid "+(props.green?"#4CAF7D":G):"1px solid rgba(255,255,255,0.06)",background:props.active?(props.green?"#4CAF7D":G):"transparent",color:props.active?"#0f0f0e":"#9A9590",whiteSpace:"nowrap"}}>{props.children}</div>};
+var fab = function(bg){return{width:52,height:52,borderRadius:16,background:bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,boxShadow:"0 4px 20px "+bg+"40",cursor:"pointer",border:"none"}};
+var mbtn = function(c){return{padding:"6px 12px",borderRadius:8,fontSize:11,fontWeight:600,background:c+"12",color:c,border:"1px solid "+c+"25",cursor:"pointer",transition:"all .2s",display:"inline-flex",alignItems:"center",gap:4}};
+var tgS = {padding:"5px 10px",background:"#141413",borderRadius:8,fontSize:11,fontWeight:500,color:"#aaa"};
+var thS = {background:"rgba(200,164,92,0.04)",color:G,padding:"12px 10px",textAlign:"left",fontWeight:600,fontSize:11,textTransform:"uppercase",letterSpacing:1,borderBottom:"2px solid rgba(200,164,92,0.1)"};
+var tdS = {padding:"12px 10px",borderBottom:"1px solid rgba(255,255,255,0.025)",fontSize:13};
+var mT = {fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:22,fontWeight:600,marginBottom:14,color:"#F0EBE3"};
+var mI = {width:"100%",padding:"12px 14px",background:"#1a1a19",border:"1px solid rgba(255,255,255,0.06)",borderRadius:10,color:"#F0EBE3",fontSize:14,fontFamily:"inherit",outline:"none",marginBottom:10};
+var mP = function(c){return{width:"100%",padding:"13px",borderRadius:10,fontSize:14,fontWeight:600,background:c||G,color:"#0a0a09",border:"none",cursor:"pointer",marginTop:6}};
+var mC = {width:"100%",padding:"13px",borderRadius:10,fontSize:14,fontWeight:600,background:"transparent",color:"#9A9590",border:"1px solid rgba(255,255,255,0.06)",cursor:"pointer",marginTop:6};
+var L = function(props){return <label style={{fontSize:11,color:"#9A9590",fontWeight:600,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:.8}}>{props.children}</label>};
+var TabBtn = function(props){return <div className="bh" onClick={props.onClick} style={{flexShrink:0,padding:"9px 16px",borderRadius:12,fontSize:12,fontWeight:600,cursor:"pointer",border:props.active?"1px solid "+(props.green?"#4CAF7D":G):"1px solid rgba(255,255,255,0.04)",background:props.active?(props.green?"#4CAF7D":G):"transparent",color:props.active?"#0a0a09":"#9A9590",whiteSpace:"nowrap",transition:"all .2s"}}>{props.children}</div>};
 
 // ═══════════════════════════════════════
 // MAIN APP
@@ -252,6 +269,7 @@ function App(){
   var _lang = useState("pt"); var lang = _lang[0]; var setLang = _lang[1];
   var _showUsd = useState(false); var showUsd = _showUsd[0]; var setShowUsd = _showUsd[1];
   var _compare = useState([]); var compare = _compare[0]; var setCompare = _compare[1];
+  var _lightbox = useState(null); var lightbox = _lightbox[0]; var setLightbox = _lightbox[1];
 
   var t = TR[lang] || TR.pt;
   var sl = lang === "es" ? sLes : sL;
@@ -350,11 +368,11 @@ function App(){
 
   // ═══ LOADING SCREEN ═══
   if(!rdy) return(
-    <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",background:"#0f0f0e",color:"#9A9590",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:10}}>
-      <div style={{fontSize:30,animation:"p 1.5s infinite"}}>🏢</div>
-      <div style={{fontSize:14}}>Conectando ao servidor...</div>
-      <div style={{fontSize:10,color:"#555"}}>Supabase • Banco de dados na nuvem</div>
-      <style>{"@keyframes p{0%,100%{opacity:1}50%{opacity:.3}}"}</style>
+    <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",background:"#0a0a09",color:"#9A9590",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:14}}>
+      <div style={{width:60,height:60,borderRadius:16,background:"linear-gradient(135deg,#C8A45C20,#C8A45C08)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,animation:"p 1.5s infinite"}}>🏢</div>
+      <div style={{fontSize:14,fontWeight:500}}>Conectando ao servidor...</div>
+      <div style={{width:120,height:3,borderRadius:2,background:"#1a1a19",overflow:"hidden"}}><div style={{width:"60%",height:"100%",background:"linear-gradient(90deg,transparent,#C8A45C,transparent)",animation:"shimmer 1.5s infinite",backgroundSize:"200% 100%"}}/></div>
+      <style>{"@keyframes p{0%,100%{opacity:1}50%{opacity:.3}}@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}"}</style>
     </div>
   );
 
@@ -364,7 +382,7 @@ function App(){
       <div style={{padding:"14px clamp(12px, 3vw, 40px)"}}>
         <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:12}}>
           <span style={{fontSize:18}}>🏢</span>
-          <span style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:16,fontWeight:600,flex:1}}>Empreendimentos</span>
+          <span style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:16,fontWeight:600,flex:1}}>Empreendimentos</span>
           <span style={{fontSize:10,color:"#9A9590",background:"#1a1a19",padding:"3px 8px",borderRadius:20}}>{vis.length} ativos</span>
         </div>
         <div className="bld-grid">
@@ -373,15 +391,15 @@ function App(){
           var units = getUnits(b.id);
           var a = units.filter(function(u){return u.status==="available"}).length;
           return(
-            <div key={b.id} onClick={function(){go(b.id)}} style={{background:"#1a1a19",borderRadius:12,overflow:"hidden",border:"1px solid rgba(255,255,255,0.04)",cursor:"pointer"}}>
-              <div style={{height:120,background:cover?"url("+cover+") center/cover no-repeat":b.gradient,display:"flex",alignItems:"center",justifyContent:"center",fontSize:34,position:"relative"}}>
+            <div key={b.id} onClick={function(){go(b.id)}} className="ch" style={{background:"#141413",borderRadius:16,overflow:"hidden",border:"1px solid rgba(255,255,255,0.04)",cursor:"pointer"}}>
+              <div style={{height:140,background:cover?"url("+cover+") center/cover no-repeat":b.gradient,display:"flex",alignItems:"center",justifyContent:"center",fontSize:34,position:"relative"}}>
                 {!cover && b.emoji}
                 {cover && <div style={{position:"absolute",inset:0,background:"linear-gradient(transparent 40%,rgba(0,0,0,0.6))"}}/>}
                 <span style={{position:"absolute",top:7,right:7,padding:"3px 8px",borderRadius:16,fontSize:9,fontWeight:700,background:b.color,color:"#fff",zIndex:1}}>{b.tag}</span>
                 {!b.active && adm && <span style={{position:"absolute",top:7,left:7,padding:"3px 8px",borderRadius:16,fontSize:9,fontWeight:700,background:"#D45B5B",color:"#fff",zIndex:1}}>OCULTO</span>}
               </div>
               <div style={{padding:12}}>
-                <div style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:14,fontWeight:600,marginBottom:2}}>{b.name}</div>
+                <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:14,fontWeight:600,marginBottom:2}}>{b.name}</div>
                 <div style={{fontSize:10,color:"#9A9590",marginBottom:8,lineHeight:1.4}}>{b.subtitle}</div>
                 <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:7}}>
                   <span style={{padding:"2px 7px",borderRadius:4,fontSize:9,fontWeight:700,background:b.status==="ready"?"rgba(76,175,125,0.1)":"rgba(232,169,78,0.1)",color:b.status==="ready"?"#4CAF7D":"#E8A94E"}}>{b.status==="ready"?"✅ Pronto":"🏗️ Em Obra"}</span>
@@ -419,11 +437,11 @@ function App(){
         {cover && <div style={{height:160,borderRadius:10,overflow:"hidden",marginBottom:12,position:"relative",backgroundImage:"url("+cover+")",backgroundSize:"cover",backgroundPosition:"center"}}>
           <div style={{position:"absolute",inset:0,background:"linear-gradient(transparent 50%,rgba(0,0,0,0.7))"}}>
             <div style={{position:"absolute",bottom:10,left:12}}>
-              <div style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:20,fontWeight:700,color:"#fff"}}>{bld.name}</div>
+              <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:20,fontWeight:700,color:"#fff"}}>{bld.name}</div>
             </div>
           </div>
         </div>}
-        {!cover && <div style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:20,fontWeight:700,color:bld.color,marginBottom:2}}>{bld.name}</div>}
+        {!cover && <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:20,fontWeight:700,color:bld.color,marginBottom:2}}>{bld.name}</div>}
         <div style={{fontSize:10,color:"#9A9590",marginBottom:10}}>{bld.subtitle}</div>
         <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:8,flexWrap:"wrap"}}>
           <span style={{padding:"2px 8px",borderRadius:5,fontSize:9,fontWeight:700,background:bld.status==="ready"?"rgba(76,175,125,0.1)":"rgba(232,169,78,0.1)",color:bld.status==="ready"?"#4CAF7D":"#E8A94E"}}>{bld.status==="ready"?t.ready:t.construction}</span>
@@ -502,9 +520,9 @@ function App(){
         {dtab==="photos" && <div>
           <div className="photo-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
             {photos.length > 0 ? photos.map(function(photo,i){
-              return <div key={photo.id} style={{aspectRatio:"1",borderRadius:8,overflow:"hidden",position:"relative",border:photo.is_cover?"2px solid "+G:"1px solid rgba(255,255,255,0.06)"}}>
+              return <div key={photo.id} className="ch" onClick={function(){if(!adm)setLightbox(photo.url)}} style={{aspectRatio:"1",borderRadius:12,overflow:"hidden",position:"relative",border:photo.is_cover?"2px solid "+G:"1px solid rgba(255,255,255,0.06)",cursor:adm?"default":"zoom-in"}}>
                 <img src={photo.url} alt={photo.label||""} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-                {photo.is_cover && <div style={{position:"absolute",top:4,left:4,padding:"2px 7px",borderRadius:4,fontSize:8,fontWeight:700,background:G,color:"#0f0f0e"}}>⭐ Capa</div>}
+                {photo.is_cover && <div style={{position:"absolute",top:4,left:4,padding:"2px 7px",borderRadius:4,fontSize:8,fontWeight:700,background:G,color:"#0a0a09"}}>⭐ Capa</div>}
                 <div style={{position:"absolute",bottom:0,left:0,right:0,background:"rgba(0,0,0,0.7)",padding:"5px 8px"}}>
                   {adm ? <input value={photo.label||""} onChange={function(e){
                     DB.updatePhoto(photo.id,{label:e.target.value});
@@ -518,7 +536,7 @@ function App(){
                     await DB.updatePhoto(photo.id,{is_cover:true});
                     await DB.saveBuilding({id:bld.id,cover_photo:photo.url});
                     refreshPhotos();refreshBuildings();msg("Capa definida!");
-                  }} title="Capa" style={{width:24,height:24,borderRadius:"50%",background:photo.is_cover?"rgba(200,164,92,0.9)":"rgba(0,0,0,0.6)",color:photo.is_cover?"#0f0f0e":"#fff",border:"none",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>⭐</button>
+                  }} title="Capa" style={{width:24,height:24,borderRadius:"50%",background:photo.is_cover?"rgba(200,164,92,0.9)":"rgba(0,0,0,0.6)",color:photo.is_cover?"#0a0a09":"#fff",border:"none",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>⭐</button>
                   {i>0 && <button onClick={async function(){var prev=photos[i-1];await DB.updatePhoto(photo.id,{sort_order:i-1});await DB.updatePhoto(prev.id,{sort_order:i});refreshPhotos()}} style={{width:24,height:24,borderRadius:"50%",background:"rgba(0,0,0,0.6)",color:"#fff",border:"none",fontSize:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>↑</button>}
                   {i<photos.length-1 && <button onClick={async function(){var next=photos[i+1];await DB.updatePhoto(photo.id,{sort_order:i+1});await DB.updatePhoto(next.id,{sort_order:i});refreshPhotos()}} style={{width:24,height:24,borderRadius:"50%",background:"rgba(0,0,0,0.6)",color:"#fff",border:"none",fontSize:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>↓</button>}
                   <button onClick={async function(){await DB.deletePhoto(photo.id);refreshPhotos();msg("Foto removida")}} style={{width:24,height:24,borderRadius:"50%",background:"rgba(213,91,91,0.9)",color:"#fff",border:"none",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
@@ -636,7 +654,7 @@ function App(){
       <div style={{padding:"14px clamp(12px, 3vw, 40px)"}}>
         <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:12}}>
           <span style={{fontSize:18}}>⚙️</span>
-          <span style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:16,fontWeight:600,flex:1}}>Gerenciar Portal</span>
+          <span style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:16,fontWeight:600,flex:1}}>Gerenciar Portal</span>
         </div>
 
         <div className="kpi-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:7,marginBottom:14}}>
@@ -749,7 +767,7 @@ function App(){
           <button onClick={function(){setV(fmtBR(globalCub));msg("Copiado!")}} style={Object.assign({},mbtn("#4CAF7D"),{fontSize:10})}>📋 Usar</button>
         </div>
       </div>
-      <div style={{fontSize:11,color:"#9A9590",marginBottom:8}}>Atual: <strong style={{color:"#F5F0E8"}}>R$ {fmtBR(b.cub_current)}</strong></div>
+      <div style={{fontSize:11,color:"#9A9590",marginBottom:8}}>Atual: <strong style={{color:"#F0EBE3"}}>R$ {fmtBR(b.cub_current)}</strong></div>
       {hist.length>0 && <div style={{marginBottom:10}}>{hist.slice(-6).map(function(h,i){return <div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"#9A9590",padding:"3px 0"}}><span>{h.month}</span><span style={{fontWeight:600,color:"#bbb"}}>R$ {fmtBR(h.value)}</span></div>})}</div>}
       <L>Mês</L><input style={mI} placeholder="Mai/26" value={m} onChange={function(e){setM(e.target.value)}}/>
       <L>Novo CUB (vírgula ou ponto)</L><input style={mI} value={v} onChange={function(e){setV(e.target.value)}} placeholder="3.028,45"/>
@@ -848,7 +866,7 @@ function App(){
     return <div><div style={mT}>🎨 Configurações Gerais</div>
       <L>Cor de Fundo</L>
       <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:8}}>
-        {["#0f0f0e","#111827","#1a1a2e","#0d1117","#1b2838","#0e1a0e"].map(function(clr){
+        {["#0a0a09","#111827","#1a1a2e","#0d1117","#1b2838","#0e1a0e"].map(function(clr){
           return <span key={clr} onClick={function(){setC(Object.assign({},c,{bg_color:clr}))}} style={{width:30,height:30,borderRadius:6,background:clr,cursor:"pointer",border:c.bg_color===clr?"2px solid "+G:"2px solid rgba(255,255,255,0.1)"}}/>
         })}
       </div>
@@ -914,18 +932,18 @@ function App(){
   }
 
   // ═══ RENDER ═══
-  var bgColor = cfg.bg_color || "#0f0f0e";
+  var bgColor = cfg.bg_color || "#0a0a09";
 
   return(
-    <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",background:bgColor,color:"#F5F0E8",minHeight:"100vh",maxWidth:960,margin:"0 auto",position:"relative",paddingBottom:80}}>
+    <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",background:bgColor,color:"#F0EBE3",minHeight:"100vh",maxWidth:1024,margin:"0 auto",position:"relative",paddingBottom:80}}>
       <style>{"@keyframes p{0%,100%{opacity:1}50%{opacity:.3}}"}</style>
 
       {/* HERO */}
       <div style={{padding:"44px 20px 24px",textAlign:"center",background:cfg.hero_banner?"url("+cfg.hero_banner+") center/cover":"linear-gradient(170deg,"+bgColor+",#1c1914,"+bgColor+")",position:"relative",overflow:"hidden"}}>
         {cfg.hero_banner && cfg.hero_overlay!=="false" && <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.65)",pointerEvents:"none"}}/>}
         <div style={{position:"absolute",top:"-40%",left:"-40%",width:"180%",height:"180%",background:"radial-gradient(ellipse at 50% 50%,rgba(200,164,92,0.05) 0%,transparent 65%)",pointerEvents:"none"}}/>
-        <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"rgba(200,164,92,0.1)",border:"1px solid rgba(200,164,92,0.2)",padding:"6px 16px",borderRadius:50,fontSize:10,fontWeight:700,letterSpacing:2,textTransform:"uppercase",color:G,marginBottom:14,position:"relative"}}><span style={{width:5,height:5,background:"#4CAF7D",borderRadius:"50%",animation:"p 2s infinite"}}/>Portal Exclusivo</div>
-        <h1 style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:"clamp(28px, 5vw, 48px)",fontWeight:700,lineHeight:1.1,marginBottom:7,position:"relative"}}>Portal do <span style={{color:G}}>Corretor</span></h1>
+        <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"rgba(200,164,92,0.1)",border:"1px solid rgba(200,164,92,0.2)",padding:"6px 16px",borderRadius:50,fontSize:10,fontWeight:700,letterSpacing:2,textTransform:"uppercase",color:G,marginBottom:14,position:"relative"}}><span style={{width:5,height:5,background:"#4CAF7D",borderRadius:"50%",animation:"glow 3s infinite"}}/>Portal Exclusivo</div>
+        <h1 style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:"clamp(32px, 6vw, 56px)",fontWeight:700,lineHeight:1.1,marginBottom:7,position:"relative"}}>Portal do <span style={{color:G}}>Corretor</span></h1>
         <p style={{fontSize:"clamp(11px, 1.5vw, 16px)",color:"#9A9590",maxWidth:500,margin:"0 auto",lineHeight:1.6,position:"relative"}}>Empreendimentos, tabelas com correção CUB/SC, simulador e materiais.</p>
         {adm && <div onClick={function(){setAdm(false);msg("Admin off")}} style={{marginTop:10,display:"inline-flex",alignItems:"center",gap:5,padding:"4px 12px",background:"rgba(76,175,125,0.1)",borderRadius:20,fontSize:10,fontWeight:600,color:"#4CAF7D",cursor:"pointer",position:"relative"}}>🔓 Admin — sair</div>}
         <div style={{marginTop:10,display:"flex",justifyContent:"center",gap:6}}>
@@ -979,7 +997,7 @@ function App(){
             <div style={{fontSize:7,color:"#666"}}>{cfg.ipca_date||"—"}</div>
           </div>
         </div>
-        <div style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:13,color:G,marginBottom:4}}>MK Realty & D&SS Incorporação</div>
+        <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:13,color:G,marginBottom:4}}>MK Realty & D&SS Incorporação</div>
         <div style={{fontSize:10,color:"#9A9590",lineHeight:1.8}}>✉️ {CT.email} • 📞 {CT.phone}<br/>IG: {CT.ig.map(function(i){return i.h}).join(" • ")}</div>
         <button onClick={function(){setMdl({t:"brokerRegister"})}} style={{marginTop:10,padding:"10px 24px",borderRadius:8,fontSize:12,fontWeight:600,background:G+"20",color:G,border:"1px solid "+G+"40",cursor:"pointer"}}>📋 Cadastre-se para receber novidades</button>
         <div style={{fontSize:8,color:"#555",marginTop:8}}>Portal exclusivo para corretores parceiros • 2026</div>
@@ -993,21 +1011,27 @@ function App(){
       </div>
 
       {/* MODAL */}
-      {mdl && <div onClick={function(){setMdl(null)}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
-        <div onClick={function(e){e.stopPropagation()}} style={{background:"#1a1a19",borderRadius:14,padding:18,width:"100%",maxWidth:400,maxHeight:"85vh",overflow:"auto",border:"1px solid rgba(255,255,255,0.06)"}}>
+      {mdl && <div onClick={function(){setMdl(null)}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",backdropFilter:"blur(4px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+        <div onClick={function(e){e.stopPropagation()}} style={{background:"#141413",borderRadius:18,padding:22,width:"100%",maxWidth:400,maxHeight:"85vh",overflow:"auto",border:"1px solid rgba(255,255,255,0.06)"}}>
           <ModalContent/>
         </div>
       </div>}
 
       {/* SIMULATOR */}
-      {simUnit && <div onClick={function(){setSimUnit(null)}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
-        <div onClick={function(e){e.stopPropagation()}} style={{background:"#1a1a19",borderRadius:14,padding:18,width:"100%",maxWidth:400,maxHeight:"85vh",overflow:"auto",border:"1px solid rgba(255,255,255,0.06)"}}>
+      {simUnit && <div onClick={function(){setSimUnit(null)}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",backdropFilter:"blur(4px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+        <div onClick={function(e){e.stopPropagation()}} style={{background:"#141413",borderRadius:18,padding:22,width:"100%",maxWidth:400,maxHeight:"85vh",overflow:"auto",border:"1px solid rgba(255,255,255,0.06)"}}>
           <SimModal/>
         </div>
       </div>}
 
+      {/* LIGHTBOX */}
+      {lightbox && <div onClick={function(){setLightbox(null)}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.95)",zIndex:600,display:"flex",alignItems:"center",justifyContent:"center",padding:20,cursor:"zoom-out"}}>
+        <img src={lightbox} style={{maxWidth:"100%",maxHeight:"90vh",borderRadius:12,boxShadow:"0 20px 60px rgba(0,0,0,0.5)"}}/>
+        <button onClick={function(){setLightbox(null)}} style={{position:"absolute",top:20,right:20,width:40,height:40,borderRadius:12,background:"rgba(255,255,255,0.1)",color:"#fff",border:"none",fontSize:18,cursor:"pointer"}}>✕</button>
+      </div>}
+
       {/* TOAST */}
-      {toast && <div style={{position:"fixed",bottom:76,left:"50%",transform:"translateX(-50%)",background:"#2a2a28",color:"#F5F0E8",padding:"9px 18px",borderRadius:8,fontSize:12,fontWeight:500,zIndex:600,boxShadow:"0 4px 18px rgba(0,0,0,0.5)",whiteSpace:"nowrap"}}>{toast}</div>}
+      {toast && <div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",background:"#1a1a19",color:"#F0EBE3",padding:"11px 22px",borderRadius:12,fontSize:13,fontWeight:500,zIndex:700,boxShadow:"0 8px 32px rgba(0,0,0,0.5)",whiteSpace:"nowrap",border:"1px solid rgba(255,255,255,0.06)"}}>{toast}</div>}
     </div>
   );
 
