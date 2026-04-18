@@ -221,6 +221,9 @@ var DB = {
   deleteBroker: async function(id){
     await sb.from("brokers").delete().eq("id", id);
   },
+  loadSales: async function(){var r=await sb.from("broker_sales").select("*").order("id",{ascending:false});return r.data||[]},
+  addSale: async function(s){await sb.from("broker_sales").insert(s)},
+  updateSale: async function(id,c){await sb.from("broker_sales").update(c).eq("id",id)},
 
   // --- File Upload ---
   uploadFile: function(file, folder, callback, msgFn){
@@ -277,6 +280,8 @@ function App(){
   var _showUsd = useState(false); var showUsd = _showUsd[0]; var setShowUsd = _showUsd[1];
   var _compare = useState([]); var compare = _compare[0]; var setCompare = _compare[1];
   var _lightbox = useState(null); var lightbox = _lightbox[0]; var setLightbox = _lightbox[1];
+  var _broker = useState(null); var broker = _broker[0]; var setBroker = _broker[1];
+  var _sales = useState([]); var sales = _sales[0]; var setSales = _sales[1];
 
   var t = TR[lang] || TR.pt;
   var sl = lang === "es" ? sLes : sL;
@@ -297,7 +302,8 @@ function App(){
         DB.loadPlants(),
         DB.loadDocuments(),
         DB.loadNotices(),
-        DB.loadBrokers()
+        DB.loadBrokers(),
+        DB.loadSales()
       ]);
       setCfg(results[0]);
       setBuildings(results[1]);
@@ -307,6 +313,7 @@ function App(){
       setAllDocs(results[5]);
       setAllNotices(results[6]);
       setBrokers(results[7]);
+      setSales(results[8]);
     } catch(e){ console.log("Load error:", e); }
     setRdy(true);
   };
@@ -372,6 +379,7 @@ function App(){
   var refreshDocs = async function(){var d=await DB.loadDocuments();setAllDocs(d)};
   var refreshNotices = async function(){var d=await DB.loadNotices();setAllNotices(d)};
   var refreshBrokers = async function(){var d=await DB.loadBrokers();setBrokers(d)};
+  var refreshSales = async function(){var d=await DB.loadSales();setSales(d)};
 
   // ═══ LOADING SCREEN ═══
   if(!rdy) return(
@@ -755,12 +763,14 @@ function App(){
         </div>
 
         {/* ═══ ACTIONS ═══ */}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:24}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
           <button className="bh ch" onClick={function(){setMdl({t:"addBld"})}} style={{padding:16,borderRadius:14,fontSize:13,fontWeight:500,background:"#111110",color:"#6BAF8D",border:"1px solid rgba(76,175,125,0.1)",cursor:"pointer",textAlign:"center"}}>＋ Empreendimento</button>
           <button className="bh ch" onClick={function(){setMdl({t:"brokerList"})}} style={{padding:16,borderRadius:14,fontSize:13,fontWeight:500,background:"#111110",color:G,border:"1px solid rgba(200,164,92,0.1)",cursor:"pointer",textAlign:"center"}}>👥 Corretores · {brokers.length}</button>
           <button className="bh ch" onClick={exportBackup} style={{padding:16,borderRadius:14,fontSize:13,fontWeight:500,background:"#111110",color:"#7A9EC2",border:"1px solid rgba(91,143,212,0.1)",cursor:"pointer",textAlign:"center"}}>💾 Backup</button>
           <button className="bh ch" onClick={function(){setMdl({t:"siteSettings"})}} style={{padding:16,borderRadius:14,fontSize:13,fontWeight:500,background:"#111110",color:"#7A7570",border:"1px solid rgba(255,255,255,0.04)",cursor:"pointer",textAlign:"center"}}>⚙️ Configurações</button>
         </div>
+        {/* Sales Management Button */}
+        <button className="bh ch" onClick={function(){setMdl({t:"adminSales"})}} style={{width:"100%",padding:16,borderRadius:14,fontSize:14,fontWeight:600,background:sales.filter(function(s){return s.status==="pending"}).length>0?"rgba(232,169,78,0.06)":"#111110",color:sales.filter(function(s){return s.status==="pending"}).length>0?"#E8A94E":"#7A7570",border:sales.filter(function(s){return s.status==="pending"}).length>0?"1px solid rgba(232,169,78,0.15)":"1px solid rgba(255,255,255,0.03)",cursor:"pointer",textAlign:"center",marginBottom:24,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>📋 Gestão de Vendas {sales.filter(function(s){return s.status==="pending"}).length>0&&<span style={{background:"#E8A94E",color:"#0a0a09",padding:"2px 8px",borderRadius:10,fontSize:11,fontWeight:700}}>{sales.filter(function(s){return s.status==="pending"}).length} pendentes</span>}</button>
 
         {/* ═══ BUILDING MANAGEMENT ═══ */}
         <div style={{fontSize:13,fontWeight:600,color:"#F0EBE3",marginBottom:12}}>Empreendimentos</div>
@@ -858,6 +868,10 @@ function App(){
     if(mdl.t==="siteSettings") return <SiteSettingsM/>;
     if(mdl.t==="brokerRegister") return <BrokerRegisterM/>;
     if(mdl.t==="brokerList") return <BrokerListM/>;
+    if(mdl.t==="brokerLogin") return <BrokerLoginM/>;
+    if(mdl.t==="brokerDash") return <BrokerDashM/>;
+    if(mdl.t==="registerSale") return <RegisterSaleM/>;
+    if(mdl.t==="adminSales") return <AdminSalesM/>;
     return null;
   }
 
@@ -1036,18 +1050,21 @@ function App(){
   }
 
   function BrokerRegisterM(){
-    var _f=useState({nome:"",imobiliaria:"",cidade:"",telefone:"",email:""});var f=_f[0];var setF=_f[1];
+    var _f=useState({nome:"",imobiliaria:"",cidade:"",telefone:"",email:"",senha:"",creci:""});var f=_f[0];var setF=_f[1];
     var _sent=useState(false);var sent=_sent[0];var setSent=_sent[1];
-    if(sent) return <div style={{textAlign:"center",padding:"20px 0"}}><div style={{fontSize:40,marginBottom:12}}>✅</div><div style={{fontSize:16,fontWeight:600,color:"#4CAF7D",marginBottom:6}}>Cadastro realizado!</div><button style={mP(G)} onClick={function(){setMdl(null)}}>Fechar</button></div>;
+    if(sent) return <div style={{textAlign:"center",padding:"20px 0"}}><div style={{fontSize:40,marginBottom:12}}>✅</div><div style={{fontSize:16,fontWeight:600,color:"#4CAF7D",marginBottom:6}}>Cadastro realizado!</div><div style={{fontSize:12,color:"#9A9590",marginBottom:12}}>Use seu e-mail e senha para acessar sua área.</div><button style={mP(G)} onClick={function(){setMdl(null)}}>Fechar</button></div>;
     return <div><div style={mT}>📋 Cadastro de Corretor</div>
-      <L>Nome</L><input style={mI} value={f.nome} onChange={function(e){setF(Object.assign({},f,{nome:e.target.value}))}}/>
+      <L>Nome Completo</L><input style={mI} value={f.nome} onChange={function(e){setF(Object.assign({},f,{nome:e.target.value}))}}/>
+      <L>CRECI</L><input style={mI} value={f.creci} onChange={function(e){setF(Object.assign({},f,{creci:e.target.value}))}} placeholder="Ex: 12345-F"/>
       <L>Imobiliária</L><input style={mI} value={f.imobiliaria} onChange={function(e){setF(Object.assign({},f,{imobiliaria:e.target.value}))}}/>
       <L>Cidade</L><input style={mI} value={f.cidade} onChange={function(e){setF(Object.assign({},f,{cidade:e.target.value}))}}/>
       <L>Telefone</L><input style={mI} value={f.telefone} onChange={function(e){setF(Object.assign({},f,{telefone:e.target.value}))}} type="tel"/>
       <L>E-mail</L><input style={mI} value={f.email} onChange={function(e){setF(Object.assign({},f,{email:e.target.value}))}} type="email"/>
-      <button style={mP("#4CAF7D")} onClick={async function(){
-        if(!f.nome.trim()||!f.telefone.trim()){msg("Nome e telefone obrigatórios");return}
-        await DB.addBroker(f);refreshBrokers();setSent(true);
+      <L>Criar Senha</L><input style={mI} value={f.senha} onChange={function(e){setF(Object.assign({},f,{senha:e.target.value}))}} type="password" placeholder="Mínimo 4 caracteres"/>
+      <button className="bh" style={mP("#4CAF7D")} onClick={async function(){
+        if(!f.nome.trim()||!f.telefone.trim()||!f.email.trim()){msg("Nome, telefone e e-mail obrigatórios");return}
+        if(f.senha.length<4){msg("Senha deve ter no mínimo 4 caracteres");return}
+        await DB.addBroker(f);await refreshBrokers();setSent(true);
       }}>Cadastrar</button><button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
     </div>;
   }
@@ -1059,11 +1076,177 @@ function App(){
       <input style={mI} value={s} onChange={function(e){setS(e.target.value)}} placeholder="Buscar..."/>
       <div style={{maxHeight:400,overflow:"auto"}}>
         {filtered.map(function(b){
-          return <div key={b.id} style={{background:"#222",borderRadius:8,padding:12,marginBottom:8}}>
-            <div style={{fontSize:13,fontWeight:600}}>{b.nome}</div>
-            <div style={{fontSize:10,color:"#9A9590"}}>{b.imobiliaria||"—"} • {b.cidade||"—"}</div>
-            <div style={{fontSize:10,color:"#5B8FD4",marginTop:4}}>{b.telefone} • {b.email}</div>
-            <button onClick={async function(){await DB.deleteBroker(b.id);await refreshBrokers();msg("Removido")}} style={Object.assign({},mbtn("#D45B5B"),{marginTop:6})}>🗑️</button>
+          var bSales=sales.filter(function(x){return x.broker_id===b.id});
+          var conf=bSales.filter(function(x){return x.status==="confirmed"}).length;
+          var pend=bSales.filter(function(x){return x.status==="pending"}).length;
+          return <div key={b.id} style={{background:"#111110",borderRadius:12,padding:14,marginBottom:8,border:"1px solid rgba(255,255,255,0.03)"}}>
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
+              <div style={{width:36,height:36,borderRadius:10,background:G+"12",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>👤</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:14,fontWeight:600}}>{b.nome}</div>
+                <div style={{fontSize:10,color:"#555"}}>{b.imobiliaria||"—"} · {b.cidade||"—"} {b.creci?"· CRECI "+b.creci:""}</div>
+              </div>
+            </div>
+            <div style={{fontSize:11,color:"#7A9EC2",marginBottom:6}}>{b.telefone} · {b.email}</div>
+            <div style={{display:"flex",gap:8,marginBottom:8}}>
+              <span style={{fontSize:10,color:"#4CAF7D"}}>✅ {conf} vendas</span>
+              <span style={{fontSize:10,color:"#E8A94E"}}>⏳ {pend} pendentes</span>
+              <span style={{fontSize:10,color:b.senha?"#4CAF7D":"#D45B5B"}}>{b.senha?"🔐 Com senha":"🔓 Sem senha"}</span>
+            </div>
+            <div style={{display:"flex",gap:4}}>
+              <button className="bh" onClick={async function(){var pw=prompt("Nova senha para "+b.nome+":");if(pw&&pw.length>=4){await sb.from("brokers").update({senha:pw}).eq("id",b.id);await refreshBrokers();msg("Senha definida!")}else if(pw){msg("Mínimo 4 caracteres")}}} style={mbtn("#5B8FD4")}>🔑 Senha</button>
+              <button className="bh" onClick={async function(){await DB.deleteBroker(b.id);await refreshBrokers();msg("Removido")}} style={mbtn("#D45B5B")}>🗑️</button>
+            </div>
+          </div>;
+        })}
+      </div>
+      <button style={mC} onClick={function(){setMdl(null)}}>Fechar</button>
+    </div>;
+  }
+
+  // ═══ BROKER LOGIN ═══
+  function BrokerLoginM(){
+    var _e=useState("");var e=_e[0];var setE=_e[1];
+    var _p=useState("");var p=_p[0];var setP=_p[1];
+    return <div><div style={mT}>👤 Acesso do Corretor</div>
+      <L>E-mail</L><input style={mI} type="email" value={e} onChange={function(ev){setE(ev.target.value)}} placeholder="seu@email.com"/>
+      <L>Senha</L><input style={mI} type="password" value={p} onChange={function(ev){setP(ev.target.value)}} onKeyDown={function(ev){if(ev.key==="Enter"){document.getElementById("brokerLoginBtn").click()}}}/>
+      <button id="brokerLoginBtn" className="bh" style={mP("#5B8FD4")} onClick={function(){
+        var found=brokers.find(function(b){return b.email&&b.email.toLowerCase()===e.toLowerCase().trim()&&b.senha===p});
+        if(found){setBroker(found);setMdl({t:"brokerDash"});msg("Bem-vindo, "+found.nome+"!")}
+        else msg("E-mail ou senha incorretos")
+      }}>Entrar</button>
+      <button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
+      <div style={{textAlign:"center",marginTop:12}}>
+        <span onClick={function(){setMdl({t:"brokerRegister"})}} style={{fontSize:11,color:G,cursor:"pointer"}}>Não tem conta? Cadastre-se</span>
+      </div>
+    </div>;
+  }
+
+  // ═══ BROKER DASHBOARD ═══
+  function BrokerDashM(){
+    if(!broker) return <div>Faça login primeiro</div>;
+    var mySales=sales.filter(function(s){return s.broker_id===broker.id});
+    var confirmed=mySales.filter(function(s){return s.status==="confirmed"});
+    var pending=mySales.filter(function(s){return s.status==="pending"});
+    var totalComm=confirmed.reduce(function(t,s){return t+(s.commission_value||0)},0);
+    return <div>
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+        <div style={{width:44,height:44,borderRadius:14,background:G+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>👤</div>
+        <div style={{flex:1}}>
+          <div style={{fontSize:16,fontWeight:600}}>{broker.nome}</div>
+          <div style={{fontSize:11,color:"#555"}}>{broker.imobiliaria||""} {broker.creci?"• CRECI "+broker.creci:""}</div>
+        </div>
+        <button className="bh" onClick={function(){setBroker(null);setMdl(null);msg("Deslogado")}} style={mbtn("#D45B5B")}>Sair</button>
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:16}}>
+        <div style={{padding:12,background:"#111110",borderRadius:12,textAlign:"center",border:"1px solid rgba(255,255,255,0.03)"}}>
+          <div style={{fontSize:20,fontWeight:600,color:"#4CAF7D",fontFamily:"'Cormorant Garamond',Georgia,serif"}}>{confirmed.length}</div>
+          <div style={{fontSize:8,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Confirmadas</div>
+        </div>
+        <div style={{padding:12,background:"#111110",borderRadius:12,textAlign:"center",border:"1px solid rgba(255,255,255,0.03)"}}>
+          <div style={{fontSize:20,fontWeight:600,color:"#E8A94E",fontFamily:"'Cormorant Garamond',Georgia,serif"}}>{pending.length}</div>
+          <div style={{fontSize:8,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Pendentes</div>
+        </div>
+        <div style={{padding:12,background:"#111110",borderRadius:12,textAlign:"center",border:"1px solid rgba(255,255,255,0.03)"}}>
+          <div style={{fontSize:16,fontWeight:600,color:G,fontFamily:"'Cormorant Garamond',Georgia,serif"}}>{fmt(totalComm)}</div>
+          <div style={{fontSize:8,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Comissão</div>
+        </div>
+      </div>
+
+      <button className="bh" style={mP("#4CAF7D")} onClick={function(){setMdl({t:"registerSale"})}}>＋ Registrar Venda</button>
+
+      <div style={{fontSize:12,fontWeight:600,color:"#F0EBE3",marginTop:16,marginBottom:8}}>Minhas Vendas</div>
+      <div style={{maxHeight:300,overflow:"auto"}}>
+        {mySales.length===0&&<div style={{textAlign:"center",padding:20,color:"#555"}}>Nenhuma venda registrada</div>}
+        {mySales.map(function(s){
+          var stColor=s.status==="confirmed"?"#4CAF7D":s.status==="rejected"?"#D45B5B":"#E8A94E";
+          var stLabel=s.status==="confirmed"?"✅ Confirmada":s.status==="rejected"?"❌ Rejeitada":"⏳ Pendente";
+          return <div key={s.id} style={{padding:12,background:"#111110",borderRadius:12,marginBottom:6,border:"1px solid rgba(255,255,255,0.03)"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
+              <span style={{fontSize:13,fontWeight:600}}>{s.client_name}</span>
+              <span style={{fontSize:10,fontWeight:600,color:stColor,padding:"3px 8px",background:stColor+"10",borderRadius:6}}>{stLabel}</span>
+            </div>
+            <div style={{fontSize:10,color:"#555"}}>{s.building_name} — {s.unit_name}</div>
+            <div style={{fontSize:10,color:"#555"}}>{s.sale_date} • {fmt(s.sale_value)}</div>
+            {s.admin_notes&&<div style={{fontSize:10,color:"#E8A94E",marginTop:4}}>📝 {s.admin_notes}</div>}
+          </div>;
+        })}
+      </div>
+      <button style={mC} onClick={function(){setMdl(null)}}>Fechar</button>
+    </div>;
+  }
+
+  // ═══ REGISTER SALE ═══
+  function RegisterSaleM(){
+    if(!broker)return null;
+    var _f=useState({building_id:"",unit_id:"",client_name:"",client_phone:"",client_email:"",sale_value:0,sale_date:new Date().toLocaleDateString("pt-BR")});var f=_f[0];var setF=_f[1];
+    var selBld=buildings.find(function(b){return b.id===f.building_id});
+    var bldUnits=selBld?getUnits(selBld.id):[];
+    return <div><div style={mT}>＋ Registrar Venda</div>
+      <L>Empreendimento</L>
+      <select style={mI} value={f.building_id} onChange={function(e){setF(Object.assign({},f,{building_id:e.target.value,unit_id:""}))}}>
+        <option value="">Selecione...</option>
+        {buildings.filter(function(b){return b.active}).map(function(b){return <option key={b.id} value={b.id}>{b.name}</option>})}
+      </select>
+      {selBld&&<div><L>Unidade</L>
+      <select style={mI} value={f.unit_id} onChange={function(e){var u=bldUnits.find(function(x){return x.id===e.target.value});setF(Object.assign({},f,{unit_id:e.target.value,sale_value:u?cp(u,selBld):0}))}}>
+        <option value="">Selecione...</option>
+        {bldUnits.map(function(u){return <option key={u.id} value={u.id}>{u.name} — {u.area}m² — {fmt(cp(u,selBld))}</option>})}
+      </select></div>}
+      <L>Nome do Cliente</L><input style={mI} value={f.client_name} onChange={function(e){setF(Object.assign({},f,{client_name:e.target.value}))}}/>
+      <L>Telefone do Cliente</L><input style={mI} type="tel" value={f.client_phone} onChange={function(e){setF(Object.assign({},f,{client_phone:e.target.value}))}}/>
+      <L>E-mail do Cliente</L><input style={mI} type="email" value={f.client_email} onChange={function(e){setF(Object.assign({},f,{client_email:e.target.value}))}}/>
+      <L>Valor da Venda (R$)</L><input style={mI} type="number" value={f.sale_value} onChange={function(e){setF(Object.assign({},f,{sale_value:+e.target.value}))}}/>
+      <L>Data</L><input style={mI} value={f.sale_date} onChange={function(e){setF(Object.assign({},f,{sale_date:e.target.value}))}}/>
+      <button className="bh" style={mP("#4CAF7D")} onClick={async function(){
+        if(!f.client_name.trim()||!f.building_id){msg("Cliente e empreendimento obrigatórios");return}
+        var bld2=buildings.find(function(b){return b.id===f.building_id});
+        var unit2=bldUnits.find(function(u){return u.id===f.unit_id});
+        var commPct=bld2?bld2.commission||5:5;
+        await DB.addSale({broker_id:broker.id,building_id:f.building_id,unit_id:f.unit_id||"",unit_name:unit2?unit2.name:"",building_name:bld2?bld2.name:"",client_name:f.client_name,client_phone:f.client_phone,client_email:f.client_email,sale_value:f.sale_value,commission_pct:commPct,commission_value:Math.round(f.sale_value*commPct/100),sale_date:f.sale_date,status:"pending"});
+        await refreshSales();setMdl({t:"brokerDash"});msg("Venda registrada! Aguardando confirmação do admin.");
+      }}>Registrar Venda</button>
+      <button style={mC} onClick={function(){setMdl({t:"brokerDash"})}}>Voltar</button>
+    </div>;
+  }
+
+  // ═══ ADMIN SALES ═══
+  function AdminSalesM(){
+    var _ft=useState("all");var ft=_ft[0];var setFt=_ft[1];
+    var filtered=ft==="all"?sales:sales.filter(function(s){return s.status===ft});
+    var pendCount=sales.filter(function(s){return s.status==="pending"}).length;
+    var confCount=sales.filter(function(s){return s.status==="confirmed"}).length;
+    return <div><div style={mT}>📋 Gestão de Vendas</div>
+      <div style={{display:"flex",gap:4,marginBottom:12,flexWrap:"wrap"}}>
+        {[{v:"all",l:"Todas ("+sales.length+")"},{v:"pending",l:"⏳ Pendentes ("+pendCount+")"},{v:"confirmed",l:"✅ Confirmadas ("+confCount+")"},{v:"rejected",l:"❌ Rejeitadas"}].map(function(o){
+          return <span key={o.v} className="bh" onClick={function(){setFt(o.v)}} style={{padding:"5px 10px",borderRadius:8,fontSize:10,fontWeight:600,cursor:"pointer",background:ft===o.v?G+"20":"#1a1a19",color:ft===o.v?G:"#555"}}>{o.l}</span>;
+        })}
+      </div>
+      <div style={{maxHeight:450,overflow:"auto"}}>
+        {filtered.length===0&&<div style={{textAlign:"center",padding:20,color:"#555"}}>Nenhuma venda</div>}
+        {filtered.map(function(s){
+          var bk=brokers.find(function(b){return b.id===s.broker_id});
+          var stColor=s.status==="confirmed"?"#4CAF7D":s.status==="rejected"?"#D45B5B":"#E8A94E";
+          return <div key={s.id} style={{padding:14,background:"#111110",borderRadius:12,marginBottom:8,border:"1px solid rgba(255,255,255,0.03)"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+              <div>
+                <div style={{fontSize:14,fontWeight:600}}>{s.client_name}</div>
+                <div style={{fontSize:10,color:"#555"}}>{s.building_name} — {s.unit_name} • {s.sale_date}</div>
+              </div>
+              <span style={{fontSize:10,fontWeight:600,color:stColor,padding:"4px 10px",background:stColor+"10",borderRadius:8}}>{s.status==="confirmed"?"Confirmada":s.status==="rejected"?"Rejeitada":"Pendente"}</span>
+            </div>
+            <div style={{fontSize:11,color:"#7A9EC2",marginBottom:4}}>👤 {bk?bk.nome:"Corretor removido"} {bk&&bk.imobiliaria?"• "+bk.imobiliaria:""}</div>
+            <div style={{display:"flex",gap:8,marginBottom:6}}>
+              <span style={{fontSize:11}}>💰 {fmt(s.sale_value)}</span>
+              <span style={{fontSize:11,color:G}}>📊 {s.commission_pct}% = {fmt(s.commission_value||0)}</span>
+            </div>
+            {s.client_phone&&<div style={{fontSize:10,color:"#555"}}>📞 {s.client_phone} {s.client_email?"• ✉️ "+s.client_email:""}</div>}
+            {s.status==="pending"&&<div style={{display:"flex",gap:6,marginTop:8}}>
+              <button className="bh" onClick={async function(){await DB.updateSale(s.id,{status:"confirmed",confirmed_at:new Date().toLocaleDateString("pt-BR")});await refreshSales();msg("Venda confirmada!")}} style={mbtn("#4CAF7D")}>✅ Confirmar</button>
+              <button className="bh" onClick={async function(){var note=prompt("Motivo da rejeição:");await DB.updateSale(s.id,{status:"rejected",admin_notes:note||""});await refreshSales();msg("Venda rejeitada")}} style={mbtn("#D45B5B")}>❌ Rejeitar</button>
+            </div>}
           </div>;
         })}
       </div>
@@ -1141,6 +1324,8 @@ function App(){
       {/* FABs */}
       <div style={{position:"fixed",bottom:24,right:20,zIndex:200,display:"flex",flexDirection:"column",gap:10,alignItems:"flex-end"}}>
         <a href={"https://wa.me/"+waNum+"?text="+encodeURIComponent("Olá! Vim pelo Portal do Corretor 🏢")} target="_blank" className="bh" style={{width:52,height:52,borderRadius:16,background:"#25D366",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 6px 24px rgba(37,211,102,0.25)",textDecoration:"none",color:"#fff"}}><WaIcon size={24}/></a>
+        {broker && <button className="bh" onClick={function(){setMdl({t:"brokerDash"})}} style={{width:52,height:52,borderRadius:16,background:"#5B8FD4",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,boxShadow:"0 6px 24px rgba(91,143,212,0.25)",cursor:"pointer",border:"none",color:"#fff"}}>👤</button>}
+        {!broker && !adm && <button className="bh" onClick={function(){setMdl({t:"brokerLogin"})}} style={{width:52,height:52,borderRadius:16,background:"#141413",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,boxShadow:"0 4px 20px rgba(0,0,0,0.4)",cursor:"pointer",border:"1px solid rgba(91,143,212,0.15)",color:"#5B8FD4"}}>👤</button>}
         {!adm && <button className="bh" onClick={function(){setMdl({t:"login"})}} style={{width:52,height:52,borderRadius:16,background:"#141413",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,boxShadow:"0 4px 20px rgba(0,0,0,0.4)",cursor:"pointer",border:"1px solid rgba(200,164,92,0.12)",color:G}}>🔐</button>}
         {adm && <button className="bh" onClick={function(){setAdm(false);msg("Admin desativado")}} style={{width:52,height:52,borderRadius:16,background:"#D45B5B",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:700,boxShadow:"0 6px 24px rgba(213,91,91,0.25)",cursor:"pointer",border:"none",color:"#fff"}}>✕</button>}
       </div>
