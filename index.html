@@ -379,37 +379,37 @@ function App(){
   // ═══ HOME VIEW ═══
   function HomeView(){
     return(
-      <div style={{padding:"14px clamp(12px, 3vw, 40px)"}}>
-        <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:12}}>
-          <span style={{fontSize:18}}>🏢</span>
-          <span style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:16,fontWeight:600,flex:1}}>Empreendimentos</span>
-          <span style={{fontSize:10,color:"#9A9590",background:"#1a1a19",padding:"3px 8px",borderRadius:20}}>{vis.length} ativos</span>
+      <div style={{padding:"20px clamp(14px, 4vw, 48px)"}}>
+        <div className="au" style={{marginBottom:24}}>
+          <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:24,fontWeight:500,letterSpacing:"-0.02em"}}>{lang==="es"?"Emprendimientos":"Empreendimentos"}</div>
+          <div style={{fontSize:12,color:"#7A7570",marginTop:4}}>{vis.length} {lang==="es"?"activos":"ativos"}</div>
         </div>
         <div className="bld-grid">
-        {vis.map(function(b){
+        {vis.map(function(b,idx){
           var cover = getCover(b.id);
           var units = getUnits(b.id);
           var a = units.filter(function(u){return u.status==="available"}).length;
           return(
-            <div key={b.id} onClick={function(){go(b.id)}} className="ch" style={{background:"#141413",borderRadius:16,overflow:"hidden",border:"1px solid rgba(255,255,255,0.04)",cursor:"pointer"}}>
-              <div style={{height:140,background:cover?"url("+cover+") center/cover no-repeat":b.gradient,display:"flex",alignItems:"center",justifyContent:"center",fontSize:34,position:"relative"}}>
-                {!cover && b.emoji}
-                {cover && <div style={{position:"absolute",inset:0,background:"linear-gradient(transparent 40%,rgba(0,0,0,0.6))"}}/>}
-                <span style={{position:"absolute",top:7,right:7,padding:"3px 8px",borderRadius:16,fontSize:9,fontWeight:700,background:b.color,color:"#fff",zIndex:1}}>{b.tag}</span>
-                {!b.active && adm && <span style={{position:"absolute",top:7,left:7,padding:"3px 8px",borderRadius:16,fontSize:9,fontWeight:700,background:"#D45B5B",color:"#fff",zIndex:1}}>OCULTO</span>}
-              </div>
-              <div style={{padding:12}}>
-                <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:14,fontWeight:600,marginBottom:2}}>{b.name}</div>
-                <div style={{fontSize:10,color:"#9A9590",marginBottom:8,lineHeight:1.4}}>{b.subtitle}</div>
-                <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:7}}>
-                  <span style={{padding:"2px 7px",borderRadius:4,fontSize:9,fontWeight:700,background:b.status==="ready"?"rgba(76,175,125,0.1)":"rgba(232,169,78,0.1)",color:b.status==="ready"?"#4CAF7D":"#E8A94E"}}>{b.status==="ready"?"✅ Pronto":"🏗️ Em Obra"}</span>
-                  {b.status==="construction" && <div style={{flex:1,height:4,background:"rgba(255,255,255,0.05)",borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:b.construction_pct+"%",background:b.color,borderRadius:2}}/></div>}
-                  {b.status==="construction" && <span style={{fontSize:9,fontWeight:700,color:"#E8A94E"}}>{b.construction_pct}%</span>}
+            <div key={b.id} onClick={function(){go(b.id)}} className="ch au" style={{background:"#111110",borderRadius:16,overflow:"hidden",border:"1px solid rgba(255,255,255,0.03)",cursor:"pointer",animationDelay:idx*100+"ms"}}>
+              <div style={{height:180,background:cover?"url("+cover+") center/cover no-repeat":b.gradient,position:"relative"}}>
+                {!cover && <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100%",fontSize:40}}>{b.emoji}</div>}
+                <div style={{position:"absolute",inset:0,background:"linear-gradient(transparent 30%,rgba(10,10,9,0.9))"}}/>
+                <div style={{position:"absolute",top:12,right:12,padding:"5px 12px",borderRadius:20,fontSize:10,fontWeight:600,background:"rgba(0,0,0,0.5)",color:"#fff",backdropFilter:"blur(8px)",border:"1px solid rgba(255,255,255,0.08)",letterSpacing:.5}}>{b.tag}</div>
+                {!b.active && adm && <div style={{position:"absolute",top:12,left:12,padding:"5px 12px",borderRadius:20,fontSize:10,fontWeight:600,background:"rgba(213,91,91,0.8)",color:"#fff"}}>Oculto</div>}
+                <div style={{position:"absolute",bottom:16,left:18,right:18}}>
+                  <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:22,fontWeight:500,lineHeight:1.15,textShadow:"0 2px 12px rgba(0,0,0,0.6)"}}>{b.name}</div>
                 </div>
-                <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-                  <span style={tgS}>📊 {t.table}</span>
-                  <span style={tgS}>📸 {getPhotos(b.id).length}</span>
-                  <span style={tgS}>{a}/{units.length} disp.</span>
+              </div>
+              <div style={{padding:"16px 18px 18px"}}>
+                <div style={{fontSize:12,color:"#7A7570",marginBottom:12,lineHeight:1.5,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{b.subtitle}</div>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:6}}>
+                    <span style={{padding:"4px 10px",borderRadius:6,fontSize:10,fontWeight:600,background:b.status==="ready"?"rgba(76,175,125,0.08)":"rgba(232,169,78,0.08)",color:b.status==="ready"?"#4CAF7D":"#E8A94E"}}>{b.status==="ready"?"Pronto":"Obra "+b.construction_pct+"%"}</span>
+                  </div>
+                  <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                    <span style={{fontSize:11,color:"#7A7570"}}>{a}/{units.length} disp.</span>
+                    <span style={{fontSize:11,color:G}}>→</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -432,16 +432,16 @@ function App(){
     var filtered = filter==="all"?units:units.filter(function(u){return u.status===filter});
 
     return(
-      <div style={{padding:"14px clamp(12px, 3vw, 40px)"}}>
+      <div style={{padding:"20px clamp(16px, 4vw, 48px)"}}>
         <button onClick={function(){setVw("home")}} style={{background:"none",border:"none",color:G,fontSize:12,fontWeight:600,cursor:"pointer",padding:"4px 0",marginBottom:8}}>← {t.back}</button>
-        {cover && <div style={{height:160,borderRadius:10,overflow:"hidden",marginBottom:12,position:"relative",backgroundImage:"url("+cover+")",backgroundSize:"cover",backgroundPosition:"center"}}>
+        {cover && <div style={{height:200,borderRadius:14,overflow:"hidden",marginBottom:12,position:"relative",backgroundImage:"url("+cover+")",backgroundSize:"cover",backgroundPosition:"center"}}>
           <div style={{position:"absolute",inset:0,background:"linear-gradient(transparent 50%,rgba(0,0,0,0.7))"}}>
             <div style={{position:"absolute",bottom:10,left:12}}>
               <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:20,fontWeight:700,color:"#fff"}}>{bld.name}</div>
             </div>
           </div>
         </div>}
-        {!cover && <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:20,fontWeight:700,color:bld.color,marginBottom:2}}>{bld.name}</div>}
+        {!cover && <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:26,fontWeight:500,color:bld.color,letterSpacing:"-0.02em",marginBottom:2}}>{bld.name}</div>}
         <div style={{fontSize:10,color:"#9A9590",marginBottom:10}}>{bld.subtitle}</div>
         <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:8,flexWrap:"wrap"}}>
           <span style={{padding:"2px 8px",borderRadius:5,fontSize:9,fontWeight:700,background:bld.status==="ready"?"rgba(76,175,125,0.1)":"rgba(232,169,78,0.1)",color:bld.status==="ready"?"#4CAF7D":"#E8A94E"}}>{bld.status==="ready"?t.ready:t.construction}</span>
@@ -650,27 +650,29 @@ function App(){
   // ═══ MANAGE VIEW ═══
   function ManageView(){
     return(
-      <div style={{padding:"14px clamp(12px, 3vw, 40px)"}}>
-        <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:12}}>
-          <span style={{fontSize:18}}>⚙️</span>
-          <span style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:16,fontWeight:600,flex:1}}>Gerenciar Portal</span>
+      <div style={{padding:"20px clamp(16px, 4vw, 48px)"}}>
+        <div className="au" style={{marginBottom:24}}>
+          <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:24,fontWeight:500,letterSpacing:"-0.02em"}}>Painel Administrativo</div>
+          <div style={{fontSize:12,color:"#4CAF7D",marginTop:4,display:"flex",alignItems:"center",gap:6}}><span style={{width:6,height:6,borderRadius:"50%",background:"#4CAF7D"}}/>Conectado ao Supabase</div>
         </div>
 
-        <div className="kpi-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:7,marginBottom:14}}>
-          {[{l:"Empreend.",v:stats.bldCount,c:"#fff"},{l:"Unidades",v:stats.totalU,c:"#fff"},{l:"Disponíveis",v:stats.avail,c:"#4CAF7D"},{l:"Reservadas",v:stats.reserved,c:"#E8A94E"},{l:"Vendidas",v:stats.sold,c:"#D45B5B"},{l:"VGV",v:fmt(stats.totalVal),c:G}].map(function(k,i){
-            return <div key={i} style={{padding:10,background:"#1a1a19",borderRadius:8,textAlign:"center",border:"1px solid rgba(255,255,255,0.04)"}}>
-              <div style={{fontSize:16,fontWeight:700,color:k.c}}>{k.v}</div>
-              <div style={{fontSize:8,color:"#9A9590",textTransform:"uppercase",letterSpacing:1}}>{k.l}</div>
+        <div className="kpi-grid au" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:24}}>
+          {[{l:"Empreendimentos",v:stats.bldCount,c:"#F0EBE3",bg:"#111110"},{l:"Unidades",v:stats.totalU,c:"#F0EBE3",bg:"#111110"},{l:"Disponíveis",v:stats.avail,c:"#6BAF8D",bg:"#0d130e"},{l:"Reservadas",v:stats.reserved,c:"#C4A46E",bg:"#13110d"},{l:"Vendidas",v:stats.sold,c:"#C47070",bg:"#130d0d"},{l:"VGV Total",v:fmt(stats.totalVal),c:G,bg:"#13110d"}].map(function(k,i){
+            return <div key={i} style={{padding:16,background:k.bg,borderRadius:14,textAlign:"center",border:"1px solid rgba(255,255,255,0.03)"}}>
+              <div style={{fontSize:20,fontWeight:600,color:k.c,fontFamily:"'Cormorant Garamond',Georgia,serif"}}>{k.v}</div>
+              <div style={{fontSize:9,color:"#555",textTransform:"uppercase",letterSpacing:1.5,marginTop:4}}>{k.l}</div>
             </div>;
           })}
         </div>
 
-        <button onClick={function(){setMdl({t:"addBld"})}} style={{width:"100%",padding:"10px",borderRadius:9,fontSize:11,fontWeight:600,background:"rgba(76,175,125,0.07)",color:"#4CAF7D",border:"1px dashed rgba(76,175,125,0.3)",cursor:"pointer",marginBottom:8}}>＋ Novo Empreendimento</button>
-        <button onClick={function(){setMdl({t:"brokerList"})}} style={{width:"100%",padding:"10px",borderRadius:9,fontSize:11,fontWeight:600,background:"rgba(200,164,92,0.07)",color:G,border:"1px dashed rgba(200,164,92,0.3)",cursor:"pointer",marginBottom:14,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>👥 Corretores <span style={{background:G+"30",padding:"2px 8px",borderRadius:10,fontSize:10,fontWeight:700}}>{brokers.length}</span></button>
+        <div style={{display:"flex",gap:8,marginBottom:24}}>
+          <button className="bh" onClick={function(){setMdl({t:"addBld"})}} style={{flex:1,padding:14,borderRadius:12,fontSize:13,fontWeight:500,background:"rgba(76,175,125,0.05)",color:"#6BAF8D",border:"1px solid rgba(76,175,125,0.12)",cursor:"pointer",textAlign:"center"}}>＋ Empreendimento</button>
+          <button className="bh" onClick={function(){setMdl({t:"brokerList"})}} style={{flex:1,padding:14,borderRadius:12,fontSize:13,fontWeight:500,background:"rgba(200,164,92,0.05)",color:G,border:"1px solid rgba(200,164,92,0.12)",cursor:"pointer",textAlign:"center"}}>Corretores · {brokers.length}</button>
+        </div>
 
         {buildings.map(function(b){
           var units = getUnits(b.id);
-          return <div key={b.id} style={{background:"#1a1a19",borderRadius:10,padding:12,marginBottom:8,border:"1px solid rgba(255,255,255,0.04)",opacity:b.active?1:0.6}}>
+          return <div key={b.id} style={{background:"#111110",borderRadius:14,padding:16,marginBottom:10,border:"1px solid rgba(255,255,255,0.04)",opacity:b.active?1:0.6}}>
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
               <span style={{fontSize:18}}>{b.emoji}</span>
               <div style={{flex:1}}><div style={{fontSize:12,fontWeight:600}}>{b.name}</div><div style={{fontSize:9,color:"#9A9590"}}>{units.length} un. • {b.active?"Ativo":"Oculto"} • {b.commission||5}%</div></div>
@@ -924,31 +926,32 @@ function App(){
       <style>{"@keyframes p{0%,100%{opacity:1}50%{opacity:.3}}"}</style>
 
       {/* HERO */}
-      <div style={{padding:"44px 20px 24px",textAlign:"center",background:cfg.hero_banner?"url("+cfg.hero_banner+") center/cover":"linear-gradient(170deg,"+bgColor+",#1c1914,"+bgColor+")",position:"relative",overflow:"hidden"}}>
-        {cfg.hero_banner && cfg.hero_overlay!=="false" && <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.65)",pointerEvents:"none"}}/>}
-        <div style={{position:"absolute",top:"-40%",left:"-40%",width:"180%",height:"180%",background:"radial-gradient(ellipse at 50% 50%,rgba(200,164,92,0.05) 0%,transparent 65%)",pointerEvents:"none"}}/>
-        <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"rgba(200,164,92,0.1)",border:"1px solid rgba(200,164,92,0.2)",padding:"6px 16px",borderRadius:50,fontSize:10,fontWeight:700,letterSpacing:2,textTransform:"uppercase",color:G,marginBottom:14,position:"relative"}}><span style={{width:5,height:5,background:"#4CAF7D",borderRadius:"50%",animation:"glow 3s infinite"}}/>Portal Exclusivo</div>
-        <h1 style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:"clamp(32px, 6vw, 56px)",fontWeight:700,lineHeight:1.1,marginBottom:7,position:"relative"}}>Portal do <span style={{color:G}}>Corretor</span></h1>
-        <p style={{fontSize:"clamp(11px, 1.5vw, 16px)",color:"#9A9590",maxWidth:500,margin:"0 auto",lineHeight:1.6,position:"relative"}}>Empreendimentos, tabelas com correção CUB/SC, simulador e materiais.</p>
-        {adm && <div onClick={function(){setAdm(false);msg("Admin off")}} style={{marginTop:10,display:"inline-flex",alignItems:"center",gap:5,padding:"4px 12px",background:"rgba(76,175,125,0.1)",borderRadius:20,fontSize:10,fontWeight:600,color:"#4CAF7D",cursor:"pointer",position:"relative"}}>🔓 Admin — sair</div>}
-        <div style={{marginTop:10,display:"flex",justifyContent:"center",gap:6}}>
-          <button onClick={function(){setLang(lang==="pt"?"es":"pt")}} style={{padding:"6px 14px",borderRadius:20,fontSize:10,fontWeight:600,background:"rgba(91,143,212,0.1)",color:"#5B8FD4",border:"1px solid rgba(91,143,212,0.2)",cursor:"pointer"}}>{lang==="pt"?"🇪🇸 Español":"🇧🇷 Português"}</button>
+      <div style={{padding:"60px 24px 36px",textAlign:"center",background:cfg.hero_banner?"url("+cfg.hero_banner+") center/cover":"linear-gradient(175deg,#0a0a09 0%,#16140f 40%,#0d0c08 70%,#0a0a09 100%)",position:"relative",overflow:"hidden"}}>
+        {cfg.hero_banner && cfg.hero_overlay!=="false" && <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.6)",pointerEvents:"none"}}/>}
+        <div style={{position:"absolute",top:"-50%",left:"-30%",width:"160%",height:"200%",background:"radial-gradient(ellipse at 50% 40%,rgba(200,164,92,0.04) 0%,transparent 50%)",pointerEvents:"none"}}/>
+        <div style={{position:"absolute",bottom:0,left:0,right:0,height:"1px",background:"linear-gradient(90deg,transparent,rgba(200,164,92,0.15),transparent)"}}/>
+        <div className="au" style={{display:"inline-flex",alignItems:"center",gap:8,background:"rgba(200,164,92,0.06)",border:"1px solid rgba(200,164,92,0.12)",padding:"8px 20px",borderRadius:50,fontSize:10,fontWeight:600,letterSpacing:3,textTransform:"uppercase",color:G,marginBottom:20,position:"relative"}}><span style={{width:5,height:5,background:"#4CAF7D",borderRadius:"50%",animation:"pulse 2s infinite"}}/>Portal Exclusivo</div>
+        <h1 className="au" style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:"clamp(36px, 7vw, 64px)",fontWeight:500,lineHeight:1.05,marginBottom:12,position:"relative",letterSpacing:"-0.02em",animationDelay:"80ms"}}>Portal do <span style={{color:G,fontWeight:600}}>Corretor</span></h1>
+        <p className="au" style={{fontSize:"clamp(12px, 1.6vw, 17px)",color:"#7A7570",maxWidth:480,margin:"0 auto",lineHeight:1.7,position:"relative",fontWeight:300,animationDelay:"160ms"}}>Empreendimentos, tabelas com correção CUB/SC, simulador e materiais exclusivos.</p>
+        <div className="au" style={{marginTop:18,display:"flex",justifyContent:"center",gap:8,position:"relative",animationDelay:"240ms"}}>
+          {adm && <button className="bh" onClick={function(){setAdm(false);msg("Admin off")}} style={{padding:"8px 18px",borderRadius:50,fontSize:11,fontWeight:600,background:"rgba(76,175,125,0.08)",color:"#4CAF7D",border:"1px solid rgba(76,175,125,0.15)",cursor:"pointer"}}>🔓 Sair do Admin</button>}
+          <button className="bh" onClick={function(){setLang(lang==="pt"?"es":"pt")}} style={{padding:"8px 18px",borderRadius:50,fontSize:11,fontWeight:600,background:"rgba(255,255,255,0.03)",color:"#7A7570",border:"1px solid rgba(255,255,255,0.06)",cursor:"pointer"}}>{lang==="pt"?"🇪🇸 Español":"🇧🇷 Português"}</button>
         </div>
       </div>
 
       {/* CONTACT BAR */}
-      <div style={{display:"flex",gap:0,borderTop:"1px solid rgba(200,164,92,0.12)",borderBottom:"1px solid rgba(200,164,92,0.12)",background:"rgba(200,164,92,0.03)"}}>
+      <div style={{display:"flex",borderBottom:"1px solid rgba(200,164,92,0.06)",background:"rgba(200,164,92,0.02)"}}>
         {[{href:"mailto:"+CT.email,i:"✉️",l:"E-mail"},{href:"tel:"+CT.phone,i:"📞",l:"Ligar"},{href:CT.ig[0].u,l:"MK Realty",t:"_blank",isIg:true},{href:CT.ig[1].u,l:"D&SS",t:"_blank",isIg:true}].map(function(x,i){
-          return <a key={i} href={x.href} target={x.t} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:3,padding:"8px 3px",fontSize:9,fontWeight:600,color:G,textDecoration:"none",borderRight:i<3?"1px solid rgba(200,164,92,0.08)":"none"}}>{x.isIg?<IgIcon/>:x.i} {x.l}</a>;
+          return <a key={i} href={x.href} target={x.t} className="bh" style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:5,padding:"12px 4px",fontSize:10,fontWeight:500,color:"#9A9590",textDecoration:"none",borderRight:i<3?"1px solid rgba(255,255,255,0.03)":"none",letterSpacing:.5,transition:"color .2s"}}>{x.isIg?<IgIcon/>:x.i} {x.l}</a>;
         })}
       </div>
 
       {/* NAV */}
-      <div style={{position:"sticky",top:0,zIndex:100,background:bgColor,padding:"10px 10px 0",borderBottom:"1px solid rgba(255,255,255,0.03)"}}>
-        <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:8}}>
-          <TabBtn active={vw==="home"} onClick={function(){setVw("home")}}>🏠 {t.home}</TabBtn>
-          {adm && <TabBtn active={vw==="manage"} green onClick={function(){setVw("manage")}}>⚙️ Gerenciar</TabBtn>}
-          {adm && <TabBtn active={false} green onClick={function(){setMdl({t:"siteSettings"})}}>🎨 Config</TabBtn>}
+      <div style={{position:"sticky",top:0,zIndex:100,background:bgColor+"ee",backdropFilter:"blur(16px)",WebkitBackdropFilter:"blur(16px)",padding:"14px 16px 0",borderBottom:"1px solid rgba(255,255,255,0.03)"}}>
+        <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:10}}>
+          <TabBtn active={vw==="home"} onClick={function(){setVw("home")}}>{t.home}</TabBtn>
+          {adm && <TabBtn active={vw==="manage"} green onClick={function(){setVw("manage")}}>Gerenciar</TabBtn>}
+          {adm && <TabBtn active={false} green onClick={function(){setMdl({t:"siteSettings"})}}>Configurações</TabBtn>}
           {vis.map(function(b){return <TabBtn key={b.id} active={vw==="detail"&&sel===b.id} onClick={function(){go(b.id)}}>{b.name.replace("Ed. ","").replace("Res. ","").replace("Imóveis de ","")}</TabBtn>})}
         </div>
       </div>
@@ -959,52 +962,46 @@ function App(){
       {vw==="manage" && adm && <ManageView/>}
 
       {/* FOOTER */}
-      <div style={{textAlign:"center",padding:"20px 16px",borderTop:"1px solid rgba(255,255,255,0.03)",marginTop:12}}>
-        <div style={{display:"flex",justifyContent:"center",gap:8,flexWrap:"wrap",marginBottom:12}}>
-          <div style={{padding:"8px 12px",background:"#1a1a19",borderRadius:8,border:"1px solid rgba(255,255,255,0.04)",textAlign:"center",minWidth:80}}>
-            <div style={{fontSize:8,color:"#9A9590",textTransform:"uppercase",letterSpacing:1,marginBottom:2}}>CUB/SC</div>
-            <div style={{fontSize:13,fontWeight:700,color:G}}>R$ {fmtBR(parseBR(cfg.cub_sc||"0"))}</div>
-            <div style={{fontSize:7,color:"#666"}}>{cfg.cub_sc_date||"—"}</div>
-          </div>
-          <div style={{padding:"8px 12px",background:"#1a1a19",borderRadius:8,border:"1px solid rgba(255,255,255,0.04)",textAlign:"center",minWidth:80}}>
-            <div style={{fontSize:8,color:"#9A9590",textTransform:"uppercase",letterSpacing:1,marginBottom:2}}>USD/BRL</div>
-            <div style={{fontSize:13,fontWeight:700,color:"#5B8FD4"}}>R$ {parseFloat(cfg.usd_rate||0).toFixed(2)}</div>
-            <div style={{fontSize:7,color:"#666"}}>{cfg.usd_last_update?"Atualizado":"—"}</div>
-          </div>
-          <div style={{padding:"8px 12px",background:"#1a1a19",borderRadius:8,border:"1px solid rgba(255,255,255,0.04)",textAlign:"center",minWidth:80}}>
-            <div style={{fontSize:8,color:"#9A9590",textTransform:"uppercase",letterSpacing:1,marginBottom:2}}>INCC</div>
-            <div style={{fontSize:13,fontWeight:700,color:"#4CAF7D"}}>{parseFloat(cfg.incc||0).toFixed(2)}%</div>
-            <div style={{fontSize:7,color:"#666"}}>{cfg.incc_date||"—"}</div>
-          </div>
-          <div style={{padding:"8px 12px",background:"#1a1a19",borderRadius:8,border:"1px solid rgba(255,255,255,0.04)",textAlign:"center",minWidth:80}}>
-            <div style={{fontSize:8,color:"#9A9590",textTransform:"uppercase",letterSpacing:1,marginBottom:2}}>IPCA</div>
-            <div style={{fontSize:13,fontWeight:700,color:"#E8A94E"}}>{parseFloat(cfg.ipca||0).toFixed(2)}%</div>
-            <div style={{fontSize:7,color:"#666"}}>{cfg.ipca_date||"—"}</div>
-          </div>
+      <div style={{padding:"32px clamp(16px, 4vw, 48px)",borderTop:"1px solid rgba(255,255,255,0.03)",marginTop:20}}>
+        {/* Economic Indicators */}
+        <div style={{display:"flex",justifyContent:"center",gap:0,flexWrap:"wrap",marginBottom:28,border:"1px solid rgba(255,255,255,0.03)",borderRadius:14,overflow:"hidden"}}>
+          {[{l:"CUB/SC",v:"R$ "+fmtBR(parseBR(cfg.cub_sc||"0")),d:cfg.cub_sc_date,c:G},{l:"USD/BRL",v:"R$ "+parseFloat(cfg.usd_rate||0).toFixed(2),d:cfg.usd_last_update?"Auto":"",c:"#7A9EC2"},{l:"INCC",v:parseFloat(cfg.incc||0).toFixed(2)+"%",d:cfg.incc_date,c:"#6BAF8D"},{l:"IPCA",v:parseFloat(cfg.ipca||0).toFixed(2)+"%",d:cfg.ipca_date,c:"#C4A46E"}].map(function(k,i){
+            return <div key={i} style={{flex:1,minWidth:80,padding:"14px 12px",background:"#0d0d0c",textAlign:"center",borderRight:i<3?"1px solid rgba(255,255,255,0.03)":"none"}}>
+              <div style={{fontSize:9,color:"#555",textTransform:"uppercase",letterSpacing:1.5,marginBottom:4,fontWeight:500}}>{k.l}</div>
+              <div style={{fontSize:15,fontWeight:600,color:k.c}}>{k.v}</div>
+              {k.d && <div style={{fontSize:8,color:"#444",marginTop:2}}>{k.d}</div>}
+            </div>;
+          })}
         </div>
-        <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:13,color:G,marginBottom:4}}>MK Realty & D&SS Incorporação</div>
-        <div style={{fontSize:10,color:"#9A9590",lineHeight:1.8}}>✉️ {CT.email} • 📞 {CT.phone}<br/>IG: {CT.ig.map(function(i){return i.h}).join(" • ")}</div>
-        <button onClick={function(){setMdl({t:"brokerRegister"})}} style={{marginTop:10,padding:"10px 24px",borderRadius:8,fontSize:12,fontWeight:600,background:G+"20",color:G,border:"1px solid "+G+"40",cursor:"pointer"}}>📋 Cadastre-se para receber novidades</button>
-        <div style={{fontSize:8,color:"#555",marginTop:8}}>Portal exclusivo para corretores parceiros • 2026</div>
+        {/* Brand */}
+        <div style={{textAlign:"center"}}>
+          <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:20,fontWeight:400,color:"#F0EBE3",letterSpacing:"0.05em",marginBottom:8}}>MK REALTY & D&SS</div>
+          <div style={{width:40,height:1,background:G+"40",margin:"0 auto 12px"}}/>
+          <div style={{fontSize:11,color:"#555",lineHeight:2}}>
+            {CT.email}<br/>{CT.phone}<br/>{CT.ig.map(function(i){return i.h}).join(" · ")}
+          </div>
+          <button className="bh" onClick={function(){setMdl({t:"brokerRegister"})}} style={{marginTop:16,padding:"12px 32px",borderRadius:50,fontSize:12,fontWeight:500,background:"transparent",color:G,border:"1px solid "+G+"30",cursor:"pointer",letterSpacing:.5}}>{lang==="es"?"Regístrese":"Cadastre-se"}</button>
+          <div style={{fontSize:9,color:"#333",marginTop:14,letterSpacing:1}}>PORTAL EXCLUSIVO · 2026</div>
+        </div>
       </div>
 
       {/* FABs */}
-      <div style={{position:"fixed",bottom:18,right:16,zIndex:200,display:"flex",flexDirection:"column",gap:8,alignItems:"flex-end"}}>
-        <a href={"https://wa.me/"+waNum+"?text="+encodeURIComponent("Olá! Vim pelo Portal do Corretor 🏢")} target="_blank" style={Object.assign({},fab("#25D366"),{textDecoration:"none",color:"#fff"})}><WaIcon size={22}/></a>
-        {!adm && <button onClick={function(){setMdl({t:"login"})}} style={fab(G)}>🔐</button>}
-        {adm && <button onClick={function(){setAdm(false);msg("Admin desativado")}} style={Object.assign({},fab("#D45B5B"),{fontSize:14,fontWeight:700,color:"#fff"})}>✕</button>}
+      <div style={{position:"fixed",bottom:24,right:20,zIndex:200,display:"flex",flexDirection:"column",gap:10,alignItems:"flex-end"}}>
+        <a href={"https://wa.me/"+waNum+"?text="+encodeURIComponent("Olá! Vim pelo Portal do Corretor 🏢")} target="_blank" className="bh" style={{width:52,height:52,borderRadius:16,background:"#25D366",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 6px 24px rgba(37,211,102,0.25)",textDecoration:"none",color:"#fff"}}><WaIcon size={24}/></a>
+        {!adm && <button className="bh" onClick={function(){setMdl({t:"login"})}} style={{width:52,height:52,borderRadius:16,background:"#141413",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,boxShadow:"0 4px 20px rgba(0,0,0,0.4)",cursor:"pointer",border:"1px solid rgba(200,164,92,0.12)",color:G}}>🔐</button>}
+        {adm && <button className="bh" onClick={function(){setAdm(false);msg("Admin desativado")}} style={{width:52,height:52,borderRadius:16,background:"#D45B5B",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:700,boxShadow:"0 6px 24px rgba(213,91,91,0.25)",cursor:"pointer",border:"none",color:"#fff"}}>✕</button>}
       </div>
 
       {/* MODAL */}
-      {mdl && <div onClick={function(){setMdl(null)}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",backdropFilter:"blur(4px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
-        <div onClick={function(e){e.stopPropagation()}} style={{background:"#141413",borderRadius:18,padding:22,width:"100%",maxWidth:400,maxHeight:"85vh",overflow:"auto",border:"1px solid rgba(255,255,255,0.06)"}}>
+      {mdl && <div onClick={function(){setMdl(null)}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",backdropFilter:"blur(8px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+        <div onClick={function(e){e.stopPropagation()}} style={{background:"#111110",borderRadius:20,padding:24,width:"100%",maxWidth:400,maxHeight:"85vh",overflow:"auto",border:"1px solid rgba(255,255,255,0.06)"}}>
           <ModalContent/>
         </div>
       </div>}
 
       {/* SIMULATOR */}
-      {simUnit && <div onClick={function(){setSimUnit(null)}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",backdropFilter:"blur(4px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
-        <div onClick={function(e){e.stopPropagation()}} style={{background:"#141413",borderRadius:18,padding:22,width:"100%",maxWidth:400,maxHeight:"85vh",overflow:"auto",border:"1px solid rgba(255,255,255,0.06)"}}>
+      {simUnit && <div onClick={function(){setSimUnit(null)}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",backdropFilter:"blur(8px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+        <div onClick={function(e){e.stopPropagation()}} style={{background:"#111110",borderRadius:20,padding:24,width:"100%",maxWidth:400,maxHeight:"85vh",overflow:"auto",border:"1px solid rgba(255,255,255,0.06)"}}>
           <SimModal/>
         </div>
       </div>}
@@ -1016,7 +1013,7 @@ function App(){
       </div>}
 
       {/* TOAST */}
-      {toast && <div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",background:"#1a1a19",color:"#F0EBE3",padding:"11px 22px",borderRadius:12,fontSize:13,fontWeight:500,zIndex:700,boxShadow:"0 8px 32px rgba(0,0,0,0.5)",whiteSpace:"nowrap",border:"1px solid rgba(255,255,255,0.06)"}}>{toast}</div>}
+      {toast && <div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",background:"#141413",color:"#F0EBE3",padding:"12px 24px",borderRadius:14,fontSize:13,fontWeight:500,zIndex:700,boxShadow:"0 8px 32px rgba(0,0,0,0.5)",whiteSpace:"nowrap",border:"1px solid rgba(255,255,255,0.06)"}}>{toast}</div>}
     </div>
   );
 
