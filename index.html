@@ -521,7 +521,7 @@ function App(){
                   <td style={tdS}><div style={{display:"inline-flex",alignItems:"center",gap:5,fontSize:11,fontWeight:600,color:sC[u.status],padding:"4px 10px",background:sC[u.status]+"0a",borderRadius:6}}><span style={{width:6,height:6,borderRadius:"50%",background:sC[u.status]}}/>{sl[u.status]}</div></td>
                   <td style={tdS}>
                     <div style={{display:"flex",gap:3}}>
-                      <button onClick={function(e){e.stopPropagation();setSimUnit({u:u,b:bld})}} style={Object.assign({},mbtn(bld.color),{fontSize:8,padding:"3px 6px"})}>🏦</button>
+                      <button className="bh" onClick={function(e){e.stopPropagation();setSimUnit({u:u,b:bld})}} style={{padding:"5px 10px",borderRadius:8,fontSize:10,fontWeight:700,background:bld.color+"18",color:bld.color,border:"1px solid "+bld.color+"30",cursor:"pointer",display:"inline-flex",alignItems:"center",gap:3}}>🏦 Simular</button>
                       <button onClick={function(e){e.stopPropagation();shareUnit(u,bld)}} style={Object.assign({},mbtn("#25D366"),{fontSize:8,padding:"3px 6px",display:"flex",alignItems:"center",gap:2})}><WaIcon size={10}/></button>
                       {adm && <button onClick={function(){setMdl({t:"editUnit",bid:bld.id,u:Object.assign({},u)})}} style={Object.assign({},mbtn(bld.color),{fontSize:8,padding:"3px 6px"})}>✏️</button>}
                       {adm && <button onClick={async function(){await DB.deleteUnit(u.id);await refreshUnits();msg("Removida")}} style={Object.assign({},mbtn("#D45B5B"),{fontSize:8,padding:"3px 6px"})}>🗑️</button>}
@@ -1519,7 +1519,7 @@ function App(){
 
   // ═══ SIMULATOR MODAL ═══
   function SimModal(){
-    var data=simUnit;var b=data.b;var price=cp(data.u,b);
+    var data=simUnit;var b=data.b;var u=data.u;var price=cp(u,b);
     var finConfig=b.financing||{};
     var defaultDown=finConfig.entradaPct||30;
     var parcOpts=finConfig.parcelasOpcoes?finConfig.parcelasOpcoes.split(",").map(Number):[24,36,48,60,72,96,120];
@@ -1532,6 +1532,7 @@ function App(){
     var _balaoMode=useState("pct");var balaoMode=_balaoMode[0];var setBalaoMode=_balaoMode[1];
     var _balaoPct=useState(5);var balaoPct=_balaoPct[0];var setBalaoPct=_balaoPct[1];
     var _balaoFixo=useState(50000);var balaoFixo=_balaoFixo[0];var setBalaoFixo=_balaoFixo[1];
+    var _clientName=useState("");var clientName=_clientName[0];var setClientName=_clientName[1];
     var totalEntrada=down+bemVal;var saldo=Math.max(price-totalEntrada,0);
     var balaoMeses=balaoFreq==="trimestral"?3:balaoFreq==="semestral"?6:balaoFreq==="anual"?12:0;
     var numBaloes=balaoMeses>0?Math.floor(months/balaoMeses):0;
@@ -1539,56 +1540,120 @@ function App(){
     var totalBaloes=balaoValor*numBaloes;var saldoParcelas=Math.max(saldo-totalBaloes,0);
     var mr=rate/100;var pmt=months>0?(mr>0?saldoParcelas*(mr*Math.pow(1+mr,months))/(Math.pow(1+mr,months)-1):saldoParcelas/months):0;
     var totalPago=totalEntrada+(pmt*months)+totalBaloes;
+    var indice=finConfig.indice||"CUB-SC";
+
+    // PDF Export
+    var exportProposalPdf=function(){
+      var logo=cfg.report_logo?"<img src='"+cfg.report_logo+"' style='max-height:45px;max-width:160px'/>":"";
+      var clientLine=clientName?"<div style='font-size:14px;color:#555;margin-bottom:16px'>Cliente: <strong style=\"color:#1a1a1a\">"+clientName+"</strong></div>":"";
+      var html="<html><head><meta charset='UTF-8'><title>Proposta — "+b.name+" — "+u.name+"</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Helvetica,Arial,sans-serif;padding:40px;color:#1a1a1a;max-width:700px;margin:0 auto}h1{font-size:11px;text-transform:uppercase;letter-spacing:3px;color:#999;margin-bottom:6px}h2{font-size:28px;font-weight:300;margin-bottom:4px;font-family:Georgia,serif}h3{font-size:14px;color:#666;font-weight:400;margin-bottom:24px}.line{height:1px;background:linear-gradient(90deg,#C8A45C,transparent);margin:20px 0}.box{background:#f8f6f2;border-radius:12px;padding:20px;margin-bottom:16px}.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee}.row:last-child{border:none}.label{font-size:11px;color:#999;text-transform:uppercase;letter-spacing:1px}.val{font-size:16px;font-weight:600}.val.big{font-size:24px;color:#2e7d52}.val.gold{color:#C8A45C}.ft{margin-top:32px;padding-top:16px;border-top:1px solid #ddd;font-size:9px;color:#999;text-align:center;line-height:1.8}</style></head><body>"+logo+"<h1>Proposta de Investimento</h1><h2>"+b.name+"</h2><h3>"+b.subtitle+"</h3>"+clientLine+"<div class='line'></div><div class='box'><div class='row'><div><div class='label'>Unidade</div><div class='val gold'>"+u.name+"</div></div><div style='text-align:right'><div class='label'>Área</div><div class='val'>"+u.area+" m²</div></div></div><div class='row'><div><div class='label'>Valor do Imóvel</div><div class='val big'>"+fmt(price)+"</div></div><div style='text-align:right'><div class='label'>R$/m²</div><div class='val'>"+fmt(Math.round(price/u.area))+"</div></div></div></div><div class='line'></div><div style='font-size:13px;font-weight:600;color:#C8A45C;margin-bottom:12px;text-transform:uppercase;letter-spacing:2px'>Plano de Pagamento</div><div class='box'><div class='row'><div><div class='label'>Entrada</div><div class='val'>"+fmt(down)+" <span style=\"font-size:11px;color:#999\">("+((down/price)*100).toFixed(1)+"%)</span></div></div></div>"+(bemVal>0?"<div class='row'><div><div class='label'>Bem ("+bemDesc+")</div><div class='val'>"+fmt(bemVal)+"</div></div></div>":"")+"<div class='row'><div><div class='label'>Saldo a Financiar</div><div class='val'>"+fmt(saldo)+"</div></div></div><div class='row'><div><div class='label'>Parcelas Mensais ("+months+"x)</div><div class='val big'>"+fmt(pmt)+"</div></div></div>"+(numBaloes>0?"<div class='row'><div><div class='label'>Balão "+balaoFreq+" ("+numBaloes+"x)</div><div class='val' style='color:#D45B5B'>"+fmt(balaoValor)+"</div></div></div>":"")+"<div class='row' style='border-top:2px solid #C8A45C;padding-top:12px;margin-top:4px'><div><div class='label'>Total</div><div class='val'>"+fmt(totalPago)+"</div></div></div></div>"+(rate>0?"<div style='font-size:10px;color:#999;margin-bottom:8px'>Taxa: "+rate+"% a.m. · Correção: "+indice+"</div>":"<div style='font-size:10px;color:#999;margin-bottom:8px'>Sem juros · Correção: "+indice+"</div>")+"<div class='ft'>MK Realty & D&SS Incorporação<br>"+CT.email+" · "+CT.phone+"<br>"+CT.ig.map(function(i){return i.h}).join(" · ")+"<br><br>Proposta gerada em "+new Date().toLocaleDateString("pt-BR")+" · Valores sujeitos a confirmação<br>Correção pelo "+indice+" · Contrato em BRL</div></body></html>";
+      var w=window.open("","_blank");if(w){w.document.write(html);w.document.close();setTimeout(function(){w.print()},600)}
+    };
+
+    // WhatsApp text
+    var waText="🏢 *"+b.name+"*\n📍 Unidade *"+u.name+"* — "+u.area+"m²\n\n💰 *"+fmt(price)+"*\n"+(clientName?"👤 "+clientName+"\n":"")+"\n💳 Entrada: "+fmt(down)+" ("+((down/price)*100).toFixed(1)+"%)"+(bemVal>0?"\n🚗 "+bemDesc+": "+fmt(bemVal):"")+"\n🏦 Saldo: "+fmt(saldo)+"\n📅 *"+months+"x de "+fmt(pmt)+"*"+(numBaloes>0?"\n🎈 Balão "+balaoFreq+": "+numBaloes+"x "+fmt(balaoValor):"")+"\n\n📊 Total: "+fmt(totalPago)+(rate>0?"\n📈 Taxa: "+rate+"% a.m.":"")+"\n📐 Correção: "+indice+"\n\n📞 "+CT.phone+"\n✉️ "+CT.email;
+
     return(
       <div>
-        <div style={mT}>🏦 {t.simulator}</div>
-        <div style={{fontSize:10,color:"#9A9590",marginBottom:10}}>{b.name} — {data.u.name}</div>
-        <div style={{padding:9,background:"rgba(76,175,125,0.06)",borderRadius:7,marginBottom:12,textAlign:"center"}}>
-          <div style={{fontSize:8,color:"#9A9590",textTransform:"uppercase"}}>Valor do Imóvel</div>
-          <div style={{fontSize:20,fontWeight:700,color:"#4CAF7D"}}>{fmt(price)}</div>
+        {/* Header */}
+        <div style={{textAlign:"center",marginBottom:16}}>
+          <div style={{fontSize:10,textTransform:"uppercase",letterSpacing:3,color:"#555",marginBottom:4}}>Proposta de Investimento</div>
+          <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:24,fontWeight:500,color:b.color}}>{b.name}</div>
         </div>
-        <div style={{fontSize:10,fontWeight:600,color:G,marginBottom:6}}>💰 Entrada</div>
-        <input style={mI} type="number" value={down} onChange={function(e){setDown(+e.target.value)}}/>
-        <div style={{fontSize:9,color:"#9A9590",marginBottom:8}}>{price>0?((down/price)*100).toFixed(1):"0"}%</div>
-        <div style={{fontSize:10,fontWeight:600,color:G,marginBottom:6}}>🚗 Bem</div>
-        <input style={mI} type="number" value={bemVal||""} onChange={function(e){setBemVal(+e.target.value)}} placeholder="Valor"/>
-        <input style={mI} value={bemDesc} onChange={function(e){setBemDesc(e.target.value)}} placeholder="Descrição do bem"/>
-        <div style={{fontSize:10,fontWeight:600,color:G,marginTop:8,marginBottom:6}}>📅 Parcelas</div>
-        <div style={{display:"flex",gap:3,marginBottom:8,flexWrap:"wrap"}}>
-          {parcOpts.map(function(m){return <span key={m} onClick={function(){setMonths(m)}} style={{padding:"4px 7px",borderRadius:4,fontSize:9,fontWeight:600,cursor:"pointer",background:months===m?b.color+"20":"#222",color:months===m?b.color:"#9A9590"}}>{m}x</span>})}
-        </div>
-        <L>Taxa Mensal (%)</L><input style={mI} type="number" step="0.01" value={rate} onChange={function(e){setRate(+e.target.value)}}/>
-        <div style={{fontSize:10,fontWeight:600,color:G,marginTop:8,marginBottom:6}}>🎈 Balão</div>
-        <div style={{display:"flex",gap:4,marginBottom:6}}>
-          {[{v:"none",l:"Nenhum"},{v:"trimestral",l:"Tri"},{v:"semestral",l:"Sem"},{v:"anual",l:"Anual"}].map(function(o){
-            return <span key={o.v} onClick={function(){setBalaoFreq(o.v)}} style={{padding:"4px 8px",borderRadius:4,fontSize:9,fontWeight:600,cursor:"pointer",background:balaoFreq===o.v?b.color+"20":"#222",color:balaoFreq===o.v?b.color:"#9A9590"}}>{o.l}</span>
-          })}
-        </div>
-        {balaoFreq!=="none" && <div>
-          <div style={{display:"flex",gap:4,marginBottom:6}}>
-            <span onClick={function(){setBalaoMode("pct")}} style={{padding:"4px 10px",borderRadius:4,fontSize:9,fontWeight:600,cursor:"pointer",background:balaoMode==="pct"?b.color+"20":"#222",color:balaoMode==="pct"?b.color:"#9A9590"}}>%</span>
-            <span onClick={function(){setBalaoMode("fixo")}} style={{padding:"4px 10px",borderRadius:4,fontSize:9,fontWeight:600,cursor:"pointer",background:balaoMode==="fixo"?b.color+"20":"#222",color:balaoMode==="fixo"?b.color:"#9A9590"}}>Fixo</span>
+
+        {/* Unit Card */}
+        <div style={{background:"linear-gradient(135deg,"+b.color+"12,"+b.color+"06)",borderRadius:14,padding:16,marginBottom:16,border:"1px solid "+b.color+"20"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+            <div>
+              <div style={{fontSize:10,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Unidade</div>
+              <div style={{fontSize:22,fontWeight:600,color:b.color,fontFamily:"'Cormorant Garamond',Georgia,serif"}}>{u.name}</div>
+            </div>
+            <div style={{textAlign:"right"}}>
+              <div style={{fontSize:10,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Área</div>
+              <div style={{fontSize:16,fontWeight:600}}>{u.area}m²</div>
+            </div>
           </div>
-          {balaoMode==="pct" && <input style={mI} type="number" step="0.5" value={balaoPct} onChange={function(e){setBalaoPct(+e.target.value)}} placeholder="% do saldo"/>}
-          {balaoMode==="fixo" && <input style={mI} type="number" value={balaoFixo} onChange={function(e){setBalaoFixo(+e.target.value)}} placeholder="Valor fixo"/>}
-          <div style={{fontSize:9,color:"#9A9590",marginBottom:6}}>{numBaloes}x de {fmt(balaoValor)} = {fmt(totalBaloes)}</div>
-        </div>}
-        <div style={{background:"#1e1e1d",borderRadius:8,padding:12,marginTop:10}}>
-          <div style={{fontSize:10,fontWeight:600,color:G,marginBottom:8}}>📊 Resumo</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
-            <div><div style={{fontSize:7,color:"#9A9590",textTransform:"uppercase"}}>Entrada</div><div style={{fontSize:13,fontWeight:700,color:G}}>{fmt(down)}</div></div>
-            {bemVal>0 && <div><div style={{fontSize:7,color:"#9A9590",textTransform:"uppercase"}}>Bem</div><div style={{fontSize:13,fontWeight:700,color:"#E8A94E"}}>{fmt(bemVal)}</div></div>}
-            <div><div style={{fontSize:7,color:"#9A9590",textTransform:"uppercase"}}>Saldo</div><div style={{fontSize:13,fontWeight:700,color:"#5B8FD4"}}>{fmt(saldo)}</div></div>
-            <div><div style={{fontSize:7,color:"#9A9590",textTransform:"uppercase"}}>Mensal ({months}x)</div><div style={{fontSize:16,fontWeight:700,color:"#4CAF7D"}}>{fmt(pmt)}</div></div>
-            {numBaloes>0 && <div><div style={{fontSize:7,color:"#9A9590",textTransform:"uppercase"}}>Balão ({numBaloes}x)</div><div style={{fontSize:13,fontWeight:700,color:"#D45B5B"}}>{fmt(balaoValor)}</div></div>}
-            <div><div style={{fontSize:7,color:"#9A9590",textTransform:"uppercase"}}>Total</div><div style={{fontSize:13,fontWeight:700,color:"#D45B5B"}}>{fmt(totalPago)}</div></div>
+          <div style={{height:1,background:b.color+"20",margin:"8px 0"}}/>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
+            <div>
+              <div style={{fontSize:10,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Valor</div>
+              <div style={{fontSize:26,fontWeight:700,color:"#4CAF7D",fontFamily:"'Cormorant Garamond',Georgia,serif"}}>{fmt(price)}</div>
+            </div>
+            <div style={{fontSize:11,color:"#555"}}>R$ {fmt(Math.round(price/u.area))}/m²</div>
           </div>
         </div>
-        <button onClick={function(){
-          var text="🏦 *Simulação*\n🏢 "+b.name+" — "+data.u.name+"\n💰 Valor: "+fmt(price)+"\n💳 Entrada: "+fmt(down)+(bemVal>0?"\n🚗 Bem: "+fmt(bemVal):"")+ "\n🏦 Saldo: "+fmt(saldo)+"\n📅 "+months+"x de "+fmt(pmt)+(numBaloes>0?"\n🎈 "+numBaloes+"x balão de "+fmt(balaoValor):"")+"\n📞 "+CT.phone;
-          window.open("https://wa.me/"+waNum+"?text="+encodeURIComponent(text),"_blank");
-        }} style={{width:"100%",marginTop:8,padding:"11px",borderRadius:7,fontSize:13,fontWeight:600,background:"#25D366",color:"#fff",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}><WaIcon size={16}/> {t.send}</button>
-        <button style={mC} onClick={function(){setSimUnit(null)}}>{t.close}</button>
+
+        {/* Client Name */}
+        <L>Nome do Cliente (opcional)</L>
+        <input style={mI} value={clientName} onChange={function(e){setClientName(e.target.value)}} placeholder="Para personalizar a proposta"/>
+
+        {/* Entrada */}
+        <div style={{fontSize:12,fontWeight:600,color:G,marginBottom:6,display:"flex",alignItems:"center",gap:6}}>💰 Entrada</div>
+        <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:4}}>
+          <input style={Object.assign({},mI,{flex:1,marginBottom:0})} type="number" value={down} onChange={function(e){setDown(+e.target.value)}}/>
+          <div style={{padding:"10px 14px",background:G+"15",borderRadius:10,fontSize:14,fontWeight:700,color:G,minWidth:50,textAlign:"center"}}>{price>0?((down/price)*100).toFixed(0):"0"}%</div>
+        </div>
+        <div style={{display:"flex",gap:4,marginBottom:10}}>
+          {[20,25,30,40,50].map(function(p){return <span key={p} className="bh" onClick={function(){setDown(Math.round(price*p/100))}} style={{padding:"5px 10px",borderRadius:8,fontSize:11,fontWeight:600,cursor:"pointer",background:Math.round((down/price)*100)===p?G+"20":"#111110",color:Math.round((down/price)*100)===p?G:"#555"}}>{p}%</span>})}
+        </div>
+
+        {/* Bem */}
+        <details style={{marginBottom:10}}>
+          <summary style={{fontSize:12,fontWeight:600,color:G,cursor:"pointer",marginBottom:6}}>🚗 Entrada com Bem (opcional)</summary>
+          <input style={mI} type="number" value={bemVal||""} onChange={function(e){setBemVal(+e.target.value)}} placeholder="Valor do bem"/>
+          <input style={mI} value={bemDesc} onChange={function(e){setBemDesc(e.target.value)}} placeholder="Ex: Carro, Terreno, Imóvel"/>
+        </details>
+
+        {/* Parcelas */}
+        <div style={{fontSize:12,fontWeight:600,color:G,marginBottom:8}}>📅 Parcelas</div>
+        <div style={{display:"flex",gap:5,marginBottom:10,flexWrap:"wrap"}}>
+          {parcOpts.map(function(m){return <span key={m} className="bh" onClick={function(){setMonths(m)}} style={{padding:"8px 14px",borderRadius:10,fontSize:12,fontWeight:600,cursor:"pointer",background:months===m?b.color+"20":"#111110",color:months===m?b.color:"#555",border:months===m?"1px solid "+b.color+"30":"1px solid rgba(255,255,255,0.03)"}}>{m}x</span>})}
+        </div>
+
+        {rate>0||true?<div style={{marginBottom:10}}><L>Taxa Mensal (%)</L><input style={mI} type="number" step="0.01" value={rate} onChange={function(e){setRate(+e.target.value)}}/></div>:null}
+
+        {/* Balão */}
+        <details style={{marginBottom:12}}>
+          <summary style={{fontSize:12,fontWeight:600,color:G,cursor:"pointer",marginBottom:6}}>🎈 Parcelas Balão (opcional)</summary>
+          <div style={{display:"flex",gap:5,marginBottom:8}}>
+            {[{v:"none",l:"Nenhum"},{v:"trimestral",l:"Trimestral"},{v:"semestral",l:"Semestral"},{v:"anual",l:"Anual"}].map(function(o){
+              return <span key={o.v} className="bh" onClick={function(){setBalaoFreq(o.v)}} style={{padding:"6px 12px",borderRadius:8,fontSize:11,fontWeight:600,cursor:"pointer",background:balaoFreq===o.v?b.color+"20":"#111110",color:balaoFreq===o.v?b.color:"#555"}}>{o.l}</span>
+            })}
+          </div>
+          {balaoFreq!=="none" && <div>
+            <div style={{display:"flex",gap:4,marginBottom:8}}>
+              <span className="bh" onClick={function(){setBalaoMode("pct")}} style={{padding:"5px 12px",borderRadius:6,fontSize:11,cursor:"pointer",background:balaoMode==="pct"?b.color+"20":"#111110",color:balaoMode==="pct"?b.color:"#555"}}>% do saldo</span>
+              <span className="bh" onClick={function(){setBalaoMode("fixo")}} style={{padding:"5px 12px",borderRadius:6,fontSize:11,cursor:"pointer",background:balaoMode==="fixo"?b.color+"20":"#111110",color:balaoMode==="fixo"?b.color:"#555"}}>Valor fixo</span>
+            </div>
+            {balaoMode==="pct"?<input style={mI} type="number" step="0.5" value={balaoPct} onChange={function(e){setBalaoPct(+e.target.value)}}/>:<input style={mI} type="number" value={balaoFixo} onChange={function(e){setBalaoFixo(+e.target.value)}}/>}
+            <div style={{fontSize:11,color:"#555"}}>{numBaloes}x de {fmt(balaoValor)} = {fmt(totalBaloes)}</div>
+          </div>}
+        </details>
+
+        {/* ═══ RESUMO ═══ */}
+        <div style={{background:"linear-gradient(135deg,#111110,#0d0d0c)",borderRadius:16,padding:18,marginTop:8,border:"1px solid rgba(255,255,255,0.04)"}}>
+          <div style={{fontSize:10,textTransform:"uppercase",letterSpacing:2,color:"#555",marginBottom:14,textAlign:"center"}}>Resumo da Proposta</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div><div style={{fontSize:9,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Entrada</div><div style={{fontSize:16,fontWeight:600,color:G,fontFamily:"'Cormorant Garamond',Georgia,serif"}}>{fmt(down)}</div></div>
+            {bemVal>0 && <div><div style={{fontSize:9,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Bem ({bemDesc||"Outro"})</div><div style={{fontSize:16,fontWeight:600,color:"#E8A94E",fontFamily:"'Cormorant Garamond',Georgia,serif"}}>{fmt(bemVal)}</div></div>}
+            <div><div style={{fontSize:9,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Saldo</div><div style={{fontSize:16,fontWeight:600,color:"#7A9EC2",fontFamily:"'Cormorant Garamond',Georgia,serif"}}>{fmt(saldo)}</div></div>
+            <div style={{gridColumn:numBaloes>0?"1":"1/-1"}}><div style={{fontSize:9,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Mensal ({months}x)</div><div style={{fontSize:28,fontWeight:600,color:"#4CAF7D",fontFamily:"'Cormorant Garamond',Georgia,serif"}}>{fmt(pmt)}</div></div>
+            {numBaloes>0 && <div><div style={{fontSize:9,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Balão ({numBaloes}x)</div><div style={{fontSize:16,fontWeight:600,color:"#C47070",fontFamily:"'Cormorant Garamond',Georgia,serif"}}>{fmt(balaoValor)}</div></div>}
+          </div>
+          <div style={{height:1,background:"rgba(255,255,255,0.04)",margin:"12px 0"}}/>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
+            <span style={{fontSize:9,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Total Geral</span>
+            <span style={{fontSize:18,fontWeight:600,color:"#F0EBE3"}}>{fmt(totalPago)}</span>
+          </div>
+          <div style={{fontSize:10,color:"#555",marginTop:6,textAlign:"center"}}>{rate>0?"Taxa: "+rate+"% a.m. · ":"Sem juros · "}Correção: {indice}</div>
+        </div>
+
+        {/* ═══ ACTION BUTTONS ═══ */}
+        <div style={{marginTop:16,display:"flex",flexDirection:"column",gap:8}}>
+          <button className="bh" onClick={function(){window.open("https://wa.me/"+waNum+"?text="+encodeURIComponent(waText),"_blank")}} style={{width:"100%",padding:"15px",borderRadius:12,fontSize:15,fontWeight:700,background:"linear-gradient(135deg,#25D366,#128C7E)",color:"#fff",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8,boxShadow:"0 6px 24px rgba(37,211,102,0.25)"}}><WaIcon size={20}/> Enviar Proposta via WhatsApp</button>
+          <button className="bh" onClick={exportProposalPdf} style={{width:"100%",padding:"14px",borderRadius:12,fontSize:14,fontWeight:600,background:b.color+"15",color:b.color,border:"1px solid "+b.color+"25",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>🖨️ Gerar Proposta em PDF</button>
+        </div>
+        <button style={Object.assign({},mC,{marginTop:8})} onClick={function(){setSimUnit(null)}}>{t.close}</button>
       </div>
     );
   }
