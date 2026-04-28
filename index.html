@@ -276,6 +276,7 @@ function App(){
   var _toast = useState(null); var toast = _toast[0]; var setToast = _toast[1];
   var _filter = useState("all"); var filter = _filter[0]; var setFilter = _filter[1];
   var _search = useState(""); var search = _search[0]; var setSearch = _search[1];
+  var _photoUnit = useState("all"); var photoUnit = _photoUnit[0]; var setPhotoUnit = _photoUnit[1];
   var _simUnit = useState(null); var simUnit = _simUnit[0]; var setSimUnit = _simUnit[1];
   var _printHtml = useState(null); var printHtml = _printHtml[0]; var setPrintHtml = _printHtml[1];
   var _lang = useState("pt"); var lang = _lang[0]; var setLang = _lang[1];
@@ -357,7 +358,7 @@ function App(){
   var vis = buildings.filter(function(b){return adm||b.active});
 
   // === NAVIGATION ===
-  var go = function(id){setSel(id);setVw("detail");setDtab("table");setFilter("all");setSearch("");setCompare([])};
+  var go = function(id){setSel(id);setVw("detail");setDtab("table");setFilter("all");setSearch("");setPhotoUnit("all");setCompare([])};
 
   // Stats
   var stats = useMemo(function(){
@@ -554,52 +555,74 @@ function App(){
 
         {/* ═══ PHOTOS TAB ═══ */}
         {dtab==="photos" && <div>
-          <div className="photo-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
-            {photos.length > 0 ? photos.map(function(photo,i){
-              return <div key={photo.id} className="ch" onClick={function(){if(!adm)setLightbox(photo.url)}} style={{aspectRatio:"1",borderRadius:12,overflow:"hidden",position:"relative",border:photo.is_cover?"2px solid "+G:"1px solid rgba(255,255,255,0.06)",cursor:adm?"default":"zoom-in"}}>
-                <img src={photo.url} alt={photo.label||""} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-                {photo.is_cover && <div style={{position:"absolute",top:4,left:4,padding:"2px 7px",borderRadius:4,fontSize:8,fontWeight:700,background:G,color:"#0a0a09"}}>⭐ Capa</div>}
-                <div style={{position:"absolute",bottom:0,left:0,right:0,background:"rgba(0,0,0,0.7)",padding:"5px 8px"}}>
-                  {adm ? <input value={photo.label||""} onChange={function(e){
-                    DB.updatePhoto(photo.id,{label:e.target.value});
-                    setAllPhotos(function(prev){return prev.map(function(p){return p.id===photo.id?Object.assign({},p,{label:e.target.value}):p})});
-                  }} style={{width:"100%",background:"transparent",border:"none",color:"#fff",fontSize:10,fontWeight:600,outline:"none",padding:0}} placeholder={"Foto "+(i+1)+" — toque para nomear"}/>
-                  : <div style={{fontSize:9,color:"#fff"}}>{photo.label||"Foto "+(i+1)}</div>}
-                </div>
-                {adm && <div style={{position:"absolute",top:4,right:4,display:"flex",gap:3}}>
-                  <button onClick={async function(){
-                    await sb.from("photos").update({is_cover:false}).eq("building_id",bld.id);
-                    await DB.updatePhoto(photo.id,{is_cover:true});
-                    await DB.saveBuilding({id:bld.id,cover_photo:photo.url});
-                    await refreshPhotos();await await refreshBuildings();msg("Capa definida!");
-                  }} title="Capa" style={{width:24,height:24,borderRadius:"50%",background:photo.is_cover?"rgba(200,164,92,0.9)":"rgba(0,0,0,0.6)",color:photo.is_cover?"#0a0a09":"#fff",border:"none",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>⭐</button>
-                  {i>0 && <button onClick={async function(){var prev=photos[i-1];await DB.updatePhoto(photo.id,{sort_order:i-1});await DB.updatePhoto(prev.id,{sort_order:i});refreshPhotos()}} style={{width:24,height:24,borderRadius:"50%",background:"rgba(0,0,0,0.6)",color:"#fff",border:"none",fontSize:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>↑</button>}
-                  {i<photos.length-1 && <button onClick={async function(){var next=photos[i+1];await DB.updatePhoto(photo.id,{sort_order:i+1});await DB.updatePhoto(next.id,{sort_order:i});refreshPhotos()}} style={{width:24,height:24,borderRadius:"50%",background:"rgba(0,0,0,0.6)",color:"#fff",border:"none",fontSize:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>↓</button>}
-                  <button onClick={async function(){await DB.deletePhoto(photo.id);await refreshPhotos();msg("Foto removida")}} style={{width:24,height:24,borderRadius:"50%",background:"rgba(213,91,91,0.9)",color:"#fff",border:"none",fontSize:11,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
-                </div>}
-              </div>;
-            }) : null}
-            {photos.length===0 && <div style={{aspectRatio:"1",borderRadius:8,border:"2px dashed rgba(255,255,255,0.06)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4,fontSize:11,color:"#9A9590",gridColumn:"1/-1"}}><span style={{fontSize:30}}>📸</span>{adm?"Toque abaixo para adicionar":"Nenhuma foto"}</div>}
-          </div>
-          {adm && <div style={{marginTop:12,padding:14,background:"#1a1a19",borderRadius:10,border:"1px solid rgba(255,255,255,0.04)"}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-              <div style={{fontSize:12,fontWeight:600,color:G}}>📸 Adicionar Foto</div>
-              <span style={{fontSize:9,padding:"3px 8px",borderRadius:4,fontWeight:600,background:"rgba(76,175,125,0.1)",color:"#4CAF7D"}}>☁️ Nuvem</span>
+          {/* Unit Filter Tabs */}
+          {units.length>0 && <div style={{display:"flex",gap:4,overflowX:"auto",marginBottom:12,paddingBottom:4}}>
+            <span className="bh" onClick={function(){setPhotoUnit("all")}} style={{flexShrink:0,padding:"7px 14px",borderRadius:10,fontSize:11,fontWeight:600,cursor:"pointer",background:photoUnit==="all"?bld.color+"18":"#111110",color:photoUnit==="all"?bld.color:"#555",border:photoUnit==="all"?"1px solid "+bld.color+"30":"1px solid rgba(255,255,255,0.03)"}}>Todas ({photos.length})</span>
+            <span className="bh" onClick={function(){setPhotoUnit("_geral")}} style={{flexShrink:0,padding:"7px 14px",borderRadius:10,fontSize:11,fontWeight:600,cursor:"pointer",background:photoUnit==="_geral"?bld.color+"18":"#111110",color:photoUnit==="_geral"?bld.color:"#555",border:photoUnit==="_geral"?"1px solid "+bld.color+"30":"1px solid rgba(255,255,255,0.03)"}}>Geral ({photos.filter(function(p){return!p.unit_id}).length})</span>
+            {units.map(function(u){
+              var count=photos.filter(function(p){return p.unit_id===u.id}).length;
+              return <span key={u.id} className="bh" onClick={function(){setPhotoUnit(u.id)}} style={{flexShrink:0,padding:"7px 14px",borderRadius:10,fontSize:11,fontWeight:600,cursor:"pointer",background:photoUnit===u.id?bld.color+"18":"#111110",color:photoUnit===u.id?bld.color:"#555",border:photoUnit===u.id?"1px solid "+bld.color+"30":"1px solid rgba(255,255,255,0.03)"}}>{u.name} {count>0?"("+count+")":""}</span>;
+            })}
+          </div>}
+
+          {/* Filtered Photos */}
+          {(function(){
+            var filteredPhotos=photoUnit==="all"?photos:photoUnit==="_geral"?photos.filter(function(p){return!p.unit_id}):photos.filter(function(p){return p.unit_id===photoUnit});
+            var unitLabel=photoUnit==="all"?"":photoUnit==="_geral"?"Geral":(function(){var u2=units.find(function(x){return x.id===photoUnit});return u2?u2.name:""})();
+            return <div>
+              {unitLabel && <div style={{fontSize:14,fontWeight:600,color:bld.color,marginBottom:10,fontFamily:"'Cormorant Garamond',Georgia,serif"}}>{unitLabel}</div>}
+              <div className="photo-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                {filteredPhotos.length>0?filteredPhotos.map(function(photo,i){
+                  var linkedUnit=photo.unit_id?units.find(function(x){return x.id===photo.unit_id}):null;
+                  return <div key={photo.id} className="ch" onClick={function(){if(!adm)setLightbox(photo.url)}} style={{aspectRatio:"1",borderRadius:12,overflow:"hidden",position:"relative",border:photo.is_cover?"2px solid "+G:"1px solid rgba(255,255,255,0.06)",cursor:adm?"default":"zoom-in"}}>
+                    <img src={photo.url} alt={photo.label||""} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                    {photo.is_cover && <div style={{position:"absolute",top:6,left:6,padding:"3px 8px",borderRadius:6,fontSize:9,fontWeight:700,background:G,color:"#0a0a09"}}>⭐ Capa</div>}
+                    {linkedUnit && photoUnit==="all" && <div style={{position:"absolute",top:6,left:photo.is_cover?60:6,padding:"3px 8px",borderRadius:6,fontSize:9,fontWeight:600,background:"rgba(0,0,0,0.7)",color:"#fff",backdropFilter:"blur(4px)"}}>{linkedUnit.name}</div>}
+                    <div style={{position:"absolute",bottom:0,left:0,right:0,background:"linear-gradient(transparent,rgba(0,0,0,0.8))",padding:"10px 10px 8px"}}>
+                      {adm?<input value={photo.label||""} onChange={function(e){
+                        DB.updatePhoto(photo.id,{label:e.target.value});
+                        setAllPhotos(function(prev){return prev.map(function(p){return p.id===photo.id?Object.assign({},p,{label:e.target.value}):p})});
+                      }} onClick={function(e){e.stopPropagation()}} style={{width:"100%",background:"transparent",border:"none",color:"#fff",fontSize:11,fontWeight:600,outline:"none",padding:0}} placeholder="Nomear foto..."/>
+                      :<div style={{fontSize:10,color:"#fff",fontWeight:500}}>{photo.label||"Foto "+(i+1)}</div>}
+                    </div>
+                    {adm && <div style={{position:"absolute",top:6,right:6,display:"flex",gap:3}} onClick={function(e){e.stopPropagation()}}>
+                      <button className="bh" onClick={async function(){await sb.from("photos").update({is_cover:false}).eq("building_id",bld.id);await DB.updatePhoto(photo.id,{is_cover:true});await DB.saveBuilding({id:bld.id,cover_photo:photo.url});await refreshPhotos();await refreshBuildings();msg("Capa!")}} style={{width:26,height:26,borderRadius:8,background:photo.is_cover?"rgba(200,164,92,0.9)":"rgba(0,0,0,0.6)",color:photo.is_cover?"#0a0a09":"#fff",border:"none",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(4px)"}}>⭐</button>
+                      <button className="bh" onClick={async function(){await DB.deletePhoto(photo.id);await refreshPhotos();msg("Removida")}} style={{width:26,height:26,borderRadius:8,background:"rgba(213,91,91,0.8)",color:"#fff",border:"none",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(4px)"}}>✕</button>
+                    </div>}
+                  </div>;
+                }):<div style={{gridColumn:"1/-1",textAlign:"center",padding:30,color:"#555"}}><span style={{fontSize:30,display:"block",marginBottom:8}}>📸</span>Nenhuma foto{photoUnit!=="all"?" para esta unidade":""}</div>}
+              </div>
+            </div>;
+          })()}
+
+          {/* Upload Section */}
+          {adm && <div style={{marginTop:16,padding:16,background:"#111110",borderRadius:14,border:"1px solid rgba(255,255,255,0.03)"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+              <div style={{fontSize:14,fontWeight:600,color:G}}>📸 Adicionar Fotos</div>
+              <span style={{fontSize:10,padding:"4px 10px",borderRadius:6,background:"rgba(76,175,125,0.08)",color:"#4CAF7D",fontWeight:600}}>☁️ Nuvem</span>
             </div>
-            <label style={{display:"block",padding:"20px",border:"2px dashed "+bld.color+"50",borderRadius:8,textAlign:"center",cursor:"pointer",background:bld.color+"08",marginBottom:8}}>
+            {units.length>0 && <div style={{marginBottom:10}}>
+              <L>Vincular à unidade</L>
+              <select id="photoUnitSelect" style={mI}>
+                <option value="">Geral (sem unidade)</option>
+                {units.map(function(u){return <option key={u.id} value={u.id}>{u.name} — {u.area}m²</option>})}
+              </select>
+            </div>}
+            <label className="bh" style={{display:"block",padding:"24px",border:"2px dashed "+bld.color+"30",borderRadius:12,textAlign:"center",cursor:"pointer",background:bld.color+"06"}}>
               <input type="file" accept="image/*" multiple style={{display:"none"}} onChange={function(e){
                 var files=e.target.files;if(!files||!files.length)return;
+                var selUnitId=(document.getElementById("photoUnitSelect")||{}).value||"";
                 Array.from(files).forEach(function(file){
                   DB.uploadFile(file,"fotos-"+bld.id,function(url,name){
                     var label=name.replace(/\.[^/.]+$/,"").replace(/[-_]/g," ");
-                    DB.addPhoto({building_id:bld.id,url:url,label:label,sort_order:photos.length}).then(function(){refreshPhotos()});
+                    DB.addPhoto({building_id:bld.id,url:url,label:label,sort_order:photos.length,unit_id:selUnitId}).then(function(){refreshPhotos()});
                   },msg);
                 });
                 e.target.value="";
               }}/>
-              <div style={{fontSize:24,marginBottom:6}}>📁</div>
-              <div style={{fontSize:12,fontWeight:600,color:bld.color}}>Toque para selecionar fotos</div>
-              <div style={{fontSize:10,color:"#9A9590",marginTop:4}}>Múltiplas fotos de uma vez • Salva na nuvem</div>
+              <div style={{fontSize:28,marginBottom:8}}>📁</div>
+              <div style={{fontSize:14,fontWeight:600,color:bld.color}}>Toque para selecionar fotos</div>
+              <div style={{fontSize:11,color:"#555",marginTop:4}}>Múltiplas fotos · Vinculadas à unidade selecionada</div>
             </label>
           </div>}
         </div>}
