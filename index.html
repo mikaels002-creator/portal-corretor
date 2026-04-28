@@ -595,7 +595,7 @@ function App(){
                       :<div style={{fontSize:10,color:"#fff",fontWeight:500}}>{photo.label||"Foto "+(i+1)}</div>}
                     </div>
                     {adm && <div style={{position:"absolute",top:6,right:6,display:"flex",gap:3}} onClick={function(e){e.stopPropagation()}}>
-                      <button className="bh" onClick={async function(){await sb.from("photos").update({is_cover:false}).eq("building_id",bld.id);await DB.updatePhoto(photo.id,{is_cover:true});await DB.saveBuilding({id:bld.id,cover_photo:photo.url});await refreshPhotos();await refreshBuildings();msg("Capa!")}} style={{width:26,height:26,borderRadius:8,background:photo.is_cover?"rgba(200,164,92,0.9)":"rgba(0,0,0,0.6)",color:photo.is_cover?"#0a0a09":"#fff",border:"none",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(4px)"}}>⭐</button>
+                      <button className="bh" onClick={async function(){await sb.from("photos").update({is_cover:false}).eq("building_id",bld.id);await DB.updatePhoto(photo.id,{is_cover:true});await sb.from("buildings").update({cover_photo:photo.url}).eq("id",bld.id);await refreshPhotos();await refreshBuildings();msg("Capa!")}} style={{width:26,height:26,borderRadius:8,background:photo.is_cover?"rgba(200,164,92,0.9)":"rgba(0,0,0,0.6)",color:photo.is_cover?"#0a0a09":"#fff",border:"none",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(4px)"}}>⭐</button>
                       <button className="bh" onClick={async function(){await DB.deletePhoto(photo.id);await refreshPhotos();msg("Removida")}} style={{width:26,height:26,borderRadius:8,background:"rgba(213,91,91,0.8)",color:"#fff",border:"none",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(4px)"}}>✕</button>
                     </div>}
                   </div>;
@@ -831,7 +831,7 @@ function App(){
               {s.sd>0 && <div style={{width:(s.sd/s.total*100)+"%",background:"#D45B5B"}}/>}
             </div>}
             <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-              <button className="bh" onClick={async function(){await DB.saveBuilding({id:b.id,active:!b.active});await refreshBuildings();msg(b.active?"Oculto":"Ativado")}} style={mbtn(b.active?"#E8A94E":"#4CAF7D")}>{b.active?"Ocultar":"Ativar"}</button>
+              <button className="bh" onClick={async function(){await sb.from("buildings").update({active:!b.active}).eq("id",b.id);await refreshBuildings();msg(b.active?"Oculto":"Ativado")}} style={mbtn(b.active?"#E8A94E":"#4CAF7D")}>{b.active?"Ocultar":"Ativar"}</button>
               <button className="bh" onClick={function(){setMdl({t:"editBld",bid:b.id})}} style={mbtn(b.color)}>✏️</button>
               {b.status==="construction" && <button className="bh" onClick={function(){setMdl({t:"obra",bid:b.id})}} style={mbtn("#E8A94E")}>🏗️</button>}
               <button className="bh" onClick={function(){setMdl({t:"notice",bid:b.id})}} style={mbtn("#8B6FBF")}>📢</button>
@@ -994,9 +994,9 @@ function App(){
       {hist.length>0 && <div style={{marginBottom:10}}>{hist.map(function(h,i){return <div key={i} style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}><span style={{fontSize:9,color:"#9A9590",minWidth:40}}>{h.month}</span><div style={{flex:1,height:4,background:"#333",borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:h.pct+"%",background:b.color,borderRadius:2}}/></div><span style={{fontSize:9,fontWeight:600,color:b.color}}>{h.pct}%</span></div>})}</div>}
       <L>Mês</L><input style={mI} placeholder="Mai/26" value={m} onChange={function(e){setM(e.target.value)}}/>
       <L>Percentual (%)</L><input style={mI} type="number" min="0" max="100" value={p} onChange={function(e){setP(+e.target.value)}}/>
-      <button style={mP(b.color)} onClick={async function(){
+      <button className="bh" style={mP(b.color)} onClick={async function(){
         var newHist=(hist||[]).concat([{month:m||"Atual",pct:p}]);
-        await DB.saveBuilding({id:mdl.bid,construction_pct:p,construction_history:newHist,status:p>=100?"ready":"construction"});
+        await sb.from("buildings").update({construction_pct:p,construction_history:newHist,status:p>=100?"ready":"construction"}).eq("id",mdl.bid);
         await refreshBuildings();setMdl(null);msg(p>=100?"Obra concluída!":"Atualizado!");
       }}>Atualizar</button><button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
     </div>;
@@ -1059,7 +1059,7 @@ function App(){
         </select>
       </div>
       <button style={mP(b.color)} onClick={async function(){
-        await DB.saveBuilding({id:b.id,name:f.name,subtitle:f.subtitle,emoji:f.emoji,color:f.color,tag:f.tag,cub_base:parseBR(f.cub_base),commission:f.commission,incorporation:f.incorporation,gradient:"linear-gradient(135deg,"+f.color+"40,"+f.color+"80)",financing:{entradaPct:f.finEntrada,parcelas:f.finParcelas,taxaMensal:f.finTaxa,indice:f.finIndice,parcelasOpcoes:f.finParcelasOpcoes}});
+        await sb.from("buildings").update({name:f.name,subtitle:f.subtitle,emoji:f.emoji,color:f.color,tag:f.tag,cub_base:parseBR(f.cub_base),commission:f.commission,incorporation:f.incorporation,gradient:"linear-gradient(135deg,"+f.color+"40,"+f.color+"80)",financing:{entradaPct:f.finEntrada,parcelas:f.finParcelas,taxaMensal:f.finTaxa,indice:f.finIndice,parcelasOpcoes:f.finParcelasOpcoes}}).eq("id",b.id);
         await refreshBuildings();setMdl(null);msg("Salvo!");
       }}>Salvar</button><button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
     </div>;
