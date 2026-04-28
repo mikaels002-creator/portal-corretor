@@ -226,6 +226,11 @@ var DB = {
   loadSales: async function(){var r=await sb.from("broker_sales").select("*").order("id",{ascending:false});return r.data||[]},
   addSale: async function(s){await sb.from("broker_sales").insert(s)},
   updateSale: async function(id,c){await sb.from("broker_sales").update(c).eq("id",id)},
+  // --- Admin Users ---
+  loadAdminUsers: async function(){var r=await sb.from("admin_users").select("*").order("id");return r.data||[]},
+  addAdminUser: async function(u){return await sb.from("admin_users").insert(u)},
+  updateAdminUser: async function(id,c){await sb.from("admin_users").update(c).eq("id",id)},
+  deleteAdminUser: async function(id){await sb.from("admin_users").delete().eq("id",id)},
 
   // --- File Upload ---
   uploadFile: function(file, folder, callback, msgFn){
@@ -285,6 +290,8 @@ function App(){
   var _lightbox = useState(null); var lightbox = _lightbox[0]; var setLightbox = _lightbox[1];
   var _broker = useState(null); var broker = _broker[0]; var setBroker = _broker[1];
   var _sales = useState([]); var sales = _sales[0]; var setSales = _sales[1];
+  var _adminUsers = useState([]); var adminUsers = _adminUsers[0]; var setAdminUsers = _adminUsers[1];
+  var _currentUser = useState(null); var currentUser = _currentUser[0]; var setCurrentUser = _currentUser[1];
 
   var t = TR[lang] || TR.pt;
   var sl = lang === "es" ? sLes : sL;
@@ -306,17 +313,10 @@ function App(){
         DB.loadDocuments(),
         DB.loadNotices(),
         DB.loadBrokers(),
-        DB.loadSales()
+        DB.loadSales(),
+        DB.loadAdminUsers()
       ]);
-      setCfg(results[0]);
-      setBuildings(results[1]);
-      setAllUnits(results[2]);
-      setAllPhotos(results[3]);
-      setAllPlants(results[4]);
-      setAllDocs(results[5]);
-      setAllNotices(results[6]);
-      setBrokers(results[7]);
-      setSales(results[8]);
+      setCfg(results[0]);setBuildings(results[1]);setAllUnits(results[2]);setAllPhotos(results[3]);setAllPlants(results[4]);setAllDocs(results[5]);setAllNotices(results[6]);setBrokers(results[7]);setSales(results[8]);setAdminUsers(results[9]);
     } catch(e){ console.log("Load error:", e); }
     setRdy(true);
   };
@@ -383,6 +383,15 @@ function App(){
   var refreshNotices = async function(){var d=await DB.loadNotices();setAllNotices(d)};
   var refreshBrokers = async function(){var d=await DB.loadBrokers();setBrokers(d)};
   var refreshSales = async function(){var d=await DB.loadSales();setSales(d)};
+  var refreshAdminUsers = async function(){var d=await DB.loadAdminUsers();setAdminUsers(d)};
+
+  // Permission helper
+  var can = function(perm){
+    if(!adm||!currentUser) return false;
+    if(currentUser.role==="super_admin") return true;
+    var perms=currentUser.permissions||{};
+    return perms[perm]===true;
+  };
 
   // ═══ LOADING SCREEN ═══
   if(!rdy) return(
@@ -789,14 +798,14 @@ function App(){
         </div>
 
         {/* ═══ ACTIONS ═══ */}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
-          <button className="bh ch" onClick={function(){setMdl({t:"addBld"})}} style={{padding:16,borderRadius:14,fontSize:13,fontWeight:500,background:"#111110",color:"#6BAF8D",border:"1px solid rgba(76,175,125,0.1)",cursor:"pointer",textAlign:"center"}}>＋ Empreendimento</button>
-          <button className="bh ch" onClick={function(){setMdl({t:"brokerList"})}} style={{padding:16,borderRadius:14,fontSize:13,fontWeight:500,background:"#111110",color:G,border:"1px solid rgba(200,164,92,0.1)",cursor:"pointer",textAlign:"center"}}>👥 Corretores · {brokers.length}</button>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:24}}>
+          {can("manage_buildings") && <button className="bh ch" onClick={function(){setMdl({t:"addBld"})}} style={{padding:16,borderRadius:14,fontSize:13,fontWeight:500,background:"#111110",color:"#6BAF8D",border:"1px solid rgba(76,175,125,0.1)",cursor:"pointer",textAlign:"center"}}>＋ Empreendimento</button>}
+          {can("manage_brokers") && <button className="bh ch" onClick={function(){setMdl({t:"brokerList"})}} style={{padding:16,borderRadius:14,fontSize:13,fontWeight:500,background:"#111110",color:G,border:"1px solid rgba(200,164,92,0.1)",cursor:"pointer",textAlign:"center"}}>👥 Corretores · {brokers.length}</button>}
           <button className="bh ch" onClick={exportBackup} style={{padding:16,borderRadius:14,fontSize:13,fontWeight:500,background:"#111110",color:"#7A9EC2",border:"1px solid rgba(91,143,212,0.1)",cursor:"pointer",textAlign:"center"}}>💾 Backup</button>
-          <button className="bh ch" onClick={function(){setMdl({t:"siteSettings"})}} style={{padding:16,borderRadius:14,fontSize:13,fontWeight:500,background:"#111110",color:"#7A7570",border:"1px solid rgba(255,255,255,0.04)",cursor:"pointer",textAlign:"center"}}>⚙️ Configurações</button>
+          {can("manage_settings") && <button className="bh ch" onClick={function(){setMdl({t:"siteSettings"})}} style={{padding:16,borderRadius:14,fontSize:13,fontWeight:500,background:"#111110",color:"#7A7570",border:"1px solid rgba(255,255,255,0.04)",cursor:"pointer",textAlign:"center"}}>⚙️ Config</button>}
+          {can("manage_users") && <button className="bh ch" onClick={function(){setMdl({t:"manageUsers"})}} style={{padding:16,borderRadius:14,fontSize:13,fontWeight:500,background:"#111110",color:"#8B6FBF",border:"1px solid rgba(139,111,191,0.1)",cursor:"pointer",textAlign:"center"}}>🛡️ Equipe · {adminUsers.length}</button>}
+          {can("manage_sales") && <button className="bh ch" onClick={function(){setMdl({t:"adminSales"})}} style={{padding:16,borderRadius:14,fontSize:13,fontWeight:500,background:"#111110",color:"#E8A94E",border:"1px solid rgba(232,169,78,0.1)",cursor:"pointer",textAlign:"center"}}>📋 Vendas</button>}
         </div>
-        {/* Sales Management Button */}
-        <button className="bh ch" onClick={function(){setMdl({t:"adminSales"})}} style={{width:"100%",padding:16,borderRadius:14,fontSize:14,fontWeight:600,background:sales.filter(function(s){return s.status==="pending"}).length>0?"rgba(232,169,78,0.06)":"#111110",color:sales.filter(function(s){return s.status==="pending"}).length>0?"#E8A94E":"#7A7570",border:sales.filter(function(s){return s.status==="pending"}).length>0?"1px solid rgba(232,169,78,0.15)":"1px solid rgba(255,255,255,0.03)",cursor:"pointer",textAlign:"center",marginBottom:24,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>📋 Gestão de Vendas {sales.filter(function(s){return s.status==="pending"}).length>0&&<span style={{background:"#E8A94E",color:"#0a0a09",padding:"2px 8px",borderRadius:10,fontSize:11,fontWeight:700}}>{sales.filter(function(s){return s.status==="pending"}).length} pendentes</span>}</button>
 
         {/* ═══ BUILDING MANAGEMENT ═══ */}
         <div style={{fontSize:13,fontWeight:600,color:"#F0EBE3",marginBottom:12}}>Empreendimentos</div>
@@ -894,19 +903,40 @@ function App(){
     if(mdl.t==="siteSettings") return <SiteSettingsM/>;
     if(mdl.t==="brokerRegister") return <BrokerRegisterM/>;
     if(mdl.t==="brokerList") return <BrokerListM/>;
-    if(mdl.t==="brokerLogin") return <BrokerLoginM/>;
     if(mdl.t==="brokerDash") return <BrokerDashM/>;
     if(mdl.t==="registerSale") return <RegisterSaleM/>;
     if(mdl.t==="adminSales") return <AdminSalesM/>;
     if(mdl.t==="importPdf") return <ImportPdfM/>;
+    if(mdl.t==="manageUsers") return <ManageUsersM/>;
     return null;
   }
 
   function LoginM(){
+    var _e=useState("");var e=_e[0];var setE=_e[1];
     var _p=useState("");var p=_p[0];var setP=_p[1];
-    return <div><div style={mT}>🔐 Acesso Admin</div>
-      <input type="password" maxLength={4} value={p} onChange={function(e){setP(e.target.value)}} onKeyDown={function(e){if(e.key==="Enter"&&p===PIN){setAdm(true);setMdl(null);msg("Admin ativado")}}} placeholder="• • • •" style={Object.assign({},mI,{textAlign:"center",fontSize:22,letterSpacing:10})}/>
-      <button style={mP(G)} onClick={function(){if(p===PIN){setAdm(true);setMdl(null);msg("Admin ativado")}else msg("PIN incorreto")}}>Entrar</button>
+    var _mode=useState("choose");var mode=_mode[0];var setMode=_mode[1];
+    var doLogin=function(){
+      var email=e.toLowerCase().trim();
+      var admin=adminUsers.find(function(u){return u.email.toLowerCase()===email&&u.senha===p&&u.ativo});
+      if(admin){setCurrentUser(admin);setAdm(true);setBroker(null);sb.from("admin_users").update({last_login:new Date().toLocaleString("pt-BR")}).eq("id",admin.id);setMdl(null);msg("Bem-vindo, "+admin.nome+"!");return}
+      var bk=brokers.find(function(b){return b.email&&b.email.toLowerCase()===email&&b.senha===p});
+      if(bk){setBroker(bk);setAdm(false);setCurrentUser(null);setMdl({t:"brokerDash"});msg("Bem-vindo, "+bk.nome+"!");return}
+      msg("E-mail ou senha incorretos");
+    };
+    if(mode==="choose") return <div style={{textAlign:"center"}}>
+      <div style={{fontSize:32,marginBottom:12}}>🏢</div>
+      <div style={mT}>Acessar Portal</div>
+      <button className="bh" onClick={function(){setMode("admin")}} style={Object.assign({},mP(G),{display:"flex",alignItems:"center",justifyContent:"center",gap:8})}>🔐 Administrador / Equipe</button>
+      <button className="bh" onClick={function(){setMode("broker")}} style={Object.assign({},mP("#5B8FD4"),{display:"flex",alignItems:"center",justifyContent:"center",gap:8})}>👤 Corretor Parceiro</button>
+      <div style={{marginTop:16,paddingTop:12,borderTop:"1px solid rgba(255,255,255,0.04)"}}><span onClick={function(){setMdl({t:"brokerRegister"})}} style={{fontSize:12,color:G,cursor:"pointer"}}>Não tem conta? Cadastre-se</span></div>
+      <button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
+    </div>;
+    return <div>
+      <div style={mT}>{mode==="admin"?"🔐 Administração":"👤 Corretor"}</div>
+      <L>E-mail</L><input style={mI} type="email" value={e} onChange={function(ev){setE(ev.target.value)}} placeholder="seu@email.com"/>
+      <L>Senha</L><input style={mI} type="password" value={p} onChange={function(ev){setP(ev.target.value)}} onKeyDown={function(ev){if(ev.key==="Enter")doLogin()}}/>
+      <button className="bh" style={mP(mode==="admin"?G:"#5B8FD4")} onClick={doLogin}>Entrar</button>
+      <button style={mC} onClick={function(){setMode("choose")}}>← Voltar</button>
     </div>;
   }
 
@@ -1132,23 +1162,6 @@ function App(){
   }
 
   // ═══ BROKER LOGIN ═══
-  function BrokerLoginM(){
-    var _e=useState("");var e=_e[0];var setE=_e[1];
-    var _p=useState("");var p=_p[0];var setP=_p[1];
-    return <div><div style={mT}>👤 Acesso do Corretor</div>
-      <L>E-mail</L><input style={mI} type="email" value={e} onChange={function(ev){setE(ev.target.value)}} placeholder="seu@email.com"/>
-      <L>Senha</L><input style={mI} type="password" value={p} onChange={function(ev){setP(ev.target.value)}} onKeyDown={function(ev){if(ev.key==="Enter"){document.getElementById("brokerLoginBtn").click()}}}/>
-      <button id="brokerLoginBtn" className="bh" style={mP("#5B8FD4")} onClick={function(){
-        var found=brokers.find(function(b){return b.email&&b.email.toLowerCase()===e.toLowerCase().trim()&&b.senha===p});
-        if(found){setBroker(found);setMdl({t:"brokerDash"});msg("Bem-vindo, "+found.nome+"!")}
-        else msg("E-mail ou senha incorretos")
-      }}>Entrar</button>
-      <button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
-      <div style={{textAlign:"center",marginTop:12}}>
-        <span onClick={function(){setMdl({t:"brokerRegister"})}} style={{fontSize:11,color:G,cursor:"pointer"}}>Não tem conta? Cadastre-se</span>
-      </div>
-    </div>;
-  }
 
   // ═══ BROKER DASHBOARD ═══
   function BrokerDashM(){
@@ -1274,6 +1287,86 @@ function App(){
               <button className="bh" onClick={async function(){await DB.updateSale(s.id,{status:"confirmed",confirmed_at:new Date().toLocaleDateString("pt-BR")});await refreshSales();msg("Venda confirmada!")}} style={mbtn("#4CAF7D")}>✅ Confirmar</button>
               <button className="bh" onClick={async function(){var note=prompt("Motivo da rejeição:");await DB.updateSale(s.id,{status:"rejected",admin_notes:note||""});await refreshSales();msg("Venda rejeitada")}} style={mbtn("#D45B5B")}>❌ Rejeitar</button>
             </div>}
+          </div>;
+        })}
+      </div>
+      <button style={mC} onClick={function(){setMdl(null)}}>Fechar</button>
+    </div>;
+  }
+
+  // ═══ MANAGE USERS ═══
+  function ManageUsersM(){
+    var _mode=useState("list");var mode=_mode[0];var setMode=_mode[1];
+    var _edit=useState(null);var edit=_edit[0];var setEdit=_edit[1];
+    var _nf=useState({nome:"",email:"",senha:"",role:"editor",permissions:{}});var nf=_nf[0];var setNf=_nf[1];
+    var allPerms=[{k:"manage_buildings",l:"Empreendimentos"},{k:"manage_units",l:"Unidades"},{k:"manage_photos",l:"Fotos"},{k:"manage_docs",l:"Docs/Plantas"},{k:"manage_notices",l:"Avisos"},{k:"manage_brokers",l:"Corretores"},{k:"manage_sales",l:"Vendas"},{k:"manage_settings",l:"Configurações"},{k:"manage_users",l:"Gerenciar Usuários"},{k:"view_prices",l:"Ver R$/m²"},{k:"import_pdf",l:"Importar PDF"}];
+    var roleColors={super_admin:"#C8A45C",admin:"#4CAF7D",editor:"#5B8FD4"};
+    var roleLabels={super_admin:"Super Admin",admin:"Administrador",editor:"Editor"};
+    if(mode==="add"||mode==="edit") return <div>
+      <div style={mT}>{mode==="edit"?"✏️ Editar Usuário":"＋ Novo Usuário"}</div>
+      <L>Nome</L><input style={mI} value={nf.nome} onChange={function(e){setNf(Object.assign({},nf,{nome:e.target.value}))}}/>
+      <L>E-mail</L><input style={mI} type="email" value={nf.email} onChange={function(e){setNf(Object.assign({},nf,{email:e.target.value}))}}/>
+      <L>{mode==="edit"?"Nova Senha (vazio = mantém)":"Senha"}</L><input style={mI} type="password" value={nf.senha} onChange={function(e){setNf(Object.assign({},nf,{senha:e.target.value}))}} placeholder={mode==="edit"?"Deixe vazio para manter":"Mínimo 4 caracteres"}/>
+      <L>Função</L>
+      <div style={{display:"flex",gap:6,marginBottom:12}}>
+        {["editor","admin"].concat(can("manage_users")&&currentUser.role==="super_admin"?["super_admin"]:[]).map(function(r){
+          return <span key={r} className="bh" onClick={function(){
+            var p=r==="admin"?{manage_buildings:true,manage_units:true,manage_photos:true,manage_docs:true,manage_notices:true,manage_brokers:true,manage_sales:true,view_prices:true,import_pdf:true}:r==="super_admin"?allPerms.reduce(function(o,x){o[x.k]=true;return o},{}):{};
+            setNf(Object.assign({},nf,{role:r,permissions:p}));
+          }} style={{padding:"8px 14px",borderRadius:10,fontSize:12,fontWeight:600,cursor:"pointer",background:nf.role===r?roleColors[r]+"20":"#111110",color:nf.role===r?roleColors[r]:"#555",border:nf.role===r?"1px solid "+roleColors[r]+"30":"1px solid rgba(255,255,255,0.03)"}}>{roleLabels[r]}</span>;
+        })}
+      </div>
+      {nf.role==="editor" && <div>
+        <L>Permissões</L>
+        <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:12}}>
+          {allPerms.filter(function(p){return p.k!=="manage_users"}).map(function(p){
+            var on=(nf.permissions||{})[p.k]===true;
+            return <div key={p.k} onClick={function(){var np=Object.assign({},nf.permissions||{});np[p.k]=!on;setNf(Object.assign({},nf,{permissions:np}))}} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",background:on?"rgba(76,175,125,0.06)":"#111110",borderRadius:8,cursor:"pointer",border:"1px solid "+(on?"rgba(76,175,125,0.15)":"rgba(255,255,255,0.03)")}}>
+              <div style={{width:18,height:18,borderRadius:5,background:on?"#4CAF7D":"#333",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"#fff"}}>{on?"✓":""}</div>
+              <span style={{fontSize:12,color:on?"#F0EBE3":"#555"}}>{p.l}</span>
+            </div>;
+          })}
+        </div>
+      </div>}
+      <button className="bh" style={mP("#4CAF7D")} onClick={async function(){
+        if(!nf.nome.trim()||!nf.email.trim()){msg("Nome e e-mail obrigatórios");return}
+        if(mode==="add"&&nf.senha.length<4){msg("Senha mínimo 4 caracteres");return}
+        if(mode==="edit"){
+          var upd={nome:nf.nome,email:nf.email,role:nf.role,permissions:nf.permissions};
+          if(nf.senha.length>=4) upd.senha=nf.senha;
+          await DB.updateAdminUser(edit.id,upd);
+        }else{
+          var res=await DB.addAdminUser({nome:nf.nome,email:nf.email,senha:nf.senha,role:nf.role,permissions:nf.permissions,ativo:true});
+          if(res.error){msg("Erro: "+res.error.message);return}
+        }
+        await refreshAdminUsers();setMode("list");msg(mode==="edit"?"Atualizado!":"Usuário criado!");
+      }}>{mode==="edit"?"Salvar":"Criar Usuário"}</button>
+      <button style={mC} onClick={function(){setMode("list")}}>← Voltar</button>
+    </div>;
+    return <div>
+      <div style={mT}>👥 Equipe Administrativa</div>
+      <button className="bh" style={Object.assign({},mP("#4CAF7D"),{marginBottom:14})} onClick={function(){setNf({nome:"",email:"",senha:"",role:"editor",permissions:{}});setMode("add")}}>＋ Novo Usuário</button>
+      <div style={{maxHeight:400,overflow:"auto"}}>
+        {adminUsers.map(function(u){
+          var isMe=currentUser&&currentUser.id===u.id;
+          return <div key={u.id} style={{padding:14,background:"#111110",borderRadius:12,marginBottom:8,border:"1px solid rgba(255,255,255,0.03)"}}>
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
+              <div style={{width:36,height:36,borderRadius:10,background:(roleColors[u.role]||G)+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>{u.role==="super_admin"?"👑":u.role==="admin"?"🔐":"✏️"}</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:14,fontWeight:600}}>{u.nome} {isMe&&<span style={{fontSize:10,color:"#4CAF7D"}}>(você)</span>}</div>
+                <div style={{fontSize:10,color:"#555"}}>{u.email}</div>
+              </div>
+              <span style={{fontSize:10,fontWeight:600,color:roleColors[u.role]||"#555",padding:"3px 8px",background:(roleColors[u.role]||"#555")+"12",borderRadius:6}}>{roleLabels[u.role]||u.role}</span>
+            </div>
+            {u.last_login && <div style={{fontSize:9,color:"#555",marginBottom:6}}>Último acesso: {u.last_login}</div>}
+            {u.role==="editor" && <div style={{display:"flex",gap:3,flexWrap:"wrap",marginBottom:6}}>
+              {allPerms.filter(function(p){return(u.permissions||{})[p.k]}).map(function(p){return <span key={p.k} style={{fontSize:8,padding:"2px 6px",borderRadius:4,background:"rgba(91,143,212,0.08)",color:"#5B8FD4"}}>{p.l}</span>})}
+            </div>}
+            <div style={{display:"flex",gap:4}}>
+              <button className="bh" onClick={function(){setEdit(u);setNf({nome:u.nome,email:u.email,senha:"",role:u.role,permissions:u.permissions||{}});setMode("edit")}} style={mbtn("#5B8FD4")}>✏️ Editar</button>
+              <button className="bh" onClick={async function(){await DB.updateAdminUser(u.id,{ativo:!u.ativo});await refreshAdminUsers();msg(u.ativo?"Desativado":"Ativado")}} style={mbtn(u.ativo?"#E8A94E":"#4CAF7D")}>{u.ativo?"Desativar":"Ativar"}</button>
+              {!isMe&&u.role!=="super_admin"&&<button className="bh" onClick={async function(){if(confirm("Excluir "+u.nome+"?")){await DB.deleteAdminUser(u.id);await refreshAdminUsers();msg("Removido")}}} style={mbtn("#D45B5B")}>🗑️</button>}
+            </div>
           </div>;
         })}
       </div>
@@ -1455,7 +1548,6 @@ function App(){
         <h1 className="au" style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:"clamp(36px, 7vw, 64px)",fontWeight:500,lineHeight:1.05,marginBottom:12,position:"relative",letterSpacing:"-0.02em",animationDelay:"80ms"}}>Portal do <span style={{color:G,fontWeight:600}}>Corretor</span></h1>
         <p className="au" style={{fontSize:"clamp(12px, 1.6vw, 17px)",color:"#7A7570",maxWidth:480,margin:"0 auto",lineHeight:1.7,position:"relative",fontWeight:300,animationDelay:"160ms"}}>Empreendimentos, tabelas com correção CUB/SC, simulador e materiais exclusivos.</p>
         <div className="au" style={{marginTop:18,display:"flex",justifyContent:"center",gap:8,position:"relative",animationDelay:"240ms"}}>
-          {adm && <button className="bh" onClick={function(){setAdm(false);msg("Admin off")}} style={{padding:"8px 18px",borderRadius:50,fontSize:11,fontWeight:600,background:"rgba(76,175,125,0.08)",color:"#4CAF7D",border:"1px solid rgba(76,175,125,0.15)",cursor:"pointer"}}>🔓 Sair do Admin</button>}
           <button className="bh" onClick={function(){setLang(lang==="pt"?"es":"pt")}} style={{padding:"8px 18px",borderRadius:50,fontSize:11,fontWeight:600,background:"rgba(255,255,255,0.03)",color:"#7A7570",border:"1px solid rgba(255,255,255,0.06)",cursor:"pointer"}}>{lang==="pt"?"🇪🇸 Español":"🇧🇷 Português"}</button>
         </div>
       </div>
@@ -1469,11 +1561,16 @@ function App(){
 
       {/* NAV */}
       <div style={{position:"sticky",top:0,zIndex:100,background:bgColor+"ee",backdropFilter:"blur(16px)",WebkitBackdropFilter:"blur(16px)",padding:"14px 16px 0",borderBottom:"1px solid rgba(255,255,255,0.03)"}}>
-        <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:10}}>
+        <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:10,alignItems:"center"}}>
           <TabBtn active={vw==="home"} onClick={function(){setVw("home")}}>{t.home}</TabBtn>
           {adm && <TabBtn active={vw==="manage"} green onClick={function(){setVw("manage")}}>Gerenciar</TabBtn>}
-          {adm && <TabBtn active={false} green onClick={function(){setMdl({t:"siteSettings"})}}>Configurações</TabBtn>}
+          {adm && can("manage_settings") && <TabBtn active={false} green onClick={function(){setMdl({t:"siteSettings"})}}>Config</TabBtn>}
           {vis.map(function(b){return <TabBtn key={b.id} active={vw==="detail"&&sel===b.id} onClick={function(){go(b.id)}}>{b.name.replace("Ed. ","").replace("Res. ","").replace("Imóveis de ","")}</TabBtn>})}
+          <div style={{flex:1}}/>
+          {/* User Area */}
+          {!adm && !broker && <span className="bh" onClick={function(){setMdl({t:"login"})}} style={{flexShrink:0,padding:"7px 14px",borderRadius:10,fontSize:11,fontWeight:500,cursor:"pointer",background:"rgba(255,255,255,0.03)",color:"#555",border:"1px solid rgba(255,255,255,0.04)"}}>Entrar</span>}
+          {broker && <span className="bh" onClick={function(){setMdl({t:"brokerDash"})}} style={{flexShrink:0,padding:"7px 14px",borderRadius:10,fontSize:11,fontWeight:500,cursor:"pointer",background:"rgba(91,143,212,0.08)",color:"#5B8FD4",border:"1px solid rgba(91,143,212,0.12)",display:"flex",alignItems:"center",gap:4}}>👤 {broker.nome.split(" ")[0]}</span>}
+          {adm && currentUser && <span className="bh" onClick={function(){setAdm(false);setCurrentUser(null);msg("Deslogado")}} style={{flexShrink:0,padding:"7px 14px",borderRadius:10,fontSize:11,fontWeight:500,cursor:"pointer",background:"rgba(200,164,92,0.08)",color:G,border:"1px solid rgba(200,164,92,0.12)",display:"flex",alignItems:"center",gap:4}}>{currentUser.role==="super_admin"?"👑":"🔐"} {currentUser.nome.split(" ")[0]} · Sair</span>}
         </div>
       </div>
 
@@ -1506,14 +1603,8 @@ function App(){
         </div>
       </div>
 
-      {/* FABs */}
-      <div style={{position:"fixed",bottom:24,right:20,zIndex:200,display:"flex",flexDirection:"column",gap:10,alignItems:"flex-end"}}>
-        <a href={"https://wa.me/"+waNum+"?text="+encodeURIComponent("Olá! Vim pelo Portal do Corretor 🏢")} target="_blank" className="bh" style={{width:52,height:52,borderRadius:16,background:"#25D366",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 6px 24px rgba(37,211,102,0.25)",textDecoration:"none",color:"#fff"}}><WaIcon size={24}/></a>
-        {broker && <button className="bh" onClick={function(){setMdl({t:"brokerDash"})}} style={{width:52,height:52,borderRadius:16,background:"#5B8FD4",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,boxShadow:"0 6px 24px rgba(91,143,212,0.25)",cursor:"pointer",border:"none",color:"#fff"}}>👤</button>}
-        {!broker && !adm && <button className="bh" onClick={function(){setMdl({t:"brokerLogin"})}} style={{width:52,height:52,borderRadius:16,background:"#141413",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,boxShadow:"0 4px 20px rgba(0,0,0,0.4)",cursor:"pointer",border:"1px solid rgba(91,143,212,0.15)",color:"#5B8FD4"}}>👤</button>}
-        {!adm && <button className="bh" onClick={function(){setMdl({t:"login"})}} style={{width:52,height:52,borderRadius:16,background:"#141413",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,boxShadow:"0 4px 20px rgba(0,0,0,0.4)",cursor:"pointer",border:"1px solid rgba(200,164,92,0.12)",color:G}}>🔐</button>}
-        {adm && <button className="bh" onClick={function(){setAdm(false);msg("Admin desativado")}} style={{width:52,height:52,borderRadius:16,background:"#D45B5B",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:700,boxShadow:"0 6px 24px rgba(213,91,91,0.25)",cursor:"pointer",border:"none",color:"#fff"}}>✕</button>}
-      </div>
+      {/* FAB */}
+      <a href={"https://wa.me/"+waNum+"?text="+encodeURIComponent("Olá! Vim pelo Portal do Corretor 🏢")} target="_blank" className="bh" style={{position:"fixed",bottom:24,right:20,zIndex:200,width:52,height:52,borderRadius:16,background:"#25D366",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 6px 24px rgba(37,211,102,0.25)",textDecoration:"none",color:"#fff"}}><WaIcon size={24}/></a>
 
       {/* MODAL */}
       {mdl && <div onClick={function(){setMdl(null)}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",backdropFilter:"blur(8px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
