@@ -516,15 +516,15 @@ function App(){
                 return <tr key={u.id} style={{background:rowBg,transition:"background .15s"}} onMouseEnter={function(e){e.currentTarget.style.background="rgba(200,164,92,0.03)"}} onMouseLeave={function(e){e.currentTarget.style.background=rowBg}}>
                   <td style={Object.assign({},tdS,{fontWeight:600})}>{u.name}</td>
                   <td style={tdS}>{u.area}m²</td>
-                  <td style={Object.assign({},tdS,{fontWeight:700,color:"#4CAF7D",fontSize:14})}>{p>0?fmtV(p):"—"}</td>
-                  {adm && <td style={Object.assign({},tdS,{fontSize:10,color:"#555"})}>{p>0?fmtV(Math.round(p/u.area)):"—"}</td>}
+                  <td style={Object.assign({},tdS,{fontWeight:700,color:"#4CAF7D",fontSize:14})}>{u.status==="available"?(p>0?fmtV(p):"—"):"—"}</td>
+                  {adm && <td style={Object.assign({},tdS,{fontSize:10,color:"#555"})}>{u.status==="available"&&p>0?fmtV(Math.round(p/u.area)):"—"}</td>}
                   <td style={tdS}><div style={{display:"inline-flex",alignItems:"center",gap:5,fontSize:11,fontWeight:600,color:sC[u.status],padding:"4px 10px",background:sC[u.status]+"0a",borderRadius:6}}><span style={{width:6,height:6,borderRadius:"50%",background:sC[u.status]}}/>{sl[u.status]}</div></td>
                   <td style={tdS}>
                     <div style={{display:"flex",gap:3}}>
-                      <button className="bh" onClick={function(e){e.stopPropagation();setSimUnit({u:u,b:bld})}} style={{padding:"5px 10px",borderRadius:8,fontSize:10,fontWeight:700,background:bld.color+"18",color:bld.color,border:"1px solid "+bld.color+"30",cursor:"pointer",display:"inline-flex",alignItems:"center",gap:3}}>🏦 Simular</button>
-                      <button onClick={function(e){e.stopPropagation();shareUnit(u,bld)}} style={Object.assign({},mbtn("#25D366"),{fontSize:8,padding:"3px 6px",display:"flex",alignItems:"center",gap:2})}><WaIcon size={10}/></button>
-                      {adm && <button onClick={function(){setMdl({t:"editUnit",bid:bld.id,u:Object.assign({},u)})}} style={Object.assign({},mbtn(bld.color),{fontSize:8,padding:"3px 6px"})}>✏️</button>}
-                      {adm && <button onClick={async function(){await DB.deleteUnit(u.id);await refreshUnits();msg("Removida")}} style={Object.assign({},mbtn("#D45B5B"),{fontSize:8,padding:"3px 6px"})}>🗑️</button>}
+                      {u.status==="available" && <button className="bh" onClick={function(e){e.stopPropagation();setSimUnit({u:u,b:bld})}} style={{padding:"5px 10px",borderRadius:8,fontSize:10,fontWeight:700,background:bld.color+"18",color:bld.color,border:"1px solid "+bld.color+"30",cursor:"pointer",display:"inline-flex",alignItems:"center",gap:3}}>🏦 Simular</button>}
+                      {u.status==="available" && <button className="bh" onClick={function(e){e.stopPropagation();shareUnit(u,bld)}} style={Object.assign({},mbtn("#25D366"),{fontSize:8,padding:"3px 6px",display:"flex",alignItems:"center",gap:2})}><WaIcon size={10}/></button>}
+                      {adm && <button className="bh" onClick={function(){setMdl({t:"editUnit",bid:bld.id,u:Object.assign({},u)})}} style={Object.assign({},mbtn(bld.color),{fontSize:8,padding:"3px 6px"})}>✏️</button>}
+                      {adm && <button className="bh" onClick={async function(){await DB.deleteUnit(u.id);await refreshUnits();msg("Removida")}} style={Object.assign({},mbtn("#D45B5B"),{fontSize:8,padding:"3px 6px"})}>🗑️</button>}
                     </div>
                   </td>
                 </tr>;
@@ -821,7 +821,7 @@ function App(){
     var logo=cfg.report_logo?"<img src='"+cfg.report_logo+"' style='max-height:50px;max-width:180px;margin-bottom:12px'/>":"";
     var currency=showUsd?"USD":"BRL";
     var usdWarn=showUsd?"<div style='margin:12px 0;padding:10px;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;font-size:10px;color:#856404;text-align:center'>⚠️ Valores em USD são referência. Cotação confirmada no dia da transação. Contratos em BRL. Ref: R$ "+getUsdRate().toFixed(2)+"</div>":"";
-    var rows=units.map(function(u){var p=cp(u,b);return "<tr><td>"+u.name+"</td><td>"+u.area+"m²</td><td style='font-weight:600;color:#2e7d52'>"+(p>0?fmtV(p):"—")+"</td><td style='color:"+sC[u.status]+";font-weight:600'>"+sL[u.status]+"</td></tr>"}).join("");
+    var rows=units.map(function(u){var p=cp(u,b);var showPrice=u.status==="available";return "<tr><td>"+u.name+"</td><td>"+u.area+"m²</td><td style='font-weight:600;color:#2e7d52'>"+(showPrice&&p>0?fmtV(p):"—")+"</td><td style='color:"+sC[u.status]+";font-weight:600'>"+sL[u.status]+"</td></tr>"}).join("");
     var html="<html><head><meta charset='UTF-8'><title>"+b.name+"</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Helvetica,sans-serif;padding:36px;color:#1a1a1a;max-width:780px;margin:0 auto}h1{font-size:24px;margin-bottom:4px}h2{font-size:12px;color:#888;font-weight:400;margin-bottom:18px}table{width:100%;border-collapse:collapse;margin-top:8px}th{background:#f5f0e8;padding:10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid #ddd}td{padding:10px;border-bottom:1px solid #eee;font-size:12px}.ft{margin-top:24px;padding-top:12px;border-top:1px solid #ddd;font-size:9px;color:#999;text-align:center}.badge{display:inline-block;padding:4px 12px;border-radius:16px;font-size:10px;font-weight:700;color:#fff;margin-bottom:12px}.cub{font-size:11px;color:#666;margin-bottom:10px;padding:8px 10px;background:#f8f6f2;border-radius:5px}</style></head><body>"+logo+"<h1>"+b.name+"</h1><h2>"+b.subtitle+"</h2><div class='badge' style='background:"+b.color+"'>"+(b.status==="ready"?"Pronto":"Em Construção — "+b.construction_pct+"%")+"</div><div class='cub'>CUB/SC: "+fmt(b.cub_base)+" → "+fmt(b.cub_current)+" ("+((b.cub_current/b.cub_base-1)*100).toFixed(2)+"%)</div>"+usdWarn+"<table><thead><tr><th>Unid.</th><th>Área</th><th>Valor"+(showUsd?" (USD)":"")+"</th><th>Status</th></tr></thead><tbody>"+rows+"</tbody></table><div class='ft'>MK Realty & D&SS Incorporação | "+CT.email+" | "+CT.phone+"<br>Gerado em "+new Date().toLocaleDateString("pt-BR")+"</div></body></html>";
     var w=window.open("","_blank");if(w){w.document.write(html);w.document.close();setTimeout(function(){w.print()},500)}
   };
@@ -845,7 +845,7 @@ function App(){
     var b=buildings.find(function(x){return x.id===bid});if(!b)return;
     var units=getUnits(bid);
     var csv="Unidade;Área (m²);Preço Base;Valor Corrigido;Status\n";
-    units.forEach(function(u){var p=cp(u,b);csv+=u.name+";"+u.area+";"+u.base_price+";"+p+";"+sL[u.status]+"\n"});
+    units.forEach(function(u){var p=cp(u,b);var showPrice=u.status==="available";csv+=u.name+";"+u.area+";"+(showPrice?u.base_price:"-")+";"+(showPrice?p:"-")+";"+sL[u.status]+"\n"});
     var blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"});
     var url=URL.createObjectURL(blob);
     var a=document.createElement("a");a.href=url;a.download=b.name.replace(/[^a-zA-Z0-9]/g,"-")+".csv";
