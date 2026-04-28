@@ -917,10 +917,22 @@ function App(){
     var _mode=useState("choose");var mode=_mode[0];var setMode=_mode[1];
     var doLogin=function(){
       var email=e.toLowerCase().trim();
-      var admin=adminUsers.find(function(u){return u.email.toLowerCase()===email&&u.senha===p&&u.ativo});
+      // PIN fallback (emergency access)
+      if(p===PIN&&(email===""||email==="admin")){
+        setCurrentUser({id:0,nome:"Admin (PIN)",email:"",role:"super_admin",permissions:{}});
+        setAdm(true);setBroker(null);setMdl(null);msg("Admin ativado via PIN");return;
+      }
+      // Check admin users
+      var admin=adminUsers.find(function(u){return u.email&&u.email.toLowerCase()===email&&u.senha===p&&u.ativo!==false});
       if(admin){setCurrentUser(admin);setAdm(true);setBroker(null);sb.from("admin_users").update({last_login:new Date().toLocaleString("pt-BR")}).eq("id",admin.id);setMdl(null);msg("Bem-vindo, "+admin.nome+"!");return}
+      // Check brokers
       var bk=brokers.find(function(b){return b.email&&b.email.toLowerCase()===email&&b.senha===p});
       if(bk){setBroker(bk);setAdm(false);setCurrentUser(null);setMdl({t:"brokerDash"});msg("Bem-vindo, "+bk.nome+"!");return}
+      // Check if maybe admin_users table doesn't exist yet
+      if(adminUsers.length===0&&p===PIN){
+        setCurrentUser({id:0,nome:"Admin",email:email,role:"super_admin",permissions:{}});
+        setAdm(true);setBroker(null);setMdl(null);msg("Admin ativado (tabela admin_users pendente)");return;
+      }
       msg("E-mail ou senha incorretos");
     };
     if(mode==="choose") return <div style={{textAlign:"center"}}>
