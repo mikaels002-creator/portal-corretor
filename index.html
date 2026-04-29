@@ -578,19 +578,33 @@ function App(){
         {/* ═══ PHOTOS TAB ═══ */}
         {dtab==="photos" && <div>
           {/* Unit Filter Tabs */}
-          {units.length>0 && <div style={{display:"flex",gap:4,overflowX:"auto",marginBottom:12,paddingBottom:4}}>
-            <span className="bh" onClick={function(){setPhotoUnit("all")}} style={{flexShrink:0,padding:"7px 14px",borderRadius:10,fontSize:11,fontWeight:600,cursor:"pointer",background:photoUnit==="all"?bld.color+"18":"#111110",color:photoUnit==="all"?bld.color:"#555",border:photoUnit==="all"?"1px solid "+bld.color+"30":"1px solid rgba(255,255,255,0.03)"}}>Todas ({photos.length})</span>
-            <span className="bh" onClick={function(){setPhotoUnit("_geral")}} style={{flexShrink:0,padding:"7px 14px",borderRadius:10,fontSize:11,fontWeight:600,cursor:"pointer",background:photoUnit==="_geral"?bld.color+"18":"#111110",color:photoUnit==="_geral"?bld.color:"#555",border:photoUnit==="_geral"?"1px solid "+bld.color+"30":"1px solid rgba(255,255,255,0.03)"}}>Geral ({photos.filter(function(p){return!p.unit_id}).length})</span>
-            {units.map(function(u){
-              var count=photos.filter(function(p){return p.unit_id===u.id}).length;
-              return <span key={u.id} className="bh" onClick={function(){setPhotoUnit(u.id)}} style={{flexShrink:0,padding:"7px 14px",borderRadius:10,fontSize:11,fontWeight:600,cursor:"pointer",background:photoUnit===u.id?bld.color+"18":"#111110",color:photoUnit===u.id?bld.color:"#555",border:photoUnit===u.id?"1px solid "+bld.color+"30":"1px solid rgba(255,255,255,0.03)"}}>{u.name} {count>0?"("+count+")":""}</span>;
-            })}
-          </div>}
+          {(function(){
+            var isRepasse=bld.id==="repasse"||bld.id.indexOf("repasse")!==-1;
+            // For repasse: show ALL units. For others: show only units that have photos
+            var unitsWithPhotos=isRepasse?units:units.filter(function(u){return photos.some(function(p){return p.unit_id===u.id})});
+            var tabStyle=function(active){return{flexShrink:0,padding:"7px 14px",borderRadius:10,fontSize:11,fontWeight:600,cursor:"pointer",background:active?bld.color+"18":"#111110",color:active?bld.color:"#555",border:active?"1px solid "+bld.color+"30":"1px solid rgba(255,255,255,0.03)"}};
+            return <div>
+              <div style={{display:"flex",gap:4,overflowX:"auto",marginBottom:12,paddingBottom:4,alignItems:"center"}}>
+                <span className="bh" onClick={function(){setPhotoUnit("all")}} style={tabStyle(photoUnit==="all")}>Todas ({photos.length})</span>
+                {unitsWithPhotos.map(function(u){
+                  var count=photos.filter(function(p){return p.unit_id===u.id}).length;
+                  return <span key={u.id} className="bh" onClick={function(){setPhotoUnit(u.id)}} style={tabStyle(photoUnit===u.id)}>{u.name} {count>0?"("+count+")":""}</span>;
+                })}
+                {/* Admin: add unit tab (only for non-repasse buildings) */}
+                {adm && !isRepasse && <select onChange={function(e){if(e.target.value){setPhotoUnit(e.target.value);e.target.value=""}}} style={{flexShrink:0,padding:"7px 10px",borderRadius:10,fontSize:11,background:"#111110",color:G,border:"1px dashed rgba(200,164,92,0.2)",cursor:"pointer"}}>
+                  <option value="">＋ Aba</option>
+                  {units.filter(function(u){return!unitsWithPhotos.some(function(uw){return uw.id===u.id})}).map(function(u){
+                    return <option key={u.id} value={u.id}>{u.name}</option>;
+                  })}
+                </select>}
+              </div>
+            </div>;
+          })()}
 
           {/* Filtered Photos */}
           {(function(){
-            var filteredPhotos=photoUnit==="all"?photos:photoUnit==="_geral"?photos.filter(function(p){return!p.unit_id}):photos.filter(function(p){return p.unit_id===photoUnit});
-            var unitLabel=photoUnit==="all"?"":photoUnit==="_geral"?"Geral":(function(){var u2=units.find(function(x){return x.id===photoUnit});return u2?u2.name:""})();
+            var filteredPhotos=photoUnit==="all"?photos:photos.filter(function(p){return p.unit_id===photoUnit});
+            var unitLabel=photoUnit==="all"?"":(function(){var u2=units.find(function(x){return x.id===photoUnit});return u2?u2.name:""})();
             return <div>
               {unitLabel && <div style={{fontSize:14,fontWeight:600,color:bld.color,marginBottom:10,fontFamily:"'Cormorant Garamond',Georgia,serif"}}>{unitLabel}</div>}
               <div className="photo-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
@@ -625,8 +639,8 @@ function App(){
             </div>
             {units.length>0 && <div style={{marginBottom:10}}>
               <L>Vincular à unidade</L>
-              <select id="photoUnitSelect" style={mI}>
-                <option value="">Geral (sem unidade)</option>
+              <select id="photoUnitSelect" style={mI} defaultValue={photoUnit!=="all"?photoUnit:""}>
+                <option value="">Álbum geral</option>
                 {units.map(function(u){return <option key={u.id} value={u.id}>{u.name} — {u.area}m²</option>})}
               </select>
             </div>}
