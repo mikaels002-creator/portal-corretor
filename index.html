@@ -241,6 +241,14 @@ var DB = {
   // --- AI Reports ---
   saveReport: async function(r){await sb.from("ai_reports").insert(r)},
   loadReports: async function(){var r=await sb.from("ai_reports").select("*").order("id",{ascending:false}).limit(20);return r.data||[]},
+  // --- Tasks ---
+  loadTasks: async function(){var r=await sb.from("tasks").select("*").order("id",{ascending:false});return r.data||[]},
+  addTask: async function(t){await sb.from("tasks").insert(t)},
+  updateTask: async function(id,c){await sb.from("tasks").update(c).eq("id",id)},
+  deleteTask: async function(id){await sb.from("tasks").delete().eq("id",id)},
+  // --- Messages ---
+  loadMessages: async function(channel){var r=await sb.from("messages").select("*").eq("channel",channel).order("id",{ascending:true}).limit(200);return r.data||[]},
+  sendMessage: async function(m){await sb.from("messages").insert(m)},
 
   // --- File Upload ---
   uploadFile: function(file, folder, callback, msgFn){
@@ -306,6 +314,7 @@ function App(){
   var _sales = useState([]); var sales = _sales[0]; var setSales = _sales[1];
   var _adminUsers = useState([]); var adminUsers = _adminUsers[0]; var setAdminUsers = _adminUsers[1];
   var _currentUser = useState(null); var currentUser = _currentUser[0]; var setCurrentUser = _currentUser[1];
+  var _tasks = useState([]); var tasks = _tasks[0]; var setTasks = _tasks[1];
 
   var t = TR[lang] || TR.pt;
   var sl = lang === "es" ? sLes : sL;
@@ -328,9 +337,10 @@ function App(){
         DB.loadNotices(),
         DB.loadBrokers(),
         DB.loadSales(),
-        DB.loadAdminUsers()
+        DB.loadAdminUsers(),
+        DB.loadTasks()
       ]);
-      setCfg(results[0]);setBuildings(results[1]);setAllUnits(results[2]);setAllPhotos(results[3]);setAllPlants(results[4]);setAllDocs(results[5]);setAllNotices(results[6]);setBrokers(results[7]);setSales(results[8]);setAdminUsers(results[9]);
+      setCfg(results[0]);setBuildings(results[1]);setAllUnits(results[2]);setAllPhotos(results[3]);setAllPlants(results[4]);setAllDocs(results[5]);setAllNotices(results[6]);setBrokers(results[7]);setSales(results[8]);setAdminUsers(results[9]);setTasks(results[10]);
     } catch(e){ console.log("Load error:", e); }
     setRdy(true);
   };
@@ -401,6 +411,7 @@ function App(){
   var refreshBrokers = async function(){var d=await DB.loadBrokers();setBrokers(d)};
   var refreshSales = async function(){var d=await DB.loadSales();setSales(d)};
   var refreshAdminUsers = async function(){var d=await DB.loadAdminUsers();setAdminUsers(d)};
+  var refreshTasks = async function(){var d=await DB.loadTasks();setTasks(d)};
 
   // Permission helper
   var can = function(perm){
@@ -837,6 +848,8 @@ function App(){
           {can("manage_users") && <button className="bh ch" onClick={function(){setMdl({t:"manageUsers"})}} style={{padding:16,borderRadius:14,fontSize:13,fontWeight:500,background:"#111110",color:"#8B6FBF",border:"1px solid rgba(139,111,191,0.1)",cursor:"pointer",textAlign:"center"}}>🛡️ Equipe · {adminUsers.length}</button>}
           {can("manage_sales") && <button className="bh ch" onClick={function(){setMdl({t:"adminSales"})}} style={{padding:16,borderRadius:14,fontSize:13,fontWeight:500,background:"#111110",color:"#E8A94E",border:"1px solid rgba(232,169,78,0.1)",cursor:"pointer",textAlign:"center"}}>📋 Vendas</button>}
           <button className="bh ch" onClick={function(){setMdl({t:"aiAgent"})}} style={{padding:16,borderRadius:14,fontSize:13,fontWeight:500,background:"linear-gradient(135deg,#111110,#15131d)",color:"#8B6FBF",border:"1px solid rgba(139,111,191,0.15)",cursor:"pointer",textAlign:"center"}}>🤖 Agente IA</button>
+          <button className="bh ch" onClick={function(){setMdl({t:"taskManager"})}} style={{padding:16,borderRadius:14,fontSize:13,fontWeight:500,background:"#111110",color:"#E8A94E",border:"1px solid rgba(232,169,78,0.1)",cursor:"pointer",textAlign:"center",position:"relative"}}>📋 Tarefas {tasks.filter(function(t2){return t2.status==="pending"}).length>0?" · "+tasks.filter(function(t2){return t2.status==="pending"}).length:""}</button>
+          <button className="bh ch" onClick={function(){setMdl({t:"adminChat"})}} style={{padding:16,borderRadius:14,fontSize:13,fontWeight:500,background:"#111110",color:"#4CAF7D",border:"1px solid rgba(76,175,125,0.1)",cursor:"pointer",textAlign:"center"}}>💬 Chat Equipe</button>
         </div>
 
         {/* ═══ BUILDING MANAGEMENT ═══ */}
@@ -941,6 +954,9 @@ function App(){
     if(mdl.t==="importPdf") return <ImportPdfM/>;
     if(mdl.t==="manageUsers") return <ManageUsersM/>;
     if(mdl.t==="aiAgent") return <AIAgentM/>;
+    if(mdl.t==="taskManager") return <TaskManagerM/>;
+    if(mdl.t==="adminChat") return <AdminChatM/>;
+    if(mdl.t==="brokerChat") return <BrokerChatM/>;
     return null;
   }
 
@@ -1197,6 +1213,7 @@ function App(){
             </div>
             <div style={{display:"flex",gap:4}}>
               <button className="bh" onClick={async function(){var pw=prompt("Nova senha para "+b.nome+":");if(pw&&pw.length>=4){await sb.from("brokers").update({senha:pw}).eq("id",b.id);await refreshBrokers();msg("Senha definida!")}else if(pw){msg("Mínimo 4 caracteres")}}} style={mbtn("#5B8FD4")}>🔑 Senha</button>
+              <button className="bh" onClick={function(){setMdl({t:"brokerChat",broker:b})}} style={mbtn("#4CAF7D")}>💬 Chat</button>
               <button className="bh" onClick={async function(){await DB.deleteBroker(b.id);await refreshBrokers();msg("Removido")}} style={mbtn("#D45B5B")}>🗑️</button>
             </div>
           </div>;
@@ -1241,6 +1258,7 @@ function App(){
       </div>
 
       <button className="bh" style={mP("#4CAF7D")} onClick={function(){setMdl({t:"registerSale"})}}>＋ Registrar Venda</button>
+      <button className="bh" style={Object.assign({},mP("#5B8FD4"),{marginTop:4})} onClick={function(){setMdl({t:"brokerChat"})}}>💬 Chat com Administração</button>
 
       <div style={{fontSize:12,fontWeight:600,color:"#F0EBE3",marginTop:16,marginBottom:8}}>Minhas Vendas</div>
       <div style={{maxHeight:300,overflow:"auto"}}>
@@ -1414,6 +1432,155 @@ function App(){
             </div>
           </div>;
         })}
+      </div>
+      <button style={mC} onClick={function(){setMdl(null)}}>Fechar</button>
+    </div>;
+  }
+
+  // ═══ TASK MANAGER ═══
+  function TaskManagerM(){
+    var _tab=useState("pending");var tab=_tab[0];var setTab=_tab[1];
+    var _adding=useState(false);var adding=_adding[0];var setAdding=_adding[1];
+    var _nf=useState({title:"",description:"",assigned_to:"",priority:"normal",due_date:""});var nf=_nf[0];var setNf=_nf[1];
+    var myTasks=currentUser?tasks.filter(function(t){return t.assigned_to===currentUser.id||t.created_by===currentUser.id}):tasks;
+    var filtered=tab==="all"?myTasks:myTasks.filter(function(t){return t.status===tab});
+    var pendCount=myTasks.filter(function(t){return t.status==="pending"}).length;
+    var doingCount=myTasks.filter(function(t){return t.status==="doing"}).length;
+    var doneCount=myTasks.filter(function(t){return t.status==="done"}).length;
+    var priColors={urgent:"#D45B5B",high:"#E8A94E",normal:"#5B8FD4",low:"#555"};
+    var priLabels={urgent:"🔴 Urgente",high:"🟡 Alta",normal:"🔵 Normal",low:"⚪ Baixa"};
+    var stLabels={pending:"Pendente",doing:"Em andamento",done:"Concluída"};
+
+    if(adding) return <div><div style={mT}>＋ Nova Tarefa</div>
+      <L>Título</L><input style={mI} value={nf.title} onChange={function(e){setNf(Object.assign({},nf,{title:e.target.value}))}} placeholder="Ex: Subir fotos do Gran Vitta"/>
+      <L>Descrição</L><textarea style={Object.assign({},mI,{minHeight:60,resize:"vertical"})} value={nf.description} onChange={function(e){setNf(Object.assign({},nf,{description:e.target.value}))}} placeholder="Detalhes da tarefa..."/>
+      <L>Responsável</L>
+      <select style={mI} value={nf.assigned_to} onChange={function(e){setNf(Object.assign({},nf,{assigned_to:e.target.value?parseInt(e.target.value):""}))}}><option value="">Selecione...</option>{adminUsers.filter(function(u){return u.ativo!==false}).map(function(u){return <option key={u.id} value={u.id}>{u.nome}</option>})}</select>
+      <L>Prioridade</L>
+      <div style={{display:"flex",gap:4,marginBottom:10}}>{["low","normal","high","urgent"].map(function(p){return <span key={p} className="bh" onClick={function(){setNf(Object.assign({},nf,{priority:p}))}} style={{padding:"6px 12px",borderRadius:8,fontSize:11,fontWeight:600,cursor:"pointer",background:nf.priority===p?priColors[p]+"20":"#111110",color:nf.priority===p?priColors[p]:"#555"}}>{priLabels[p]}</span>})}</div>
+      <L>Prazo</L><input style={mI} type="date" value={nf.due_date} onChange={function(e){setNf(Object.assign({},nf,{due_date:e.target.value}))}}/>
+      <button className="bh" style={mP("#4CAF7D")} onClick={async function(){
+        if(!nf.title.trim()){msg("Título obrigatório");return}
+        await DB.addTask({title:nf.title,description:nf.description,assigned_to:nf.assigned_to||null,created_by:currentUser?currentUser.id:null,priority:nf.priority,status:"pending",due_date:nf.due_date});
+        await refreshTasks();setAdding(false);setNf({title:"",description:"",assigned_to:"",priority:"normal",due_date:""});msg("Tarefa criada!");
+      }}>Criar Tarefa</button>
+      <button style={mC} onClick={function(){setAdding(false)}}>Cancelar</button>
+    </div>;
+
+    return <div>
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+        <div style={{width:44,height:44,borderRadius:14,background:"linear-gradient(135deg,#E8A94E20,#E8A94E08)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>📋</div>
+        <div><div style={{fontSize:18,fontWeight:600,fontFamily:"'Cormorant Garamond',Georgia,serif"}}>Tarefas</div><div style={{fontSize:10,color:"#555"}}>{pendCount} pendentes · {doingCount} em andamento · {doneCount} concluídas</div></div>
+      </div>
+      <button className="bh" style={Object.assign({},mP("#4CAF7D"),{marginBottom:12})} onClick={function(){setAdding(true)}}>＋ Nova Tarefa</button>
+      <div style={{display:"flex",gap:4,marginBottom:12}}>
+        {[{v:"pending",l:"Pendentes ("+pendCount+")"},{v:"doing",l:"Andamento ("+doingCount+")"},{v:"done",l:"Concluídas ("+doneCount+")"},{v:"all",l:"Todas"}].map(function(f){
+          return <span key={f.v} className="bh" onClick={function(){setTab(f.v)}} style={{padding:"5px 10px",borderRadius:8,fontSize:10,fontWeight:600,cursor:"pointer",background:tab===f.v?G+"18":"#111110",color:tab===f.v?G:"#555"}}>{f.l}</span>;
+        })}
+      </div>
+      <div style={{maxHeight:400,overflow:"auto"}}>
+        {filtered.length===0&&<div style={{textAlign:"center",padding:20,color:"#555"}}>Nenhuma tarefa</div>}
+        {filtered.map(function(t2){
+          var assignee=adminUsers.find(function(u){return u.id===t2.assigned_to});
+          var creator=adminUsers.find(function(u){return u.id===t2.created_by});
+          var overdue=t2.due_date&&t2.status!=="done"&&new Date(t2.due_date)<new Date();
+          return <div key={t2.id} style={{padding:14,background:"#111110",borderRadius:12,marginBottom:8,border:"1px solid rgba(255,255,255,0.03)",borderLeft:"3px solid "+(priColors[t2.priority]||"#555"),opacity:t2.status==="done"?0.5:1}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+              <span style={{fontSize:13,fontWeight:600,textDecoration:t2.status==="done"?"line-through":"none"}}>{t2.title}</span>
+              <span style={{fontSize:9,fontWeight:600,color:priColors[t2.priority],padding:"2px 6px",background:priColors[t2.priority]+"12",borderRadius:4}}>{priLabels[t2.priority]}</span>
+            </div>
+            {t2.description&&<div style={{fontSize:11,color:"#999",marginBottom:6,lineHeight:1.5}}>{t2.description}</div>}
+            <div style={{display:"flex",gap:8,fontSize:10,color:"#555",marginBottom:8,flexWrap:"wrap"}}>
+              {assignee&&<span>👤 {assignee.nome}</span>}
+              {creator&&<span>📝 {creator.nome}</span>}
+              {t2.due_date&&<span style={{color:overdue?"#D45B5B":"#555"}}>{overdue?"⚠️ ":""}📅 {t2.due_date}</span>}
+            </div>
+            <div style={{display:"flex",gap:4}}>
+              {t2.status==="pending"&&<button className="bh" onClick={async function(){await DB.updateTask(t2.id,{status:"doing"});await refreshTasks();msg("Iniciada!")}} style={mbtn("#E8A94E")}>▶ Iniciar</button>}
+              {t2.status==="doing"&&<button className="bh" onClick={async function(){await DB.updateTask(t2.id,{status:"done",completed_at:new Date().toLocaleDateString("pt-BR")});await refreshTasks();msg("Concluída!")}} style={mbtn("#4CAF7D")}>✅ Concluir</button>}
+              {t2.status==="done"&&<button className="bh" onClick={async function(){await DB.updateTask(t2.id,{status:"pending",completed_at:""});await refreshTasks()}} style={mbtn("#5B8FD4")}>↩ Reabrir</button>}
+              <button className="bh" onClick={async function(){if(confirm("Excluir tarefa?")){await DB.deleteTask(t2.id);await refreshTasks();msg("Removida")}}} style={mbtn("#D45B5B")}>🗑️</button>
+            </div>
+          </div>;
+        })}
+      </div>
+      <button style={mC} onClick={function(){setMdl(null)}}>Fechar</button>
+    </div>;
+  }
+
+  // ═══ ADMIN CHAT ═══
+  function AdminChatM(){
+    var _msgs=useState([]);var msgs=_msgs[0];var setMsgs=_msgs[1];
+    var _text=useState("");var text=_text[0];var setText=_text[1];
+    var _loading=useState(true);var loading=_loading[0];var setLoading=_loading[1];
+    var channel="admin_team";
+    var loadMsgs=async function(){var d=await DB.loadMessages(channel);setMsgs(d);setLoading(false)};
+    useEffect(function(){loadMsgs();var iv=setInterval(loadMsgs,5000);return function(){clearInterval(iv)}},[]);
+    var send=async function(){
+      if(!text.trim()||!currentUser)return;
+      await DB.sendMessage({channel:channel,sender_type:"admin",sender_id:currentUser.id,sender_name:currentUser.nome,text:text.trim()});
+      setText("");await loadMsgs();
+    };
+    return <div>
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+        <div style={{width:44,height:44,borderRadius:14,background:"linear-gradient(135deg,#4CAF7D20,#4CAF7D08)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>💬</div>
+        <div><div style={{fontSize:18,fontWeight:600,fontFamily:"'Cormorant Garamond',Georgia,serif"}}>Chat da Equipe</div><div style={{fontSize:10,color:"#555"}}>{adminUsers.filter(function(u){return u.ativo!==false}).length} membros · atualiza a cada 5s</div></div>
+      </div>
+      <div style={{background:"#0d0d0c",borderRadius:14,padding:12,height:350,overflow:"auto",marginBottom:12,border:"1px solid rgba(255,255,255,0.03)"}} id="adminChatBox">
+        {loading&&<div style={{textAlign:"center",padding:20,color:"#555"}}>Carregando...</div>}
+        {msgs.map(function(m){
+          var isMe=currentUser&&m.sender_id===currentUser.id;
+          return <div key={m.id} style={{display:"flex",flexDirection:"column",alignItems:isMe?"flex-end":"flex-start",marginBottom:8}}>
+            <div style={{fontSize:9,color:"#555",marginBottom:2}}>{m.sender_name} · {new Date(m.created_at).toLocaleString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</div>
+            <div style={{maxWidth:"80%",padding:"10px 14px",borderRadius:isMe?"14px 14px 4px 14px":"14px 14px 14px 4px",background:isMe?G+"20":"#1a1a19",color:isMe?"#F0EBE3":"#ccc",fontSize:13,lineHeight:1.5}}>{m.text}</div>
+          </div>;
+        })}
+      </div>
+      <div style={{display:"flex",gap:6}}>
+        <input style={Object.assign({},mI,{flex:1,marginBottom:0})} value={text} onChange={function(e){setText(e.target.value)}} onKeyDown={function(e){if(e.key==="Enter")send()}} placeholder="Digite sua mensagem..."/>
+        <button className="bh" onClick={send} style={{padding:"12px 16px",borderRadius:10,background:G,color:"#0a0a09",border:"none",fontSize:14,fontWeight:600,cursor:"pointer"}}>→</button>
+      </div>
+      <button style={mC} onClick={function(){setMdl(null)}}>Fechar</button>
+    </div>;
+  }
+
+  // ═══ BROKER CHAT ═══
+  function BrokerChatM(){
+    var _msgs=useState([]);var msgs=_msgs[0];var setMsgs=_msgs[1];
+    var _text=useState("");var text=_text[0];var setText=_text[1];
+    var _loading=useState(true);var loading=_loading[0];var setLoading=_loading[1];
+    var bk=mdl.broker||broker;
+    if(!bk) return <div>Faça login primeiro</div>;
+    var channel="broker_"+bk.id;
+    var loadMsgs=async function(){var d=await DB.loadMessages(channel);setMsgs(d);setLoading(false)};
+    useEffect(function(){loadMsgs();var iv=setInterval(loadMsgs,5000);return function(){clearInterval(iv)}},[]);
+    var send=async function(){
+      if(!text.trim())return;
+      var sType=adm?"admin":"broker";
+      var sId=adm&&currentUser?currentUser.id:bk.id;
+      var sName=adm&&currentUser?currentUser.nome:bk.nome;
+      await DB.sendMessage({channel:channel,sender_type:sType,sender_id:sId,sender_name:sName,text:text.trim()});
+      setText("");await loadMsgs();
+    };
+    return <div>
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+        <div style={{width:44,height:44,borderRadius:14,background:"linear-gradient(135deg,#5B8FD420,#5B8FD408)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>💬</div>
+        <div><div style={{fontSize:18,fontWeight:600,fontFamily:"'Cormorant Garamond',Georgia,serif"}}>{adm?"Chat com "+bk.nome:"Chat com Administração"}</div><div style={{fontSize:10,color:"#555"}}>Atualiza a cada 5s</div></div>
+      </div>
+      <div style={{background:"#0d0d0c",borderRadius:14,padding:12,height:350,overflow:"auto",marginBottom:12,border:"1px solid rgba(255,255,255,0.03)"}}>
+        {loading&&<div style={{textAlign:"center",padding:20,color:"#555"}}>Carregando...</div>}
+        {msgs.length===0&&!loading&&<div style={{textAlign:"center",padding:30,color:"#555"}}>Nenhuma mensagem ainda. Diga olá!</div>}
+        {msgs.map(function(m){
+          var isMe=(adm&&currentUser&&m.sender_id===currentUser.id&&m.sender_type==="admin")||(!adm&&m.sender_type==="broker"&&m.sender_id===bk.id);
+          return <div key={m.id} style={{display:"flex",flexDirection:"column",alignItems:isMe?"flex-end":"flex-start",marginBottom:8}}>
+            <div style={{fontSize:9,color:"#555",marginBottom:2}}>{m.sender_name} · {new Date(m.created_at).toLocaleString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</div>
+            <div style={{maxWidth:"80%",padding:"10px 14px",borderRadius:isMe?"14px 14px 4px 14px":"14px 14px 14px 4px",background:isMe?(m.sender_type==="admin"?G+"20":"#1a3a5a"):"#1a1a19",color:"#F0EBE3",fontSize:13,lineHeight:1.5}}>{m.text}</div>
+          </div>;
+        })}
+      </div>
+      <div style={{display:"flex",gap:6}}>
+        <input style={Object.assign({},mI,{flex:1,marginBottom:0})} value={text} onChange={function(e){setText(e.target.value)}} onKeyDown={function(e){if(e.key==="Enter")send()}} placeholder="Digite sua mensagem..."/>
+        <button className="bh" onClick={send} style={{padding:"12px 16px",borderRadius:10,background:"#5B8FD4",color:"#fff",border:"none",fontSize:14,fontWeight:600,cursor:"pointer"}}>→</button>
       </div>
       <button style={mC} onClick={function(){setMdl(null)}}>Fechar</button>
     </div>;
