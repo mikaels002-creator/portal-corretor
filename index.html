@@ -1464,44 +1464,148 @@ function App(){
     };
 
     // AI Analysis
-    var runAI=async function(prompt){
+    var runAI=function(type){
       setLoading(true);setAiResp("");
-      try{
-        var context="Portal do Corretor - MK Realty.\n";
-        context+="Empreendimentos: "+buildings.length+"\n";
-        buildings.forEach(function(b){
-          var u=getUnits(b.id);var p=getPhotos(b.id);
+      setTimeout(function(){
+        var r="";
+        var bldData=buildings.map(function(b){
+          var u=getUnits(b.id);var p=getPhotos(b.id);var pl=getPlants(b.id);var dc=getDocs(b.id);
           var av=u.filter(function(x){return x.status==="available"}).length;
           var rs=u.filter(function(x){return x.status==="reserved"}).length;
           var sd=u.filter(function(x){return x.status==="sold"}).length;
           var vgv=u.reduce(function(s,x){return s+cp(x,b)},0);
-          context+=b.name+": "+u.length+" un. ("+av+" disp, "+rs+" res, "+sd+" vend), VGV "+fmt(vgv)+", "+p.length+" fotos, obra "+b.construction_pct+"%\n";
+          var avgPrice=av>0?Math.round(u.filter(function(x){return x.status==="available"&&x.base_price>0}).reduce(function(s,x){return s+cp(x,b)},0)/Math.max(1,av)):0;
+          var avgM2=av>0&&avgPrice>0?Math.round(avgPrice/Math.max(1,u.filter(function(x){return x.status==="available"}).reduce(function(s,x){return s+x.area},0)/av)):0;
+          var pctSold=u.length>0?Math.round((sd+rs)/u.length*100):0;
+          return{b:b,u:u,p:p,pl:pl,dc:dc,av:av,rs:rs,sd:sd,vgv:vgv,avgPrice:avgPrice,avgM2:avgM2,pctSold:pctSold};
         });
-        context+="Corretores: "+brokers.length+"\n";
-        context+="Vendas registradas: "+sales.length+" ("+sales.filter(function(s){return s.status==="confirmed"}).length+" confirmadas)\n";
-        context+="Analytics 30 dias: "+analytics.length+" eventos, "+summary.views+" page views, "+summary.sims+" simulações, "+summary.waSh+" WhatsApp shares\n";
-        context+="CUB/SC: "+cfg.cub_sc+"\n";
+        var totalU=allUnits.length;var totalAv=bldData.reduce(function(s,d){return s+d.av},0);var totalRs=bldData.reduce(function(s,d){return s+d.rs},0);var totalSd=bldData.reduce(function(s,d){return s+d.sd},0);var totalVgv=bldData.reduce(function(s,d){return s+d.vgv},0);
 
-        var response=await fetch("https://api.anthropic.com/v1/messages",{
-          method:"POST",
-          headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({
-            model:"claude-sonnet-4-20250514",
-            max_tokens:1500,
-            messages:[{role:"user",content:prompt+"\n\nDados do portal:\n"+context}],
-            system:"Você é o Agente IA do Portal do Corretor MK Realty. Responda em português brasileiro. Seja direto, objetivo e dê sugestões práticas. Use emojis para destacar pontos. Formate com parágrafos curtos."
-          })
-        });
-        var data=await response.json();
-        var text=(data.content||[]).filter(function(c){return c.type==="text"}).map(function(c){return c.text}).join("\n");
-        setAiResp(text||"Sem resposta da IA");
-        // Save report
-        await DB.saveReport({report_type:prompt.substring(0,50),content:text,score:health?health.score:0});
+        if(type==="full"){
+          r+="📊 ANÁLISE COMPLETA DO PORTAL\n";
+          r+="━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
+          r+="🏢 "+buildings.length+" empreendimentos · "+totalU+" unidades\n";
+          r+="✅ "+totalAv+" disponíveis · ⏳ "+totalRs+" reservadas · 🔑 "+totalSd+" vendidas\n";
+          r+="💰 VGV Total: "+fmt(totalVgv)+"\n";
+          r+="📈 Taxa de comercialização: "+Math.round((totalSd+totalRs)/Math.max(1,totalU)*100)+"%\n\n";
+          r+="📊 POR EMPREENDIMENTO:\n";
+          bldData.forEach(function(d){
+            r+="\n"+d.b.emoji+" "+d.b.name+"\n";
+            r+="   "+d.u.length+" un. | "+d.pctSold+"% comercializado | VGV "+fmt(d.vgv)+"\n";
+            r+="   📸 "+d.p.length+" fotos | 📐 "+d.pl.length+" plantas | 📄 "+d.dc.length+" docs\n";
+            if(d.av>0) r+="   💰 Preço médio: "+fmt(d.avgPrice)+" ("+fmt(d.avgM2)+"/m²)\n";
+          });
+          r+="\n🎯 PONTOS DE ATENÇÃO:\n";
+          bldData.forEach(function(d){
+            if(d.p.length===0) r+="⚠️ "+d.b.name+": sem fotos — fotos aumentam conversão em até 3x\n";
+            if(d.pl.length===0) r+="💡 "+d.b.name+": sem plantas — corretores precisam de plantas para apresentar\n";
+            if(d.av>0&&d.avgPrice===0) r+="❌ "+d.b.name+": unidades disponíveis sem preço!\n";
+          });
+          if(brokers.length===0) r+="⚠️ Nenhum corretor cadastrado — ative o cadastro de corretores\n";
+          if(summary.sims===0) r+="💡 Nenhuma simulação feita — verifique se o botão Simular está visível\n";
+        }
+
+        if(type==="prices"){
+          r+="💰 ANÁLISE DE PREÇOS E MERCADO\n";
+          r+="━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
+          r+="📊 CUB/SC atual: R$ "+fmtBR(parseBR(cfg.cub_sc||"0"))+"\n\n";
+          var allPricesM2=[];
+          bldData.forEach(function(d){
+            if(d.av===0||d.avgM2===0)return;
+            allPricesM2.push({name:d.b.name,m2:d.avgM2,avg:d.avgPrice});
+            r+=d.b.emoji+" "+d.b.name+":\n";
+            r+="   R$/m² médio: "+fmt(d.avgM2)+"\n";
+            r+="   Preço médio: "+fmt(d.avgPrice)+"\n";
+            r+="   Faixa: "+fmt(Math.min.apply(null,d.u.filter(function(x){return x.status==="available"&&x.base_price>0}).map(function(x){return cp(x,d.b)})))+" a "+fmt(Math.max.apply(null,d.u.filter(function(x){return x.status==="available"&&x.base_price>0}).map(function(x){return cp(x,d.b)})))+"\n\n";
+          });
+          if(allPricesM2.length>1){
+            allPricesM2.sort(function(a,b){return b.m2-a.m2});
+            r+="📈 RANKING R$/m² (mais caro → mais acessível):\n";
+            allPricesM2.forEach(function(p,i){r+=(i+1)+". "+p.name+": "+fmt(p.m2)+"/m²\n"});
+          }
+          r+="\n💡 SUGESTÕES:\n";
+          r+="• Compare seus preços com o CUB/SC — o R$/m² ideal no litoral de SC está entre 8-15x o CUB\n";
+          r+="• Unidades menores (studios) geralmente têm R$/m² mais alto\n";
+          r+="• Considere descontos progressivos para as últimas unidades\n";
+        }
+
+        if(type==="sales"){
+          r+="📈 RELATÓRIO DE PERFORMANCE\n";
+          r+="━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
+          r+="📊 Visão Geral (30 dias):\n";
+          r+="   👁️ "+summary.views+" visitas ao portal\n";
+          r+="   🏢 "+summary.bldViews+" acessos a empreendimentos\n";
+          r+="   🏦 "+summary.sims+" simulações de financiamento\n";
+          r+="   📱 "+summary.waSh+" compartilhamentos WhatsApp\n";
+          r+="   🖨️ "+summary.pdfEx+" exports PDF | 📊 "+summary.xlsEx+" exports Excel\n\n";
+          var convRate=summary.views>0?((summary.sims/summary.views)*100).toFixed(1):"0";
+          r+="📈 Taxa de conversão (visita → simulação): "+convRate+"%\n";
+          r+="📱 Taxa de compartilhamento: "+(summary.views>0?((summary.waSh/summary.views)*100).toFixed(1):"0")+"%\n\n";
+          r+="🏢 COMERCIALIZAÇÃO:\n";
+          bldData.sort(function(a,b){return b.pctSold-a.pctSold});
+          bldData.forEach(function(d){
+            var bar="";for(var i=0;i<10;i++)bar+=i<Math.round(d.pctSold/10)?"█":"░";
+            r+=bar+" "+d.pctSold+"% "+d.b.name+" ("+d.sd+" vend. "+d.rs+" res. "+d.av+" disp.)\n";
+          });
+          r+="\n💡 SUGESTÕES:\n";
+          if(summary.sims<summary.views*0.05) r+="⚠️ Poucos usam o simulador — destaque mais o botão Simular\n";
+          if(summary.waSh<summary.sims*0.3) r+="⚠️ Poucos compartilham via WhatsApp — torne o botão mais visível\n";
+          if(brokers.length<5) r+="💡 Cadastre mais corretores — o portal tem apenas "+brokers.length+"\n";
+        }
+
+        if(type==="marketing"){
+          r+="🎯 SUGESTÕES DE MARKETING\n";
+          r+="━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
+          r+="📸 CONTEÚDO VISUAL:\n";
+          bldData.forEach(function(d){
+            if(d.p.length<5) r+="⚠️ "+d.b.name+": apenas "+d.p.length+" fotos — ideal: 10-20 fotos por empreendimento\n";
+            if(d.pl.length===0) r+="📐 "+d.b.name+": sem plantas — essencial para o corretor apresentar\n";
+            if(d.dc.length===0) r+="📄 "+d.b.name+": sem documentos — adicione book de vendas, memorial descritivo\n";
+          });
+          r+="\n📋 MATERIAIS SUGERIDOS:\n";
+          r+="• Book de vendas em PDF para cada empreendimento\n";
+          r+="• Vídeo de tour virtual (pode ser link do YouTube)\n";
+          r+="• Planta humanizada de cada tipologia\n";
+          r+="• Tabela de acabamentos\n";
+          r+="• Perspectivas artísticas da fachada\n";
+          r+="• Fotos da evolução da obra (atualizar mensalmente)\n\n";
+          r+="📱 DICAS DE ENGAJAMENTO:\n";
+          r+="• Publique atualizações de obra mensais nos Avisos\n";
+          r+="• Envie novidades pelo WhatsApp para corretores cadastrados\n";
+          r+="• Crie campanhas de vendas com metas e premiações\n";
+          r+="• Use o sistema de vendas para rankear corretores\n";
+        }
+
+        if(type==="status"){
+          r+="🏗️ STATUS DOS EMPREENDIMENTOS\n";
+          r+="━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
+          bldData.forEach(function(d){
+            r+=d.b.emoji+" "+d.b.name.toUpperCase()+"\n";
+            r+="━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+            r+="📍 "+d.b.subtitle+"\n";
+            r+="🏗️ Obra: "+d.b.construction_pct+"% "+(d.b.status==="ready"?"✅ PRONTO":"⏳ EM CONSTRUÇÃO")+"\n";
+            r+="📊 "+d.u.length+" un. total | ✅ "+d.av+" disp. | ⏳ "+d.rs+" res. | 🔑 "+d.sd+" vend.\n";
+            r+="📈 "+d.pctSold+"% comercializado\n";
+            r+="💰 VGV: "+fmt(d.vgv)+"\n";
+            r+="📈 CUB: "+fmt(d.b.cub_current)+" (base: "+fmt(d.b.cub_base)+", var: "+((d.b.cub_current/d.b.cub_base-1)*100).toFixed(2)+"%)\n";
+            if(d.av>0){
+              var veloc=d.u.length>0&&d.pctSold>0?Math.round(d.u.length/Math.max(1,d.pctSold)*100*30/365):"?";
+              r+="⏱️ Estimativa de esgotamento: ~"+veloc+" meses (se manter ritmo)\n";
+            }
+            r+="\n";
+          });
+          r+="💡 PRIORIDADES:\n";
+          var lowStock=bldData.filter(function(d){return d.av>0&&d.av<=3&&d.u.length>5});
+          if(lowStock.length>0) lowStock.forEach(function(d){r+="🔥 "+d.b.name+": apenas "+d.av+" unidades restantes! Últimas oportunidades.\n"});
+          var noProgress=bldData.filter(function(d){return d.b.status==="construction"&&d.b.construction_pct===0});
+          if(noProgress.length>0) noProgress.forEach(function(d){r+="⚠️ "+d.b.name+": obra em 0% — atualize o andamento\n"});
+        }
+
+        setAiResp(r);
+        DB.saveReport({report_type:type,content:r,score:health?health.score:0});
         DB.loadReports().then(setReports);
-      }catch(e){
-        setAiResp("Erro ao consultar IA: "+e.message);
-      }
-      setLoading(false);
+        setLoading(false);
+      },800);
     };
 
     var scoreColor=function(s){return s>=80?"#4CAF7D":s>=50?"#E8A94E":"#D45B5B"};
@@ -1586,11 +1690,11 @@ function App(){
       {tab==="ai"&&<div>
         <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:14}}>
           {[
-            {l:"📊 Análise completa do portal",p:"Faça uma análise completa do portal: vendas, preços, ocupação, performance. Identifique pontos fortes e fracos. Dê 5 sugestões práticas de melhoria."},
-            {l:"💰 Análise de preços e mercado",p:"Analise os preços dos empreendimentos, compare R$/m², identifique oportunidades. Sugira estratégias de precificação."},
-            {l:"📈 Relatório de performance de vendas",p:"Gere um relatório de performance: taxa de conversão, empreendimentos mais vendidos, velocidade de vendas. Compare os empreendimentos entre si."},
-            {l:"🎯 Sugestões de marketing e conteúdo",p:"Sugira melhorias de marketing: fotos que faltam, descrições a melhorar, materiais a criar. Como atrair mais corretores e compradores?"},
-            {l:"🏗️ Status dos empreendimentos",p:"Analise o status de cada empreendimento: andamento de obra, unidades disponíveis, previsão de esgotamento. O que priorizar?"}
+            {l:"📊 Análise completa do portal",p:"full"},
+            {l:"💰 Análise de preços e mercado",p:"prices"},
+            {l:"📈 Relatório de performance de vendas",p:"sales"},
+            {l:"🎯 Sugestões de marketing e conteúdo",p:"marketing"},
+            {l:"🏗️ Status dos empreendimentos",p:"status"}
           ].map(function(opt){
             return <button key={opt.l} className="bh" onClick={function(){runAI(opt.p)}} disabled={loading} style={{padding:"12px 14px",borderRadius:10,fontSize:12,fontWeight:500,background:"#111110",color:"#F0EBE3",border:"1px solid rgba(255,255,255,0.04)",cursor:loading?"wait":"pointer",textAlign:"left"}}>{opt.l}</button>;
           })}
