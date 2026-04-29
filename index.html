@@ -349,16 +349,16 @@ function App(){
           }
           window._pollData.taskCount=cnt;
         }
-        // Messages for admin
+        // Messages for admin - get latest NOT from me
         if(uid){
-          var mr=await sb.from("messages").select("id,sender_id,sender_name,text,channel").order("id",{ascending:false}).limit(1);
+          var mr=await sb.from("messages").select("id,sender_id,sender_name,text,channel").neq("sender_id",uid).order("id",{ascending:false}).limit(1);
           if(mr.data&&mr.data.length>0){
             var m=mr.data[0];
-            var isForMe=m.channel==="admin_team"||m.channel==="dm_"+uid;
-            if(window._pollData.ready&&isForMe&&m.id!==window._pollData.msgId&&m.sender_id!==uid){
+            var isForMe=m.channel==="admin_team"||m.channel==="dm_"+uid||m.channel.indexOf("broker_")===0;
+            if(window._pollData.ready&&isForMe&&m.id!==window._pollData.msgId){
               addNotif("💬 "+m.sender_name+": "+(m.text||"").substring(0,50),"chat",function(){setMiniChat({channel:m.channel,title:m.sender_name})});
             }
-            window._pollData.msgId=m.id;
+            if(isForMe) window._pollData.msgId=m.id;
           }
         }
         // Messages for broker
