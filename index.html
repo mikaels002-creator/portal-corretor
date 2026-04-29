@@ -123,8 +123,8 @@ var DB = {
     var res = await sb.from("buildings").select("*").order("sort_order");
     return res.data || [];
   },
-  saveBuilding: async function(b){
-    await sb.from("buildings").upsert(b);
+  insertBuilding: async function(b){
+    var r=await sb.from("buildings").insert(b);if(r.error)console.log("insert error:",r.error);return r;
   },
   deleteBuilding: async function(id){
     await sb.from("buildings").delete().eq("id", id);
@@ -141,8 +141,8 @@ var DB = {
     var res = await sb.from("units").select("*").order("sort_order");
     return res.data || [];
   },
-  saveUnit: async function(u){
-    await sb.from("units").upsert(u);
+  insertUnit: async function(u){
+    var r=await sb.from("units").insert(u);if(r.error)console.log("insert error:",r.error);return r;
   },
   deleteUnit: async function(id){
     await sb.from("units").delete().eq("id", id);
@@ -963,7 +963,7 @@ function App(){
       </select>
       <button style={mP(G)} onClick={async function(){
         var hist=(u.history||[]).concat([{date:new Date().toLocaleDateString("pt-BR"),from:mdl.u.status,to:u.status,price:u.base_price}]);
-        await DB.saveUnit(Object.assign({},u,{history:JSON.stringify(hist)}));
+        await sb.from("units").update({name:u.name,base_price:u.base_price,area:u.area,status:u.status,history:hist}).eq("id",u.id);
         await refreshUnits();setMdl(null);msg("Salvo!");
       }}>Salvar</button><button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
     </div>;
@@ -977,7 +977,7 @@ function App(){
       <L>Preço Base (R$)</L><input style={mI} type="number" value={u.base_price||""} onChange={function(e){setU(Object.assign({},u,{base_price:+e.target.value}))}}/>
       <button style={mP("#4CAF7D")} onClick={async function(){
         if(!u.name.trim()){msg("Nome obrigatório");return}
-        await DB.saveUnit(Object.assign({},u,{id:mdl.bid+"-"+Date.now(),building_id:mdl.bid,history:"[]"}));
+        await DB.insertUnit(Object.assign({},u,{id:mdl.bid+"-"+Date.now(),building_id:mdl.bid,history:"[]"}));
         await refreshUnits();setMdl(null);msg("Adicionada!");
       }}>Adicionar</button><button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
     </div>;
@@ -1029,7 +1029,7 @@ function App(){
       <button style={mP("#4CAF7D")} onClick={async function(){
         if(!f.name.trim()){msg("Nome obrigatório");return}
         var id=f.name.toLowerCase().replace(/[^a-z0-9]/g,"-").replace(/-+/g,"-");
-        await DB.saveBuilding(Object.assign({},f,{id:id,gradient:"linear-gradient(135deg,"+f.color+"40,"+f.color+"80)",active:true,construction_pct:f.status==="ready"?100:0,construction_history:[],cub_base:parseBR(cfg.cub_sc||"3028.45"),cub_current:parseBR(cfg.cub_sc||"3028.45"),cub_history:[],cover_photo:"",financing:{},sort_order:buildings.length}));
+        await DB.insertBuilding(Object.assign({},f,{id:id,gradient:"linear-gradient(135deg,"+f.color+"40,"+f.color+"80)",active:true,construction_pct:f.status==="ready"?100:0,construction_history:[],cub_base:parseBR(cfg.cub_sc||"3028.45"),cub_current:parseBR(cfg.cub_sc||"3028.45"),cub_history:[],cover_photo:"",financing:{},sort_order:buildings.length}));
         await refreshBuildings();setMdl(null);msg("Criado!");
       }}>Criar</button><button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
     </div>;
@@ -1532,7 +1532,7 @@ function App(){
         for(var i=0;i<toImport.length;i++){
           var u=toImport[i];
           setProgress("Salvando "+(i+1)+" de "+toImport.length+"...");
-          await DB.saveUnit({id:bid+"-"+Date.now()+"-"+i,building_id:bid,name:u.name,area:u.area,base_price:u.price,status:"available",history:"[]",sort_order:i});
+          await DB.insertUnit({id:bid+"-"+Date.now()+"-"+i,building_id:bid,name:u.name,area:u.area,base_price:u.price,status:"available",history:"[]",sort_order:i});
         }
         await refreshUnits();setLoading(false);setMdl(null);
         msg(toImport.length+" unidades importadas com sucesso!");
