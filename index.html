@@ -1428,31 +1428,83 @@ function App(){
         // Parse the text
         var lines=allText.split("\n").filter(function(l){return l.trim().length>3});
         var units=[];
-        // Clean text: remove pipes, collapse spaces
-        var fullText=allText.replace(/\|/g," ").replace(/\n/g," ").replace(/\s+/g," ");
-        // Regex: unit_number [- Type] area1 area2 (VENDIDO|RESERVADO|R$ price)
-        // area1 can be integer or decimal (e.g. "35" or "40,96")
-        // area2 is always decimal (e.g. "67,3196")
-        var unitRegex=new RegExp("(\\d{3,4})(?:\\s*-\\s*(Master|Luxo|Superior|Standard|Studio|Loja|Sala|Ap\\w*))?\\s+(\\d+(?:[.,]\\d+)?)\\s+(\\d+[.,]\\d+)\\s+(VENDIDO|VENDIDA|RESERVADO|RESERVADA|INDISPON\\w*|R\\$\\s*[\\d.,]+)","gi");
-        var match;
-        while((match=unitRegex.exec(fullText))!==null){
-          var num=match[1];
-          var tipo=match[2]?(num+" - "+match[2]):num;
-          var areaPriv=parseFloat(match[3].replace(",","."));
-          var areaTotal=parseFloat(match[4].replace(",","."));
-          var rawStatus=match[5].trim();
-          var area=areaTotal>areaPriv?areaTotal:areaPriv;
-          var status="available";
-          var price=0;
-          if(/vendid/i.test(rawStatus)) status="sold";
-          else if(/reserv/i.test(rawStatus)) status="reserved";
-          else if(/indispon/i.test(rawStatus)) status="sold";
-          else if(/R\$/i.test(rawStatus)){
-            price=parseFloat(rawStatus.replace(/R\$\s*/,"").replace(/\./g,"").replace(",","."))||0;
+        var pdfLines=allText.split("\n");
+        var lastAreaNums=[];
+
+        pdfLines.forEach(function(line){
+          var parts=line.split("|").map(function(p){return p.trim()}).filter(function(p){return p.length>0});
+          if(parts.length<1)return;
+
+          // Find unit names (3-4 digit numbers, optionally "- Type")
+          var unitEntries=[];
+          parts.forEach(function(p,idx){
+            if(/^\d{3,4}(\s*-\s*(Master|Luxo|Superior|Standard|Studio|Loja|Sala|Ap\w*))?$/.test(p)){
+              unitEntries.push({idx:idx,name:p});
+            }
+          });
+
+          // If NO units found, extract area numbers for next line
+          if(unitEntries.length===0){
+            var nums=[];
+            parts.forEach(function(p){
+              var m=p.match(/^(\d+[.,]\d+)$/);
+              if(m){var v=parseFloat(m[1].replace(",","."));if(v>5&&v<500)nums.push(v)}
+              else{var m2=p.match(/^(\d{2})$/);if(m2){var v2=parseInt(m2[1]);if(v2>=15&&v2<=99)nums.push(v2)}}
+            });
+            if(nums.length>=2) lastAreaNums=nums;
+            return;
           }
-          var dup=units.find(function(u){return u.name===tipo});
-          if(!dup) units.push({name:tipo,area:area,price:price,status:status,include:true});
-        }
+
+          // Process each unit on this line
+          unitEntries.forEach(function(entry,uiIdx){
+            var name=entry.name;
+            var nextIdx=uiIdx<unitEntries.length-1?unitEntries[uiIdx+1].idx:parts.length;
+            var segment=parts.slice(entry.idx+1,nextIdx);
+
+            var area=0;var price=0;var status="available";
+            var inlineAreas=[];
+
+            segment.forEach(function(s){
+              if(/^vendid/i.test(s)){status="sold";return}
+              if(/^reserv/i.test(s)){status="reserved";return}
+              if(/^indispon/i.test(s)){status="sold";return}
+              if(/^R\$/.test(s)){
+                var pv=parseFloat(s.replace(/R\$\s*/,"").replace(/\./g,"").replace(",","."));
+                if(pv>10000) price=pv;
+                return;
+              }
+              var numM=s.match(/^(\d+[.,]?\d*)$/);
+              if(numM){
+                var v=parseFloat(numM[1].replace(",","."));
+                if(v>5&&v<500) inlineAreas.push(v);
+              }
+            });
+
+            // Use inline areas if available (take largest = m² total)
+            if(inlineAreas.length>=1){
+              area=Math.max.apply(null,inlineAreas);
+            }
+
+            // If no inline area, use from previous area line
+            if(area===0&&lastAreaNums.length>0){
+              var pairIdx=uiIdx*2;
+              if(pairIdx+1<lastAreaNums.length){
+                area=Math.max(lastAreaNums[pairIdx],lastAreaNums[pairIdx+1]);
+              }else if(pairIdx<lastAreaNums.length){
+                area=lastAreaNums[pairIdx];
+              }
+            }
+
+            if(area>0||price>0||status!=="available"){
+              var dup=units.find(function(u){return u.name===name});
+              if(!dup) units.push({name:name,area:area,price:price,status:status,include:true});
+            }
+          });
+
+          // Clear area cache after using
+          lastAreaNums=[];
+        });
+
         // Sort by unit number
         units.sort(function(a,b){var na=parseInt(a.name)||0;var nb=parseInt(b.name)||0;return na-nb});
         setParsed(units);
