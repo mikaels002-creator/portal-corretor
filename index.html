@@ -317,8 +317,6 @@ function App(){
   var _tasks = useState([]); var tasks = _tasks[0]; var setTasks = _tasks[1];
   var _miniChat = useState(null); var miniChat = _miniChat[0]; var setMiniChat = _miniChat[1];
   var _notifs = useState([]); var notifs = _notifs[0]; var setNotifs = _notifs[1];
-  var _lastTaskCount = useState(0); var lastTaskCount = _lastTaskCount[0]; var setLastTaskCount = _lastTaskCount[1];
-  var _lastMsgTs = useState(""); var lastMsgTs = _lastMsgTs[0]; var setLastMsgTs = _lastMsgTs[1];
 
   var t = TR[lang] || TR.pt;
   var sl = lang === "es" ? sLes : sL;
@@ -335,69 +333,58 @@ function App(){
     setTimeout(function(){setNotifs(function(prev){return prev.filter(function(n){return n.id!==id})})},8000);
   };
 
-  // Real-time polling (10s)
+  // Silent polling - only notifies, NEVER re-renders the whole app
   useEffect(function(){
-    if(!adm||!currentUser)return;
-    var poll=async function(){
+    var lastKnownTasks=0;var lastKnownMsg="";var started=false;
+    var silentPoll=async function(){
       try{
-        var newTasks=await DB.loadTasks();
-        var myP=newTasks.filter(function(t3){return t3.assigned_to===currentUser.id&&t3.status!=="done"});
-        if(myP.length>lastTaskCount&&lastTaskCount>0){addNotif("📋 Nova tarefa atribuída a você!","task",function(){setMdl({t:"taskManager"})})}
-        setLastTaskCount(myP.length);setTasks(newTasks);
-        var teamMsgs=await DB.loadMessages("admin_team");
-        var dmMsgs=await DB.loadMessages("dm_"+currentUser.id);
-        var allNew=teamMsgs.concat(dmMsgs);
-        if(allNew.length>0){
-          var latest=allNew.sort(function(a,b){return new Date(b.created_at)-new Date(a.created_at)})[0];
-          if(latest&&latest.created_at!==lastMsgTs&&latest.sender_id!==currentUser.id&&lastMsgTs!==""){
-            addNotif("💬 "+latest.sender_name+": "+latest.text.substring(0,40),"chat",function(){setMiniChat({channel:latest.channel||"admin_team",title:latest.sender_name})});
+        // Admin polling
+        if(adm&&currentUser){
+          var r=await sb.from("tasks").select("id,assigned_to,status").eq("assigned_to",currentUser.id).neq("status","done");
+          var myPendCount=r.data?r.data.length:0;
+          if(started&&myPendCount>lastKnownTasks&&lastKnownTasks>=0){
+            addNotif("📋 Nova tarefa atribuída a você! ("+myPendCount+" pendentes)","task",function(){setMdl({t:"taskManager"})});
+            setTasks(await DB.loadTasks());
           }
-          if(latest)setLastMsgTs(latest.created_at);
+          lastKnownTasks=myPendCount;
+          // Check messages
+          var mr=await sb.from("messages").select("id,sender_id,sender_name,text,created_at").or("channel.eq.admin_team,channel.eq.dm_"+currentUser.id).order("id",{ascending:false}).limit(1);
+          if(mr.data&&mr.data.length>0){
+            var lat=mr.data[0];
+            if(started&&lat.created_at!==lastKnownMsg&&lat.sender_id!==currentUser.id){
+              addNotif("💬 "+lat.sender_name+": "+(lat.text||"").substring(0,50),"chat",function(){setMiniChat({channel:"admin_team",title:lat.sender_name})});
+            }
+            lastKnownMsg=lat.created_at;
+          }
         }
+        // Broker polling
+        if(broker){
+          var br=await sb.from("messages").select("id,sender_id,sender_name,sender_type,text,created_at").eq("channel","broker_"+broker.id).eq("sender_type","admin").order("id",{ascending:false}).limit(1);
+          if(br.data&&br.data.length>0){
+            var blat=br.data[0];
+            if(started&&blat.created_at!==lastKnownMsg){
+              addNotif("💬 "+blat.sender_name+": "+(blat.text||"").substring(0,50),"chat",function(){setMiniChat({channel:"broker_"+broker.id,title:"Admin"})});
+            }
+            lastKnownMsg=blat.created_at;
+          }
+        }
+        started=true;
       }catch(e){}
     };
-    poll();var iv=setInterval(poll,10000);return function(){clearInterval(iv)};
-  },[adm,currentUser]);
+    silentPoll();
+    var iv=setInterval(silentPoll,15000);
+    return function(){clearInterval(iv)};
+  },[adm,currentUser,broker]);
 
   // === LOAD ALL DATA FROM SUPABASE ===
   var loadAll = async function(){
     try {
-      var results = await Promise.all([
-        DB.loadConfig(),
-        DB.loadBuildings(),
-        DB.loadAllUnits(),
-        DB.loadPhotos(),
-        DB.loadPlants(),
-        DB.loadDocuments(),
-        DB.loadNotices(),
-        DB.loadBrokers(),
-        DB.loadSales(),
-        DB.loadAdminUsers(),
-        DB.loadTasks()
-      ]);
+      var results = await Promise.all([DB.loadConfig(),DB.loadBuildings(),DB.loadAllUnits(),DB.loadPhotos(),DB.loadPlants(),DB.loadDocuments(),DB.loadNotices(),DB.loadBrokers(),DB.loadSales(),DB.loadAdminUsers(),DB.loadTasks()]);
       setCfg(results[0]);setBuildings(results[1]);setAllUnits(results[2]);setAllPhotos(results[3]);setAllPlants(results[4]);setAllDocs(results[5]);setAllNotices(results[6]);setBrokers(results[7]);setSales(results[8]);setAdminUsers(results[9]);setTasks(results[10]);
     } catch(e){ console.log("Load error:", e); }
     setRdy(true);
   };
-
   useEffect(function(){ loadAll(); }, []);
-  // Broker message polling
-  useEffect(function(){
-    if(!broker)return;
-    var bPoll=async function(){
-      try{
-        var bMsgs=await DB.loadMessages("broker_"+broker.id);
-        if(bMsgs.length>0){
-          var lat=bMsgs.sort(function(a,b){return new Date(b.created_at)-new Date(a.created_at)})[0];
-          if(lat&&lat.sender_type==="admin"&&lat.created_at!==lastMsgTs&&lastMsgTs!==""){
-            addNotif("💬 "+lat.sender_name+": "+lat.text.substring(0,40),"chat",function(){setMiniChat({channel:"broker_"+broker.id,title:"Chat Admin"})});
-          }
-          if(lat)setLastMsgTs(lat.created_at);
-        }
-      }catch(e){}
-    };
-    bPoll();var iv=setInterval(bPoll,10000);return function(){clearInterval(iv)};
-  },[broker]);
 
   // Auto-fetch USD
   useEffect(function(){
@@ -2339,10 +2326,9 @@ function App(){
   function MiniChatWidget(){
     var _msgs=useState([]);var msgs=_msgs[0];var setMsgs=_msgs[1];
     var _text=useState("");var text=_text[0];var setText=_text[1];
-    var ch=miniChat.channel||"admin_team";
-    var title=miniChat.title||"Chat";
+    var _ch=useState(miniChat.channel||"admin_team");var ch=_ch[0];var setCh=_ch[1];
     var loadM=async function(){var d=await DB.loadMessages(ch);setMsgs(d)};
-    useEffect(function(){loadM();var iv=setInterval(loadM,5000);return function(){clearInterval(iv)}},[ch]);
+    useEffect(function(){loadM();var iv=setInterval(loadM,6000);return function(){clearInterval(iv)}},[ch]);
     var senderId=currentUser?currentUser.id:broker?broker.id:0;
     var senderName=currentUser?currentUser.nome:broker?broker.nome:"";
     var sType=currentUser?"admin":"broker";
@@ -2351,15 +2337,24 @@ function App(){
       await DB.sendMessage({channel:ch,sender_type:sType,sender_id:senderId,sender_name:senderName,text:text.trim()});
       setText("");await loadM();
     };
-    return <div style={{position:"fixed",bottom:24,left:16,width:300,maxHeight:420,background:"#111110",borderRadius:16,border:"1px solid rgba(255,255,255,0.06)",boxShadow:"0 12px 48px rgba(0,0,0,0.6)",zIndex:750,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+    var chLabel=ch==="admin_team"?"Equipe":(function(){var uid=ch.replace("dm_","").replace("broker_","");var au=adminUsers.find(function(x){return String(x.id)===uid});if(au)return au.nome.split(" ")[0];var bk2=brokers.find(function(x){return String(x.id)===uid||"broker_"+x.id===ch});if(bk2)return bk2.nome.split(" ")[0];return miniChat.title||"Chat"})();
+    return <div style={{position:"fixed",bottom:24,left:16,width:320,maxHeight:460,background:"#111110",borderRadius:16,border:"1px solid rgba(255,255,255,0.06)",boxShadow:"0 12px 48px rgba(0,0,0,0.6)",zIndex:750,display:"flex",flexDirection:"column",overflow:"hidden"}}>
       {/* Header */}
-      <div style={{padding:"10px 14px",background:"#141413",borderBottom:"1px solid rgba(255,255,255,0.04)",display:"flex",alignItems:"center",gap:8}}>
+      <div style={{padding:"8px 12px",background:"#141413",borderBottom:"1px solid rgba(255,255,255,0.04)",display:"flex",alignItems:"center",gap:6}}>
         <span style={{fontSize:14}}>💬</span>
-        <span style={{flex:1,fontSize:12,fontWeight:600}}>{title}</span>
+        <span style={{flex:1,fontSize:12,fontWeight:600}}>{chLabel}</span>
         <button onClick={function(){setMiniChat(null)}} style={{width:24,height:24,borderRadius:8,background:"rgba(255,255,255,0.06)",color:"#999",border:"none",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
       </div>
+      {/* Channel tabs (admin only) */}
+      {currentUser && <div style={{display:"flex",gap:3,padding:"6px 8px",overflowX:"auto",borderBottom:"1px solid rgba(255,255,255,0.03)"}}>
+        <span onClick={function(){setCh("admin_team")}} style={{flexShrink:0,padding:"4px 10px",borderRadius:6,fontSize:10,fontWeight:600,cursor:"pointer",background:ch==="admin_team"?"#4CAF7D18":"transparent",color:ch==="admin_team"?"#4CAF7D":"#555"}}>👥 Equipe</span>
+        {adminUsers.filter(function(u){return u.ativo!==false&&currentUser&&u.id!==currentUser.id}).map(function(u){
+          var dmCh="dm_"+u.id;
+          return <span key={u.id} onClick={function(){setCh(dmCh)}} style={{flexShrink:0,padding:"4px 10px",borderRadius:6,fontSize:10,fontWeight:600,cursor:"pointer",background:ch===dmCh?G+"18":"transparent",color:ch===dmCh?G:"#555"}}>{u.nome.split(" ")[0]}</span>;
+        })}
+      </div>}
       {/* Messages */}
-      <div style={{flex:1,padding:10,overflow:"auto",maxHeight:280}}>
+      <div style={{flex:1,padding:8,overflow:"auto",maxHeight:280}}>
         {msgs.length===0&&<div style={{textAlign:"center",padding:16,color:"#555",fontSize:11}}>Sem mensagens</div>}
         {msgs.slice(-30).map(function(m){
           var isMe=m.sender_id===senderId&&m.sender_type===sType;
@@ -2370,8 +2365,8 @@ function App(){
         })}
       </div>
       {/* Input */}
-      <div style={{padding:"8px 10px",borderTop:"1px solid rgba(255,255,255,0.04)",display:"flex",gap:4}}>
-        <input value={text} onChange={function(e){setText(e.target.value)}} onKeyDown={function(e){if(e.key==="Enter")send()}} placeholder="Mensagem..." style={{flex:1,padding:"8px 10px",background:"#1a1a19",border:"1px solid rgba(255,255,255,0.04)",borderRadius:8,color:"#F0EBE3",fontSize:12,outline:"none"}}/>
+      <div style={{padding:"6px 8px",borderTop:"1px solid rgba(255,255,255,0.04)",display:"flex",gap:4}}>
+        <input value={text} onChange={function(e){setText(e.target.value)}} onKeyDown={function(e){if(e.key==="Enter")send()}} placeholder={"p/ "+chLabel+"..."} style={{flex:1,padding:"8px 10px",background:"#1a1a19",border:"1px solid rgba(255,255,255,0.04)",borderRadius:8,color:"#F0EBE3",fontSize:12,outline:"none"}}/>
         <button onClick={send} style={{padding:"8px 12px",borderRadius:8,background:G,color:"#0a0a09",border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>→</button>
       </div>
     </div>;
