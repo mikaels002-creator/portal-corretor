@@ -1429,50 +1429,56 @@ function App(){
         var lines=allText.split("\n").filter(function(l){return l.trim().length>3});
         var units=[];
         lines.forEach(function(line){
-          var parts=line.split("|").map(function(p){return p.trim()});
+          var parts=line.split("|").map(function(p){return p.trim()}).filter(function(p){return p.length>0});
           if(parts.length<2)return;
-          var unitName="";var area=0;var price=0;var status="available";
-          var lineLower=line.toLowerCase();
+          // Walk through parts sequentially — each unit starts with a name pattern
+          var currentUnit=null;
+          var flushUnit=function(){
+            if(currentUnit&&currentUnit.name&&(currentUnit.area>0||currentUnit.price>0)){
+              var dup=units.find(function(u){return u.name===currentUnit.name});
+              if(!dup) units.push({name:currentUnit.name,area:currentUnit.area,price:currentUnit.price,status:currentUnit.status,include:true});
+            }
+          };
           parts.forEach(function(p){
-            var pLower=p.toLowerCase();
-            if(!unitName&&/^[A-Za-z]*\s*\d+/.test(p)&&p.length<20){unitName=p}
-            var areaMatch=p.match(/(\d+[.,]\d+)\s*m[²2]?/i);
+            var pLower=p.toLowerCase().trim();
+            // Is this a unit name? (starts with number, or "number - Type")
+            var isUnitName=/^\d{2,4}(\s*-\s*\w+)?$/.test(p.trim());
+            if(!isUnitName) isUnitName=/^\d{2,4}\s*-\s*(Master|Luxo|Superior|Standard|Studio|Loja|Sala|Ap)/.test(p.trim());
+            if(isUnitName){
+              flushUnit();
+              currentUnit={name:p.trim(),area:0,price:0,status:"available"};
+              return;
+            }
+            if(!currentUnit) return;
+            // Status
+            if(pLower==="vendido"||pLower==="vendida"||pLower==="vend"||pLower==="vd"){currentUnit.status="sold";return}
+            if(pLower==="reservado"||pLower==="reservada"||pLower==="reserv"||pLower==="res"){currentUnit.status="reserved";return}
+            if(pLower==="indisponível"||pLower==="indisponivel"){currentUnit.status="sold";return}
+            if(pLower==="disponível"||pLower==="disponivel"||pLower==="disp"){return}
+            // Price (R$ format or large number)
+            var priceMatch=p.match(/R\$\s*([\d.,]+)/);
+            if(priceMatch){
+              var pv=parseFloat(priceMatch[1].replace(/\./g,"").replace(",","."));
+              if(pv>10000){currentUnit.price=pv;return}
+            }
+            var brPriceMatch=p.match(/^(\d{1,3}(?:\.\d{3})+[,]\d{2})$/);
+            if(brPriceMatch){
+              var pv2=parseFloat(brPriceMatch[1].replace(/\./g,"").replace(",","."));
+              if(pv2>10000){currentUnit.price=pv2;return}
+            }
+            // Area (decimal number between 10-2000)
+            var areaMatch=p.match(/^(\d+[.,]\d+)\s*m?[²2]?$/);
             if(!areaMatch) areaMatch=p.match(/^(\d+[.,]\d+)$/);
-            if(areaMatch&&!area){
-              var v=parseFloat(areaMatch[1].replace(",","."));
-              if(v>10&&v<2000) area=v;
+            if(areaMatch){
+              var av=parseFloat(areaMatch[1].replace(",","."));
+              if(av>10&&av<2000){
+                if(currentUnit.area===0) currentUnit.area=av;
+                else if(currentUnit.area>0&&av>currentUnit.area) currentUnit.area=av; // use m² total (larger)
+                return;
+              }
             }
-            var cleaned=p.replace(/[R$\s]/g,"").replace(/\./g,"").replace(",",".");
-            var priceVal=parseFloat(cleaned);
-            if(priceVal>50000&&!price) price=priceVal;
-            // Status detection
-            if(pLower==="vendido"||pLower==="vendida"||pLower==="vend"||pLower==="vd"||pLower==="v") status="sold";
-            if(pLower==="reservado"||pLower==="reservada"||pLower==="reserv"||pLower==="res"||pLower==="r") status="reserved";
-            if(pLower==="indisponível"||pLower==="indisponivel"||pLower==="indisp") status="sold";
           });
-          // Also check full line for status keywords
-          if(status==="available"){
-            if(/vendid[oa]/i.test(lineLower)) status="sold";
-            else if(/reservad[oa]/i.test(lineLower)) status="reserved";
-            else if(/indispon/i.test(lineLower)) status="sold";
-          }
-          // If no price and status is still available, likely reserved/sold
-          if(price===0&&area>0&&unitName&&status==="available"){
-            // No price usually means not available
-            if(/reserv|res\b/i.test(lineLower)) status="reserved";
-            else if(/vend|vd\b|sold/i.test(lineLower)) status="sold";
-          }
-          if(!price){
-            var brPrice=line.match(/(\d{1,3}(?:\.\d{3})+[,]\d{2})/);
-            if(brPrice){
-              var pv=parseFloat(brPrice[1].replace(/\./g,"").replace(",","."));
-              if(pv>50000) price=pv;
-            }
-          }
-          if(unitName&&(area>0||price>0)){
-            var dup=units.find(function(u){return u.name===unitName});
-            if(!dup) units.push({name:unitName,area:area,price:price,status:status,include:true});
-          }
+          flushUnit(); // flush last unit on the line
         });
         setParsed(units);
         setStep(units.length>0?"review":"raw");
