@@ -330,50 +330,54 @@ function App(){
   var addNotif=function(text,type,action){
     var id=Date.now();
     setNotifs(function(prev){return prev.concat([{id:id,text:text,type:type||"info",action:action}])});
-    setTimeout(function(){setNotifs(function(prev){return prev.filter(function(n){return n.id!==id})})},8000);
+    setTimeout(function(){setNotifs(function(prev){return prev.filter(function(n){return n.id!==id})})},10000);
   };
 
-  // Silent polling - only notifies, NEVER re-renders the whole app
+  // Polling with window variables (no re-renders)
   useEffect(function(){
-    var lastKnownTasks=0;var lastKnownMsg="";var started=false;
-    var silentPoll=async function(){
+    if(!window._pollData) window._pollData={taskCount:-1,msgId:-1,ready:false};
+    var check=async function(){
       try{
-        // Admin polling
-        if(adm&&currentUser){
-          var r=await sb.from("tasks").select("id,assigned_to,status").eq("assigned_to",currentUser.id).neq("status","done");
-          var myPendCount=r.data?r.data.length:0;
-          if(started&&myPendCount>lastKnownTasks&&lastKnownTasks>=0){
-            addNotif("📋 Nova tarefa atribuída a você! ("+myPendCount+" pendentes)","task",function(){setMdl({t:"taskManager"})});
-            setTasks(await DB.loadTasks());
+        var uid=currentUser?currentUser.id:null;
+        var bid=broker?broker.id:null;
+        // Tasks for admin
+        if(uid){
+          var tr=await sb.from("tasks").select("id").eq("assigned_to",uid).in("status",["pending","doing"]);
+          var cnt=tr.data?tr.data.length:0;
+          if(window._pollData.ready&&cnt>window._pollData.taskCount&&window._pollData.taskCount>=0){
+            addNotif("📋 Você tem "+cnt+" tarefa"+(cnt>1?"s":"")+" pendente"+(cnt>1?"s":"")+"!","task",function(){setMdl({t:"taskManager"})});
           }
-          lastKnownTasks=myPendCount;
-          // Check messages
-          var mr=await sb.from("messages").select("id,sender_id,sender_name,text,created_at").or("channel.eq.admin_team,channel.eq.dm_"+currentUser.id).order("id",{ascending:false}).limit(1);
+          window._pollData.taskCount=cnt;
+        }
+        // Messages for admin
+        if(uid){
+          var mr=await sb.from("messages").select("id,sender_id,sender_name,text,channel").order("id",{ascending:false}).limit(1);
           if(mr.data&&mr.data.length>0){
-            var lat=mr.data[0];
-            if(started&&lat.created_at!==lastKnownMsg&&lat.sender_id!==currentUser.id){
-              addNotif("💬 "+lat.sender_name+": "+(lat.text||"").substring(0,50),"chat",function(){setMiniChat({channel:"admin_team",title:lat.sender_name})});
+            var m=mr.data[0];
+            var isForMe=m.channel==="admin_team"||m.channel==="dm_"+uid;
+            if(window._pollData.ready&&isForMe&&m.id!==window._pollData.msgId&&m.sender_id!==uid){
+              addNotif("💬 "+m.sender_name+": "+(m.text||"").substring(0,50),"chat",function(){setMiniChat({channel:m.channel,title:m.sender_name})});
             }
-            lastKnownMsg=lat.created_at;
+            window._pollData.msgId=m.id;
           }
         }
-        // Broker polling
-        if(broker){
-          var br=await sb.from("messages").select("id,sender_id,sender_name,sender_type,text,created_at").eq("channel","broker_"+broker.id).eq("sender_type","admin").order("id",{ascending:false}).limit(1);
+        // Messages for broker
+        if(bid&&!uid){
+          var br=await sb.from("messages").select("id,sender_name,text").eq("channel","broker_"+bid).eq("sender_type","admin").order("id",{ascending:false}).limit(1);
           if(br.data&&br.data.length>0){
-            var blat=br.data[0];
-            if(started&&blat.created_at!==lastKnownMsg){
-              addNotif("💬 "+blat.sender_name+": "+(blat.text||"").substring(0,50),"chat",function(){setMiniChat({channel:"broker_"+broker.id,title:"Admin"})});
+            var bm=br.data[0];
+            if(window._pollData.ready&&bm.id!==window._pollData.msgId){
+              addNotif("💬 "+bm.sender_name+": "+(bm.text||"").substring(0,50),"chat",function(){setMiniChat({channel:"broker_"+bid,title:"Admin"})});
             }
-            lastKnownMsg=blat.created_at;
+            window._pollData.msgId=bm.id;
           }
         }
-        started=true;
-      }catch(e){}
+        window._pollData.ready=true;
+      }catch(e){console.log("Poll error:",e)}
     };
-    silentPoll();
-    var iv=setInterval(silentPoll,15000);
-    return function(){clearInterval(iv)};
+    var t1=setTimeout(check,3000);
+    var iv=setInterval(check,15000);
+    return function(){clearTimeout(t1);clearInterval(iv)};
   },[adm,currentUser,broker]);
 
   // === LOAD ALL DATA FROM SUPABASE ===
@@ -1014,8 +1018,14 @@ function App(){
       // Check admin users
       var admin=adminUsers.find(function(u){return u.email&&u.email.toLowerCase()===email&&u.senha===p&&u.ativo!==false});
       if(admin){setCurrentUser(admin);setAdm(true);setBroker(null);sb.from("admin_users").update({last_login:new Date().toLocaleString("pt-BR")}).eq("id",admin.id);
-        var myPendTasks=tasks.filter(function(t3){return t3.assigned_to===admin.id&&t3.status!=="done"}).length;
-        if(myPendTasks>0){setMdl({t:"loginNotif",taskCount:myPendTasks,userName:admin.nome})}else{setMdl(null);msg("Bem-vindo, "+admin.nome+"!")}
+        // Reset polling state
+        window._pollData={taskCount:-1,msgId:-1,ready:false};
+        // Query tasks directly
+        sb.from("tasks").select("id").eq("assigned_to",admin.id).in("status",["pending","doing"]).then(function(r){
+          var cnt=r.data?r.data.length:0;
+          if(cnt>0){setMdl({t:"loginNotif",taskCount:cnt,userName:admin.nome})}
+          else{setMdl(null);msg("Bem-vindo, "+admin.nome+"!")}
+        });
         return}
       // Check brokers
       var bk=brokers.find(function(b){return b.email&&b.email.toLowerCase()===email&&b.senha===p});
