@@ -641,23 +641,32 @@ function App(){
           {/* Unit Filter Tabs */}
           {(function(){
             var isRepasse=bld.id==="repasse"||bld.id.indexOf("repasse")!==-1;
-            // For repasse: show ALL units. For others: show only units that have photos
-            var unitsWithPhotos=isRepasse?units:units.filter(function(u){return photos.some(function(p){return p.unit_id===u.id})});
+            // Collect all unique tab IDs from photos + units (for repasse)
+            var customTabs=[];
+            var seen={};
+            if(isRepasse){
+              units.forEach(function(u){if(!seen[u.id]){seen[u.id]=true;customTabs.push({id:u.id,label:u.name})}});
+            }
+            // Add any custom tabs from photos (non-unit IDs)
+            photos.forEach(function(p){
+              if(p.unit_id&&!seen[p.unit_id]){
+                seen[p.unit_id]=true;
+                var u2=units.find(function(x){return x.id===p.unit_id});
+                customTabs.push({id:p.unit_id,label:u2?u2.name:p.unit_id});
+              }
+            });
             var tabStyle=function(active){return{flexShrink:0,padding:"7px 14px",borderRadius:10,fontSize:11,fontWeight:600,cursor:"pointer",background:active?bld.color+"18":"#111110",color:active?bld.color:"#555",border:active?"1px solid "+bld.color+"30":"1px solid rgba(255,255,255,0.03)"}};
             return <div>
               <div style={{display:"flex",gap:4,overflowX:"auto",marginBottom:12,paddingBottom:4,alignItems:"center"}}>
                 <span className="bh" onClick={function(){setPhotoUnit("all")}} style={tabStyle(photoUnit==="all")}>Todas ({photos.length})</span>
-                {unitsWithPhotos.map(function(u){
-                  var count=photos.filter(function(p){return p.unit_id===u.id}).length;
-                  return <span key={u.id} className="bh" onClick={function(){setPhotoUnit(u.id)}} style={tabStyle(photoUnit===u.id)}>{u.name} {count>0?"("+count+")":""}</span>;
+                {customTabs.map(function(ct){
+                  var count=photos.filter(function(p){return p.unit_id===ct.id}).length;
+                  return <span key={ct.id} className="bh" onClick={function(){setPhotoUnit(ct.id)}} style={tabStyle(photoUnit===ct.id)}>{ct.label} {count>0?"("+count+")":""}</span>;
                 })}
-                {/* Admin: add unit tab (only for non-repasse buildings) */}
-                {adm && !isRepasse && <select onChange={function(e){if(e.target.value){setPhotoUnit(e.target.value);e.target.value=""}}} style={{flexShrink:0,padding:"7px 10px",borderRadius:10,fontSize:11,background:"#111110",color:G,border:"1px dashed rgba(200,164,92,0.2)",cursor:"pointer"}}>
-                  <option value="">＋ Aba</option>
-                  {units.filter(function(u){return!unitsWithPhotos.some(function(uw){return uw.id===u.id})}).map(function(u){
-                    return <option key={u.id} value={u.id}>{u.name}</option>;
-                  })}
-                </select>}
+                {adm && <span className="bh" onClick={function(){
+                  var nome=prompt("Nome da nova aba de fotos:");
+                  if(nome&&nome.trim()){var slug=nome.trim();setPhotoUnit(slug)}
+                }} style={{flexShrink:0,padding:"7px 12px",borderRadius:10,fontSize:11,fontWeight:600,background:"#111110",color:G,border:"1px dashed rgba(200,164,92,0.2)",cursor:"pointer"}}>＋ Aba</span>}
               </div>
             </div>;
           })()}
@@ -665,7 +674,7 @@ function App(){
           {/* Filtered Photos */}
           {(function(){
             var filteredPhotos=photoUnit==="all"?photos:photos.filter(function(p){return p.unit_id===photoUnit});
-            var unitLabel=photoUnit==="all"?"":(function(){var u2=units.find(function(x){return x.id===photoUnit});return u2?u2.name:""})();
+            var unitLabel=photoUnit==="all"?"":(function(){var u2=units.find(function(x){return x.id===photoUnit});return u2?u2.name:photoUnit})();
             return <div>
               {unitLabel && <div style={{fontSize:14,fontWeight:600,color:bld.color,marginBottom:10,fontFamily:"'Cormorant Garamond',Georgia,serif"}}>{unitLabel}</div>}
               <div className="photo-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
@@ -698,11 +707,17 @@ function App(){
               <div style={{fontSize:14,fontWeight:600,color:G}}>📸 Adicionar Fotos</div>
               <span style={{fontSize:10,padding:"4px 10px",borderRadius:6,background:"rgba(76,175,125,0.08)",color:"#4CAF7D",fontWeight:600}}>☁️ Nuvem</span>
             </div>
-            {units.length>0 && <div style={{marginBottom:10}}>
-              <L>Vincular à unidade</L>
+            {<div style={{marginBottom:10}}>
+              <L>Vincular à aba</L>
               <select id="photoUnitSelect" style={mI} defaultValue={photoUnit!=="all"?photoUnit:""}>
                 <option value="">Álbum geral</option>
-                {units.map(function(u){return <option key={u.id} value={u.id}>{u.name} — {u.area}m²</option>})}
+                {(function(){
+                  var opts=[];var seen2={};
+                  units.forEach(function(u){if(!seen2[u.id]){seen2[u.id]=true;opts.push({id:u.id,label:u.name+" — "+u.area+"m²"})}});
+                  photos.forEach(function(p){if(p.unit_id&&!seen2[p.unit_id]){seen2[p.unit_id]=true;opts.push({id:p.unit_id,label:p.unit_id})}});
+                  if(photoUnit&&photoUnit!=="all"&&!seen2[photoUnit]){opts.push({id:photoUnit,label:photoUnit})}
+                  return opts.map(function(o){return <option key={o.id} value={o.id}>{o.label}</option>});
+                })()}
               </select>
             </div>}
             <label className="bh" style={{display:"block",padding:"24px",border:"2px dashed "+bld.color+"30",borderRadius:12,textAlign:"center",cursor:"pointer",background:bld.color+"06"}}>
