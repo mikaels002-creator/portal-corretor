@@ -1429,27 +1429,39 @@ function App(){
         var lines=allText.split("\n").filter(function(l){return l.trim().length>3});
         var units=[];
         lines.forEach(function(line){
-          // Try to find unit data in each line
           var parts=line.split("|").map(function(p){return p.trim()});
           if(parts.length<2)return;
-          // Look for patterns
-          var unitName="";var area=0;var price=0;
+          var unitName="";var area=0;var price=0;var status="available";
+          var lineLower=line.toLowerCase();
           parts.forEach(function(p){
-            // Unit name: short text starting with number or letter combo like "101", "Loja 01", "Ap 301"
+            var pLower=p.toLowerCase();
             if(!unitName&&/^[A-Za-z]*\s*\d+/.test(p)&&p.length<20){unitName=p}
-            // Area: number with decimals less than 1000, or explicit m²
             var areaMatch=p.match(/(\d+[.,]\d+)\s*m[²2]?/i);
             if(!areaMatch) areaMatch=p.match(/^(\d+[.,]\d+)$/);
             if(areaMatch&&!area){
               var v=parseFloat(areaMatch[1].replace(",","."));
               if(v>10&&v<2000) area=v;
             }
-            // Price: large number > 50000
             var cleaned=p.replace(/[R$\s]/g,"").replace(/\./g,"").replace(",",".");
             var priceVal=parseFloat(cleaned);
             if(priceVal>50000&&!price) price=priceVal;
+            // Status detection
+            if(pLower==="vendido"||pLower==="vendida"||pLower==="vend"||pLower==="vd"||pLower==="v") status="sold";
+            if(pLower==="reservado"||pLower==="reservada"||pLower==="reserv"||pLower==="res"||pLower==="r") status="reserved";
+            if(pLower==="indisponível"||pLower==="indisponivel"||pLower==="indisp") status="sold";
           });
-          // Also try to find price in Brazilian format: 1.234.567,89
+          // Also check full line for status keywords
+          if(status==="available"){
+            if(/vendid[oa]/i.test(lineLower)) status="sold";
+            else if(/reservad[oa]/i.test(lineLower)) status="reserved";
+            else if(/indispon/i.test(lineLower)) status="sold";
+          }
+          // If no price and status is still available, likely reserved/sold
+          if(price===0&&area>0&&unitName&&status==="available"){
+            // No price usually means not available
+            if(/reserv|res\b/i.test(lineLower)) status="reserved";
+            else if(/vend|vd\b|sold/i.test(lineLower)) status="sold";
+          }
           if(!price){
             var brPrice=line.match(/(\d{1,3}(?:\.\d{3})+[,]\d{2})/);
             if(brPrice){
@@ -1458,9 +1470,8 @@ function App(){
             }
           }
           if(unitName&&(area>0||price>0)){
-            // Check duplicate
             var dup=units.find(function(u){return u.name===unitName});
-            if(!dup) units.push({name:unitName,area:area,price:price,include:true});
+            if(!dup) units.push({name:unitName,area:area,price:price,status:status,include:true});
           }
         });
         setParsed(units);
@@ -1507,17 +1518,25 @@ function App(){
     // Review step
     if(step==="review") return <div>
       <div style={mT}>✅ {parsed.filter(function(u){return u.include}).length} Unidades Encontradas</div>
-      <div style={{fontSize:11,color:"#555",marginBottom:12}}>Revise os dados abaixo. Desmarque as unidades que não deseja importar. Você pode editar nome, área e preço.</div>
+      <div style={{fontSize:11,color:"#555",marginBottom:8}}>Revise os dados. O status foi detectado automaticamente do PDF.</div>
+      <div style={{display:"flex",gap:8,marginBottom:12}}>
+        <span style={{fontSize:11,color:"#4CAF7D"}}>● {parsed.filter(function(u){return u.status==="available"}).length} disp.</span>
+        <span style={{fontSize:11,color:"#E8A94E"}}>● {parsed.filter(function(u){return u.status==="reserved"}).length} reserv.</span>
+        <span style={{fontSize:11,color:"#D45B5B"}}>● {parsed.filter(function(u){return u.status==="sold"}).length} vendidas</span>
+      </div>
       <div style={{maxHeight:350,overflow:"auto",marginBottom:12}}>
         {parsed.map(function(u,i){
-          return <div key={i} style={{display:"flex",gap:6,alignItems:"center",padding:"8px 10px",background:u.include?"#111110":"#0a0a09",borderRadius:10,marginBottom:4,border:"1px solid rgba(255,255,255,0.03)",opacity:u.include?1:0.4}}>
+          var stCol=sC[u.status]||"#555";
+          return <div key={i} style={{display:"flex",gap:5,alignItems:"center",padding:"8px 10px",background:u.include?"#111110":"#0a0a09",borderRadius:10,marginBottom:4,border:"1px solid rgba(255,255,255,0.03)",opacity:u.include?1:0.4}}>
             <input type="checkbox" checked={u.include} onChange={function(){var nw=parsed.map(function(x,j){return j===i?Object.assign({},x,{include:!x.include}):x});setParsed(nw)}} style={{accentColor:G}}/>
-            <input value={u.name} onChange={function(e){var nw=parsed.map(function(x,j){return j===i?Object.assign({},x,{name:e.target.value}):x});setParsed(nw)}} style={{width:70,padding:"4px 6px",background:"#1a1a19",border:"1px solid rgba(255,255,255,0.04)",borderRadius:5,color:"#F0EBE3",fontSize:12,fontWeight:600}}/>
-            <div style={{display:"flex",alignItems:"center",gap:2,flex:1}}>
-              <input type="number" value={u.area} onChange={function(e){var nw=parsed.map(function(x,j){return j===i?Object.assign({},x,{area:+e.target.value}):x});setParsed(nw)}} style={{width:55,padding:"4px 6px",background:"#1a1a19",border:"1px solid rgba(255,255,255,0.04)",borderRadius:5,color:"#F0EBE3",fontSize:11}}/>
-              <span style={{fontSize:10,color:"#555"}}>m²</span>
-            </div>
-            <input type="number" value={u.price} onChange={function(e){var nw=parsed.map(function(x,j){return j===i?Object.assign({},x,{price:+e.target.value}):x});setParsed(nw)}} style={{width:90,padding:"4px 6px",background:"#1a1a19",border:"1px solid rgba(255,255,255,0.04)",borderRadius:5,color:"#4CAF7D",fontSize:11,fontWeight:600}}/>
+            <input value={u.name} onChange={function(e){var nw=parsed.map(function(x,j){return j===i?Object.assign({},x,{name:e.target.value}):x});setParsed(nw)}} style={{width:60,padding:"4px 6px",background:"#1a1a19",border:"1px solid rgba(255,255,255,0.04)",borderRadius:5,color:"#F0EBE3",fontSize:12,fontWeight:600}}/>
+            <input type="number" value={u.area} onChange={function(e){var nw=parsed.map(function(x,j){return j===i?Object.assign({},x,{area:+e.target.value}):x});setParsed(nw)}} style={{width:50,padding:"4px 6px",background:"#1a1a19",border:"1px solid rgba(255,255,255,0.04)",borderRadius:5,color:"#F0EBE3",fontSize:11}}/>
+            <input type="number" value={u.price} onChange={function(e){var nw=parsed.map(function(x,j){return j===i?Object.assign({},x,{price:+e.target.value}):x});setParsed(nw)}} style={{width:80,padding:"4px 6px",background:"#1a1a19",border:"1px solid rgba(255,255,255,0.04)",borderRadius:5,color:u.status==="available"?"#4CAF7D":"#555",fontSize:11,fontWeight:600}}/>
+            <select value={u.status} onChange={function(e){var nw=parsed.map(function(x,j){return j===i?Object.assign({},x,{status:e.target.value}):x});setParsed(nw)}} style={{padding:"4px 4px",background:"#1a1a19",border:"1px solid "+stCol+"30",borderRadius:5,color:stCol,fontSize:10,fontWeight:600}}>
+              <option value="available">Disp.</option>
+              <option value="reserved">Reserv.</option>
+              <option value="sold">Vendido</option>
+            </select>
           </div>;
         })}
       </div>
@@ -1532,7 +1551,7 @@ function App(){
         for(var i=0;i<toImport.length;i++){
           var u=toImport[i];
           setProgress("Salvando "+(i+1)+" de "+toImport.length+"...");
-          await DB.insertUnit({id:bid+"-"+Date.now()+"-"+i,building_id:bid,name:u.name,area:u.area,base_price:u.price,status:"available",history:"[]",sort_order:i});
+          await DB.insertUnit({id:bid+"-"+Date.now()+"-"+i,building_id:bid,name:u.name,area:u.area,base_price:u.price,status:u.status||"available",history:"[]",sort_order:i});
         }
         await refreshUnits();setLoading(false);setMdl(null);
         msg(toImport.length+" unidades importadas com sucesso!");
