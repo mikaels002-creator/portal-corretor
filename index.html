@@ -319,6 +319,7 @@ function App(){
   var _tasks = useState([]); var tasks = _tasks[0]; var setTasks = _tasks[1];
   var _miniChat = useState(null); var miniChat = _miniChat[0]; var setMiniChat = _miniChat[1];
   var _notifs = useState([]); var notifs = _notifs[0]; var setNotifs = _notifs[1];
+  var _hasUnread = useState(false); var hasUnread = _hasUnread[0]; var setHasUnread = _hasUnread[1];
 
   var t = TR[lang] || TR.pt;
   var sl = lang === "es" ? sLes : sL;
@@ -347,7 +348,7 @@ function App(){
           var tr=await sb.from("tasks").select("id").eq("assigned_to",uid).in("status",["pending","doing"]);
           var cnt=tr.data?tr.data.length:0;
           if(window._pollData.ready&&cnt>window._pollData.taskCount&&window._pollData.taskCount>=0){
-            addNotif("📋 Você tem "+cnt+" tarefa"+(cnt>1?"s":"")+" pendente"+(cnt>1?"s":"")+"!","task",function(){setMdl({t:"taskManager"})});
+            setHasUnread(true);addNotif("📋 Você tem "+cnt+" tarefa"+(cnt>1?"s":"")+" pendente"+(cnt>1?"s":"")+"!","task",function(){setMdl({t:"taskManager"})});
           }
           window._pollData.taskCount=cnt;
         }
@@ -358,7 +359,7 @@ function App(){
             var m=mr.data[0];
             var isForMe=m.channel==="admin_team"||m.channel==="dm_"+uid||m.channel.indexOf("broker_")===0;
             if(window._pollData.ready&&isForMe&&m.id!==window._pollData.msgId){
-              addNotif("💬 "+m.sender_name+": "+(m.text||"").substring(0,50),"chat",function(){setMiniChat({channel:m.channel,title:m.sender_name})});
+              addNotif("💬 "+m.sender_name+": "+(m.text||"").substring(0,50),"chat",function(){setMiniChat({channel:m.channel,title:m.sender_name})});setHasUnread(true);
             }
             if(isForMe) window._pollData.msgId=m.id;
           }
@@ -369,7 +370,7 @@ function App(){
           if(br.data&&br.data.length>0){
             var bm=br.data[0];
             if(window._pollData.ready&&bm.id!==window._pollData.msgId){
-              addNotif("💬 "+bm.sender_name+": "+(bm.text||"").substring(0,50),"chat",function(){setMiniChat({channel:"broker_"+bid,title:"Admin"})});
+              addNotif("💬 "+bm.sender_name+": "+(bm.text||"").substring(0,50),"chat",function(){setMiniChat({channel:"broker_"+bid,title:"Admin"})});setHasUnread(true);
             }
             window._pollData.msgId=bm.id;
           }
@@ -2336,8 +2337,18 @@ function App(){
         </div>
       </div>
 
-      {/* FAB */}
-      <a href={"https://wa.me/"+waNum+"?text="+encodeURIComponent("Olá! Vim pelo Portal do Corretor 🏢")} target="_blank" className="bh" style={{position:"fixed",bottom:24,right:20,zIndex:200,width:52,height:52,borderRadius:16,background:"#25D366",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 6px 24px rgba(37,211,102,0.25)",textDecoration:"none",color:"#fff"}}><WaIcon size={24}/></a>
+      {/* FABs */}
+      <div style={{position:"fixed",bottom:24,right:20,zIndex:200,display:"flex",flexDirection:"column",gap:10,alignItems:"flex-end"}}>
+        {/* Chat FAB - only when logged in */}
+        {(adm||broker) && <button className="bh" onClick={function(){
+          if(miniChat){setMiniChat(null)}
+          else{setHasUnread(false);if(broker){setMiniChat({channel:"broker_"+broker.id,title:"Admin"})}else{setMiniChat({channel:"admin_team",title:"Equipe"})}}
+        }} style={{width:48,height:48,borderRadius:14,background:miniChat?"#4CAF7D":hasUnread?"#D45B5B":"#1a1a19",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,boxShadow:hasUnread&&!miniChat?"0 4px 20px rgba(213,91,91,0.4)":"0 4px 20px rgba(0,0,0,0.3)",cursor:"pointer",border:miniChat||hasUnread?"none":"1px solid rgba(255,255,255,0.06)",color:"#fff",position:"relative",animation:hasUnread&&!miniChat?"pulse 2s infinite":"none"}}>{miniChat?"✕":"💬"}
+          {hasUnread&&!miniChat&&<span style={{position:"absolute",top:-3,right:-3,width:12,height:12,borderRadius:"50%",background:"#D45B5B",boxShadow:"0 0 8px rgba(213,91,91,0.6)"}}/>}
+        </button>}
+        {/* WhatsApp FAB */}
+        <a href={"https://wa.me/"+waNum+"?text="+encodeURIComponent("Olá! Vim pelo Portal do Corretor 🏢")} target="_blank" className="bh" style={{width:52,height:52,borderRadius:16,background:"#25D366",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 6px 24px rgba(37,211,102,0.25)",textDecoration:"none",color:"#fff"}}><WaIcon size={24}/></a>
+      </div>
 
       {/* MODAL */}
       {mdl && <div onClick={function(){setMdl(null)}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",backdropFilter:"blur(8px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
