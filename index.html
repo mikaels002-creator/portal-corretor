@@ -231,6 +231,16 @@ var DB = {
   addAdminUser: async function(u){return await sb.from("admin_users").insert(u)},
   updateAdminUser: async function(id,c){await sb.from("admin_users").update(c).eq("id",id)},
   deleteAdminUser: async function(id){await sb.from("admin_users").delete().eq("id",id)},
+  // --- Analytics ---
+  trackEvent: function(type,data){try{sb.from("portal_analytics").insert({event_type:type,event_data:data||{},page:window.location.hash||"home",user_agent:navigator.userAgent.substring(0,100)})}catch(e){}},
+  loadAnalytics: async function(days){
+    var since=new Date();since.setDate(since.getDate()-(days||30));
+    var r=await sb.from("portal_analytics").select("*").gte("created_at",since.toISOString()).order("created_at",{ascending:false}).limit(5000);
+    return r.data||[];
+  },
+  // --- AI Reports ---
+  saveReport: async function(r){await sb.from("ai_reports").insert(r)},
+  loadReports: async function(){var r=await sb.from("ai_reports").select("*").order("id",{ascending:false}).limit(20);return r.data||[]},
 
   // --- File Upload ---
   uploadFile: function(file, folder, callback, msgFn){
@@ -358,7 +368,10 @@ function App(){
   var vis = buildings.filter(function(b){return adm||b.active});
 
   // === NAVIGATION ===
-  var go = function(id){setSel(id);setVw("detail");setDtab("table");setFilter("all");setSearch("");setPhotoUnit("all");setCompare([])};
+  var go = function(id){setSel(id);setVw("detail");setDtab("table");setFilter("all");setSearch("");setPhotoUnit("all");setCompare([]);DB.trackEvent("view_building",{building_id:id})};
+
+  // Track page view on load
+  useEffect(function(){DB.trackEvent("page_view",{})},[])
 
   // Stats
   var stats = useMemo(function(){
@@ -531,7 +544,7 @@ function App(){
                   <td style={tdS}><div style={{display:"inline-flex",alignItems:"center",gap:5,fontSize:11,fontWeight:600,color:sC[u.status],padding:"4px 10px",background:sC[u.status]+"0a",borderRadius:6}}><span style={{width:6,height:6,borderRadius:"50%",background:sC[u.status]}}/>{sl[u.status]}</div></td>
                   <td style={tdS}>
                     <div style={{display:"flex",gap:3}}>
-                      {u.status==="available" && <button className="bh" onClick={function(e){e.stopPropagation();setSimUnit({u:u,b:bld})}} style={{padding:"5px 10px",borderRadius:8,fontSize:10,fontWeight:700,background:bld.color+"18",color:bld.color,border:"1px solid "+bld.color+"30",cursor:"pointer",display:"inline-flex",alignItems:"center",gap:3}}>🏦 Simular</button>}
+                      {u.status==="available" && <button className="bh" onClick={function(e){e.stopPropagation();setSimUnit({u:u,b:bld});DB.trackEvent("simulator",{building:bld.name,unit:u.name})}} style={{padding:"5px 10px",borderRadius:8,fontSize:10,fontWeight:700,background:bld.color+"18",color:bld.color,border:"1px solid "+bld.color+"30",cursor:"pointer",display:"inline-flex",alignItems:"center",gap:3}}>🏦 Simular</button>}
                       {u.status==="available" && <button className="bh" onClick={function(e){e.stopPropagation();shareUnit(u,bld)}} style={Object.assign({},mbtn("#25D366"),{fontSize:8,padding:"3px 6px",display:"flex",alignItems:"center",gap:2})}><WaIcon size={10}/></button>}
                       {adm && <button className="bh" onClick={function(){setMdl({t:"editUnit",bid:bld.id,u:Object.assign({},u)})}} style={Object.assign({},mbtn(bld.color),{fontSize:8,padding:"3px 6px"})}>✏️</button>}
                       {adm && <button className="bh" onClick={async function(){await DB.deleteUnit(u.id);await refreshUnits();msg("Removida")}} style={Object.assign({},mbtn("#D45B5B"),{fontSize:8,padding:"3px 6px"})}>🗑️</button>}
@@ -805,6 +818,7 @@ function App(){
           {can("manage_settings") && <button className="bh ch" onClick={function(){setMdl({t:"siteSettings"})}} style={{padding:16,borderRadius:14,fontSize:13,fontWeight:500,background:"#111110",color:"#7A7570",border:"1px solid rgba(255,255,255,0.04)",cursor:"pointer",textAlign:"center"}}>⚙️ Config</button>}
           {can("manage_users") && <button className="bh ch" onClick={function(){setMdl({t:"manageUsers"})}} style={{padding:16,borderRadius:14,fontSize:13,fontWeight:500,background:"#111110",color:"#8B6FBF",border:"1px solid rgba(139,111,191,0.1)",cursor:"pointer",textAlign:"center"}}>🛡️ Equipe · {adminUsers.length}</button>}
           {can("manage_sales") && <button className="bh ch" onClick={function(){setMdl({t:"adminSales"})}} style={{padding:16,borderRadius:14,fontSize:13,fontWeight:500,background:"#111110",color:"#E8A94E",border:"1px solid rgba(232,169,78,0.1)",cursor:"pointer",textAlign:"center"}}>📋 Vendas</button>}
+          <button className="bh ch" onClick={function(){setMdl({t:"aiAgent"})}} style={{padding:16,borderRadius:14,fontSize:13,fontWeight:500,background:"linear-gradient(135deg,#111110,#15131d)",color:"#8B6FBF",border:"1px solid rgba(139,111,191,0.15)",cursor:"pointer",textAlign:"center"}}>🤖 Agente IA</button>
         </div>
 
         {/* ═══ BUILDING MANAGEMENT ═══ */}
@@ -847,7 +861,7 @@ function App(){
 
   // ═══ SHARE UNIT ═══
   // ═══ PDF EXPORT ═══
-  var printBld = function(bid){
+  var printBld = function(bid){DB.trackEvent("pdf_export",{building_id:bid});
     var b=buildings.find(function(x){return x.id===bid});if(!b)return;
     var units=getUnits(bid);
     var logo=cfg.report_logo?"<img src='"+cfg.report_logo+"' style='max-height:50px;max-width:180px;margin-bottom:12px'/>":"";
@@ -873,7 +887,7 @@ function App(){
   };
 
   // ═══ EXCEL EXPORT ═══
-  var exportExcel = function(bid){
+  var exportExcel = function(bid){DB.trackEvent("excel_export",{building_id:bid});
     var b=buildings.find(function(x){return x.id===bid});if(!b)return;
     var units=getUnits(bid);
     var csv="Unidade;Área (m²);Preço Base;Valor Corrigido;Status\n";
@@ -885,7 +899,7 @@ function App(){
     URL.revokeObjectURL(url);msg("Excel exportado!");
   };
 
-  var shareUnit = function(u,b){
+  var shareUnit = function(u,b){DB.trackEvent("whatsapp_share",{building:b.name,unit:u.name});
     var p=cp(u,b);
     var text="🏢 *"+b.name+"*\n📍 Unidade: "+u.name+"\n📐 Área: "+u.area+"m²\n💰 Valor: "+fmt(p)+"\n"+(b.status==="construction"?"🏗️ Obra: "+b.construction_pct+"%":"✅ Pronto para morar")+"\n\n📞 "+CT.phone+"\n✉️ "+CT.email;
     window.open("https://wa.me/"+waNum+"?text="+encodeURIComponent(text),"_blank");
@@ -908,6 +922,7 @@ function App(){
     if(mdl.t==="adminSales") return <AdminSalesM/>;
     if(mdl.t==="importPdf") return <ImportPdfM/>;
     if(mdl.t==="manageUsers") return <ManageUsersM/>;
+    if(mdl.t==="aiAgent") return <AIAgentM/>;
     return null;
   }
 
@@ -1382,6 +1397,228 @@ function App(){
           </div>;
         })}
       </div>
+      <button style={mC} onClick={function(){setMdl(null)}}>Fechar</button>
+    </div>;
+  }
+
+  // ═══ AI AGENT ═══
+  function AIAgentM(){
+    var _tab=useState("dash");var tab=_tab[0];var setTab=_tab[1];
+    var _analytics=useState([]);var analytics=_analytics[0];var setAnalytics=_analytics[1];
+    var _loading=useState(false);var loading=_loading[0];var setLoading=_loading[1];
+    var _aiResp=useState("");var aiResp=_aiResp[0];var setAiResp=_aiResp[1];
+    var _reports=useState([]);var reports=_reports[0];var setReports=_reports[1];
+    var _health=useState(null);var health=_health[0];var setHealth=_health[1];
+
+    useEffect(function(){
+      DB.loadAnalytics(30).then(setAnalytics);
+      DB.loadReports().then(setReports);
+    },[]);
+
+    // Analytics summary
+    var summary=useMemo(function(){
+      var views=analytics.filter(function(a){return a.event_type==="page_view"}).length;
+      var bldViews=analytics.filter(function(a){return a.event_type==="view_building"}).length;
+      var sims=analytics.filter(function(a){return a.event_type==="simulator"}).length;
+      var waSh=analytics.filter(function(a){return a.event_type==="whatsapp_share"}).length;
+      var pdfEx=analytics.filter(function(a){return a.event_type==="pdf_export"}).length;
+      var xlsEx=analytics.filter(function(a){return a.event_type==="excel_export"}).length;
+      // Top buildings
+      var bldCounts={};
+      analytics.filter(function(a){return a.event_type==="view_building"}).forEach(function(a){
+        var bid=(a.event_data||{}).building_id||"";
+        bldCounts[bid]=(bldCounts[bid]||0)+1;
+      });
+      var topBld=Object.keys(bldCounts).map(function(k){var b=buildings.find(function(x){return x.id===k});return{name:b?b.name:k,count:bldCounts[k]}}).sort(function(a,b){return b.count-a.count}).slice(0,5);
+      // Daily views (last 7 days)
+      var daily=[];
+      for(var d=6;d>=0;d--){
+        var date=new Date();date.setDate(date.getDate()-d);
+        var ds=date.toLocaleDateString("pt-BR");
+        var count=analytics.filter(function(a){return new Date(a.created_at).toLocaleDateString("pt-BR")===ds}).length;
+        daily.push({date:ds.substring(0,5),count:count});
+      }
+      return{views:views,bldViews:bldViews,sims:sims,waSh:waSh,pdfEx:pdfEx,xlsEx:xlsEx,topBld:topBld,daily:daily};
+    },[analytics,buildings]);
+
+    // Health Check
+    var runHealthCheck=function(){
+      var issues=[];var score=100;
+      // Check buildings
+      buildings.forEach(function(b){
+        var u=getUnits(b.id);var p=getPhotos(b.id);
+        if(u.length===0){issues.push({type:"warning",msg:b.name+": sem unidades cadastradas"});score-=10}
+        if(p.length===0){issues.push({type:"warning",msg:b.name+": sem fotos"});score-=5}
+        var avail=u.filter(function(x){return x.status==="available"});
+        var noPrice=avail.filter(function(x){return!x.base_price||x.base_price===0});
+        if(noPrice.length>0){issues.push({type:"error",msg:b.name+": "+noPrice.length+" unidades disponíveis sem preço"});score-=noPrice.length*2}
+        if(!b.subtitle){issues.push({type:"info",msg:b.name+": sem descrição"});score-=2}
+        if(b.cub_current<=0){issues.push({type:"error",msg:b.name+": CUB zerado ou inválido"});score-=15}
+      });
+      if(!cfg.cub_sc||parseBR(cfg.cub_sc)<=0){issues.push({type:"error",msg:"CUB/SC não configurado"});score-=20}
+      if(!cfg.wa_number){issues.push({type:"warning",msg:"WhatsApp não configurado"});score-=5}
+      if(brokers.length===0){issues.push({type:"info",msg:"Nenhum corretor cadastrado"});score-=3}
+      if(issues.length===0) issues.push({type:"success",msg:"Tudo perfeito! Nenhum problema encontrado."});
+      score=Math.max(0,Math.min(100,score));
+      setHealth({score:score,issues:issues});
+    };
+
+    // AI Analysis
+    var runAI=async function(prompt){
+      setLoading(true);setAiResp("");
+      try{
+        var context="Portal do Corretor - MK Realty.\n";
+        context+="Empreendimentos: "+buildings.length+"\n";
+        buildings.forEach(function(b){
+          var u=getUnits(b.id);var p=getPhotos(b.id);
+          var av=u.filter(function(x){return x.status==="available"}).length;
+          var rs=u.filter(function(x){return x.status==="reserved"}).length;
+          var sd=u.filter(function(x){return x.status==="sold"}).length;
+          var vgv=u.reduce(function(s,x){return s+cp(x,b)},0);
+          context+=b.name+": "+u.length+" un. ("+av+" disp, "+rs+" res, "+sd+" vend), VGV "+fmt(vgv)+", "+p.length+" fotos, obra "+b.construction_pct+"%\n";
+        });
+        context+="Corretores: "+brokers.length+"\n";
+        context+="Vendas registradas: "+sales.length+" ("+sales.filter(function(s){return s.status==="confirmed"}).length+" confirmadas)\n";
+        context+="Analytics 30 dias: "+analytics.length+" eventos, "+summary.views+" page views, "+summary.sims+" simulações, "+summary.waSh+" WhatsApp shares\n";
+        context+="CUB/SC: "+cfg.cub_sc+"\n";
+
+        var response=await fetch("https://api.anthropic.com/v1/messages",{
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({
+            model:"claude-sonnet-4-20250514",
+            max_tokens:1500,
+            messages:[{role:"user",content:prompt+"\n\nDados do portal:\n"+context}],
+            system:"Você é o Agente IA do Portal do Corretor MK Realty. Responda em português brasileiro. Seja direto, objetivo e dê sugestões práticas. Use emojis para destacar pontos. Formate com parágrafos curtos."
+          })
+        });
+        var data=await response.json();
+        var text=(data.content||[]).filter(function(c){return c.type==="text"}).map(function(c){return c.text}).join("\n");
+        setAiResp(text||"Sem resposta da IA");
+        // Save report
+        await DB.saveReport({report_type:prompt.substring(0,50),content:text,score:health?health.score:0});
+        DB.loadReports().then(setReports);
+      }catch(e){
+        setAiResp("Erro ao consultar IA: "+e.message);
+      }
+      setLoading(false);
+    };
+
+    var scoreColor=function(s){return s>=80?"#4CAF7D":s>=50?"#E8A94E":"#D45B5B"};
+
+    return <div>
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+        <div style={{width:44,height:44,borderRadius:14,background:"linear-gradient(135deg,#5B8FD4,#8B6FBF)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>🤖</div>
+        <div>
+          <div style={{fontSize:18,fontWeight:600,fontFamily:"'Cormorant Garamond',Georgia,serif"}}>Agente IA</div>
+          <div style={{fontSize:10,color:"#555"}}>Análise · Relatórios · Sugestões</div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{display:"flex",gap:4,marginBottom:14,flexWrap:"wrap"}}>
+        {[{id:"dash",l:"📊 Painel"},{id:"health",l:"🏥 Checkup"},{id:"ai",l:"🤖 Consultar IA"},{id:"history",l:"📋 Relatórios"}].map(function(t2){
+          return <span key={t2.id} className="bh" onClick={function(){setTab(t2.id);if(t2.id==="health"&&!health)runHealthCheck()}} style={{padding:"7px 12px",borderRadius:8,fontSize:11,fontWeight:600,cursor:"pointer",background:tab===t2.id?"#5B8FD4"+"18":"#111110",color:tab===t2.id?"#5B8FD4":"#555"}}>{t2.l}</span>;
+        })}
+      </div>
+
+      {/* Dashboard Tab */}
+      {tab==="dash"&&<div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:14}}>
+          {[{l:"Visitas",v:summary.views,c:"#5B8FD4"},{l:"Empreend.",v:summary.bldViews,c:G},{l:"Simulações",v:summary.sims,c:"#4CAF7D"},{l:"WhatsApp",v:summary.waSh,c:"#25D366"},{l:"PDF",v:summary.pdfEx,c:"#E8A94E"},{l:"Excel",v:summary.xlsEx,c:"#8B6FBF"}].map(function(k,i){
+            return <div key={i} style={{padding:12,background:"#111110",borderRadius:10,textAlign:"center",border:"1px solid rgba(255,255,255,0.03)"}}>
+              <div style={{fontSize:18,fontWeight:600,color:k.c}}>{k.v}</div>
+              <div style={{fontSize:8,color:"#555",textTransform:"uppercase",letterSpacing:1}}>{k.l}</div>
+            </div>;
+          })}
+        </div>
+        {/* Mini chart */}
+        <div style={{background:"#111110",borderRadius:12,padding:14,marginBottom:14,border:"1px solid rgba(255,255,255,0.03)"}}>
+          <div style={{fontSize:12,fontWeight:600,marginBottom:10}}>Eventos — Últimos 7 dias</div>
+          <div style={{display:"flex",alignItems:"flex-end",gap:4,height:60}}>
+            {summary.daily.map(function(d,i){
+              var maxC=Math.max.apply(null,summary.daily.map(function(x){return x.count||1}));
+              var h=Math.max(4,Math.round(d.count/maxC*55));
+              return <div key={i} style={{flex:1,textAlign:"center"}}>
+                <div style={{height:h,background:"linear-gradient(180deg,#5B8FD4,#5B8FD480)",borderRadius:3,marginBottom:4}}/>
+                <div style={{fontSize:7,color:"#555"}}>{d.date}</div>
+                <div style={{fontSize:8,color:"#5B8FD4",fontWeight:600}}>{d.count}</div>
+              </div>;
+            })}
+          </div>
+        </div>
+        {summary.topBld.length>0&&<div style={{background:"#111110",borderRadius:12,padding:14,border:"1px solid rgba(255,255,255,0.03)"}}>
+          <div style={{fontSize:12,fontWeight:600,marginBottom:10}}>Mais Acessados</div>
+          {summary.topBld.map(function(b,i){
+            return <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid rgba(255,255,255,0.02)"}}>
+              <span style={{fontSize:12}}>{b.name}</span>
+              <span style={{fontSize:12,fontWeight:600,color:G}}>{b.count}x</span>
+            </div>;
+          })}
+        </div>}
+      </div>}
+
+      {/* Health Check Tab */}
+      {tab==="health"&&<div>
+        {health&&<div>
+          <div style={{textAlign:"center",marginBottom:16}}>
+            <div style={{fontSize:48,fontWeight:700,color:scoreColor(health.score),fontFamily:"'Cormorant Garamond',Georgia,serif"}}>{health.score}</div>
+            <div style={{fontSize:11,color:"#555"}}>Pontuação de Saúde do Portal</div>
+            <div style={{width:"100%",height:6,background:"#111110",borderRadius:3,marginTop:8,overflow:"hidden"}}>
+              <div style={{height:"100%",width:health.score+"%",background:scoreColor(health.score),borderRadius:3}}/>
+            </div>
+          </div>
+          {health.issues.map(function(iss,i){
+            var colors={error:"#D45B5B",warning:"#E8A94E",info:"#5B8FD4",success:"#4CAF7D"};
+            var icons={error:"❌",warning:"⚠️",info:"💡",success:"✅"};
+            return <div key={i} style={{padding:10,background:"#111110",borderRadius:10,marginBottom:6,borderLeft:"3px solid "+(colors[iss.type]||"#555")}}>
+              <span style={{fontSize:12}}>{icons[iss.type]} {iss.msg}</span>
+            </div>;
+          })}
+          <button className="bh" style={Object.assign({},mP("#5B8FD4"),{marginTop:10})} onClick={runHealthCheck}>🔄 Refazer Checkup</button>
+        </div>}
+        {!health&&<div style={{textAlign:"center",padding:20}}>
+          <button className="bh" style={mP("#4CAF7D")} onClick={runHealthCheck}>🏥 Iniciar Checkup</button>
+        </div>}
+      </div>}
+
+      {/* AI Tab */}
+      {tab==="ai"&&<div>
+        <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:14}}>
+          {[
+            {l:"📊 Análise completa do portal",p:"Faça uma análise completa do portal: vendas, preços, ocupação, performance. Identifique pontos fortes e fracos. Dê 5 sugestões práticas de melhoria."},
+            {l:"💰 Análise de preços e mercado",p:"Analise os preços dos empreendimentos, compare R$/m², identifique oportunidades. Sugira estratégias de precificação."},
+            {l:"📈 Relatório de performance de vendas",p:"Gere um relatório de performance: taxa de conversão, empreendimentos mais vendidos, velocidade de vendas. Compare os empreendimentos entre si."},
+            {l:"🎯 Sugestões de marketing e conteúdo",p:"Sugira melhorias de marketing: fotos que faltam, descrições a melhorar, materiais a criar. Como atrair mais corretores e compradores?"},
+            {l:"🏗️ Status dos empreendimentos",p:"Analise o status de cada empreendimento: andamento de obra, unidades disponíveis, previsão de esgotamento. O que priorizar?"}
+          ].map(function(opt){
+            return <button key={opt.l} className="bh" onClick={function(){runAI(opt.p)}} disabled={loading} style={{padding:"12px 14px",borderRadius:10,fontSize:12,fontWeight:500,background:"#111110",color:"#F0EBE3",border:"1px solid rgba(255,255,255,0.04)",cursor:loading?"wait":"pointer",textAlign:"left"}}>{opt.l}</button>;
+          })}
+        </div>
+        {loading&&<div style={{textAlign:"center",padding:20}}>
+          <div style={{fontSize:24,marginBottom:8,animation:"pulse 1.5s infinite"}}>🤖</div>
+          <div style={{fontSize:12,color:"#5B8FD4"}}>Analisando dados...</div>
+        </div>}
+        {aiResp&&!loading&&<div style={{padding:16,background:"#111110",borderRadius:14,border:"1px solid rgba(91,143,212,0.1)",marginTop:8}}>
+          <div style={{fontSize:10,color:"#5B8FD4",fontWeight:600,textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>🤖 Resposta do Agente</div>
+          <div style={{fontSize:13,color:"#F0EBE3",lineHeight:1.8,whiteSpace:"pre-wrap"}}>{aiResp}</div>
+        </div>}
+      </div>}
+
+      {/* History Tab */}
+      {tab==="history"&&<div>
+        {reports.length===0&&<div style={{textAlign:"center",padding:20,color:"#555"}}>Nenhum relatório gerado ainda</div>}
+        {reports.map(function(r){
+          return <div key={r.id} style={{padding:12,background:"#111110",borderRadius:10,marginBottom:8,border:"1px solid rgba(255,255,255,0.03)"}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+              <span style={{fontSize:11,fontWeight:600}}>{r.report_type}</span>
+              <span style={{fontSize:9,color:"#555"}}>{new Date(r.created_at).toLocaleDateString("pt-BR")}</span>
+            </div>
+            <div style={{fontSize:11,color:"#999",lineHeight:1.6,maxHeight:100,overflow:"hidden",whiteSpace:"pre-wrap"}}>{(r.content||"").substring(0,300)}{(r.content||"").length>300?"...":""}</div>
+          </div>;
+        })}
+      </div>}
+
       <button style={mC} onClick={function(){setMdl(null)}}>Fechar</button>
     </div>;
   }
