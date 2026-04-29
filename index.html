@@ -1428,15 +1428,16 @@ function App(){
         // Parse the text
         var lines=allText.split("\n").filter(function(l){return l.trim().length>3});
         var units=[];
-        // Approach: scan full text with regex to find ALL unit entries
-        // Pattern: 3-4 digit number (optionally " - Type"), then decimal numbers, then status/price
-        var fullText=allText.replace(/\n/g," ").replace(/\s+/g," ");
-        // Find all unit blocks: number(3-4 digits) [- Type] number(area1) number(area2) [price or status]
-        var unitRegex=/(\d{3,4})\s*(?:-\s*(Master|Luxo|Superior|Standard|Studio|Loja|Sala|Ap\w*))?[^0-9VRDI]*?(\d+[.,]\d+)[^0-9VRDI]*?(\d+[.,]\d+)[^0-9VRDI]*?(VENDIDO|RESERVADO|RESERV|INDISPON[IÍ]VEL|R\$\s*[\d.,]+)/gi;
+        // Clean text: remove pipes, collapse spaces
+        var fullText=allText.replace(/\|/g," ").replace(/\n/g," ").replace(/\s+/g," ");
+        // Regex: unit_number [- Type] area1 area2 (VENDIDO|RESERVADO|R$ price)
+        // area1 can be integer or decimal (e.g. "35" or "40,96")
+        // area2 is always decimal (e.g. "67,3196")
+        var unitRegex=new RegExp("(\\d{3,4})(?:\\s*-\\s*(Master|Luxo|Superior|Standard|Studio|Loja|Sala|Ap\\w*))?\\s+(\\d+(?:[.,]\\d+)?)\\s+(\\d+[.,]\\d+)\\s+(VENDIDO|VENDIDA|RESERVADO|RESERVADA|INDISPON\\w*|R\\$\\s*[\\d.,]+)","gi");
         var match;
         while((match=unitRegex.exec(fullText))!==null){
           var num=match[1];
-          var tipo=match[2]?num+" - "+match[2]:num;
+          var tipo=match[2]?(num+" - "+match[2]):num;
           var areaPriv=parseFloat(match[3].replace(",","."));
           var areaTotal=parseFloat(match[4].replace(",","."));
           var rawStatus=match[5].trim();
@@ -1447,18 +1448,13 @@ function App(){
           else if(/reserv/i.test(rawStatus)) status="reserved";
           else if(/indispon/i.test(rawStatus)) status="sold";
           else if(/R\$/i.test(rawStatus)){
-            var pv=rawStatus.replace(/R\$\s*/,"").replace(/\./g,"").replace(",",".");
-            price=parseFloat(pv)||0;
+            price=parseFloat(rawStatus.replace(/R\$\s*/,"").replace(/\./g,"").replace(",","."))||0;
           }
           var dup=units.find(function(u){return u.name===tipo});
           if(!dup) units.push({name:tipo,area:area,price:price,status:status,include:true});
         }
-        // Sort by name
-        units.sort(function(a,b){
-          var na=parseInt(a.name.match(/\d+/)[0])||0;
-          var nb=parseInt(b.name.match(/\d+/)[0])||0;
-          return na-nb;
-        });
+        // Sort by unit number
+        units.sort(function(a,b){var na=parseInt(a.name)||0;var nb=parseInt(b.name)||0;return na-nb});
         setParsed(units);
         setStep(units.length>0?"review":"raw");
         setProgress(units.length+" unidades encontradas");
