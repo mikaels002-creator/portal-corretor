@@ -246,6 +246,8 @@ var DB = {
   addTask: async function(t){await sb.from("tasks").insert(t)},
   updateTask: async function(id,c){await sb.from("tasks").update(c).eq("id",id)},
   deleteTask: async function(id){await sb.from("tasks").delete().eq("id",id)},
+  loadTaskComments: async function(taskId){var r=await sb.from("task_comments").select("*").eq("task_id",taskId).order("id",{ascending:true});return r.data||[]},
+  addTaskComment: async function(c){await sb.from("task_comments").insert(c)},
   // --- Messages ---
   loadMessages: async function(channel){var r=await sb.from("messages").select("*").eq("channel",channel).order("id",{ascending:true}).limit(200);return r.data||[]},
   sendMessage: async function(m){await sb.from("messages").insert(m)},
@@ -376,7 +378,7 @@ function App(){
       }catch(e){console.log("Poll error:",e)}
     };
     var t1=setTimeout(check,3000);
-    var iv=setInterval(check,15000);
+    var iv=setInterval(check,5000);
     return function(){clearTimeout(t1);clearInterval(iv)};
   },[adm,currentUser,broker]);
 
@@ -1493,39 +1495,104 @@ function App(){
   // ═══ TASK MANAGER ═══
   function TaskManagerM(){
     var _tab=useState("pending");var tab=_tab[0];var setTab=_tab[1];
-    var _adding=useState(false);var adding=_adding[0];var setAdding=_adding[1];
+    var _mode=useState("list");var mode=_mode[0];var setMode=_mode[1];
     var _nf=useState({title:"",description:"",assigned_to:"",priority:"normal",due_date:""});var nf=_nf[0];var setNf=_nf[1];
-    var myTasks=currentUser?tasks.filter(function(t){return t.assigned_to===currentUser.id||t.created_by===currentUser.id}):tasks;
-    var filtered=tab==="all"?myTasks:myTasks.filter(function(t){return t.status===tab});
-    var pendCount=myTasks.filter(function(t){return t.status==="pending"}).length;
-    var doingCount=myTasks.filter(function(t){return t.status==="doing"}).length;
-    var doneCount=myTasks.filter(function(t){return t.status==="done"}).length;
+    var _detail=useState(null);var detail=_detail[0];var setDetail=_detail[1];
+    var _comments=useState([]);var comments=_comments[0];var setComments=_comments[1];
+    var _newComment=useState("");var newComment=_newComment[0];var setNewComment=_newComment[1];
+    var showAll=currentUser&&currentUser.role==="super_admin";
+    var myTasks=showAll?tasks:currentUser?tasks.filter(function(t5){return t5.assigned_to===currentUser.id||t5.created_by===currentUser.id}):tasks;
+    var filtered=tab==="all"?myTasks:myTasks.filter(function(t5){return t5.status===tab});
+    var pendCount=myTasks.filter(function(t5){return t5.status==="pending"}).length;
+    var doingCount=myTasks.filter(function(t5){return t5.status==="doing"}).length;
+    var doneCount=myTasks.filter(function(t5){return t5.status==="done"}).length;
     var priColors={urgent:"#D45B5B",high:"#E8A94E",normal:"#5B8FD4",low:"#555"};
     var priLabels={urgent:"🔴 Urgente",high:"🟡 Alta",normal:"🔵 Normal",low:"⚪ Baixa"};
-    var stLabels={pending:"Pendente",doing:"Em andamento",done:"Concluída"};
 
-    if(adding) return <div><div style={mT}>＋ Nova Tarefa</div>
+    var openDetail=async function(t5){setDetail(t5);var c=await DB.loadTaskComments(t5.id);setComments(c);setMode("detail")};
+    var addComment=async function(){
+      if(!newComment.trim()||!detail)return;
+      await DB.addTaskComment({task_id:detail.id,user_id:currentUser?currentUser.id:0,user_name:currentUser?currentUser.nome:"Admin",text:newComment.trim()});
+      setNewComment("");var c=await DB.loadTaskComments(detail.id);setComments(c);
+    };
+    var sendEmailNotif=function(assignee,taskTitle,taskDesc){
+      if(!assignee||!assignee.email)return;
+      var subject="Nova tarefa: "+taskTitle;
+      var body="Olá "+assignee.nome+",\n\nVocê recebeu uma nova tarefa no Portal do Corretor.\n\nTarefa: "+taskTitle+"\n"+(taskDesc?"Descrição: "+taskDesc+"\n":"")+"\nAcesse o portal para ver os detalhes.\n\nMK Realty & D&SS Incorporação";
+      window.open("mailto:"+assignee.email+"?subject="+encodeURIComponent(subject)+"&body="+encodeURIComponent(body),"_blank");
+    };
+
+    // ADD MODE
+    if(mode==="add") return <div><div style={mT}>＋ Nova Tarefa</div>
       <L>Título</L><input style={mI} value={nf.title} onChange={function(e){setNf(Object.assign({},nf,{title:e.target.value}))}} placeholder="Ex: Subir fotos do Gran Vitta"/>
-      <L>Descrição</L><textarea style={Object.assign({},mI,{minHeight:60,resize:"vertical"})} value={nf.description} onChange={function(e){setNf(Object.assign({},nf,{description:e.target.value}))}} placeholder="Detalhes da tarefa..."/>
+      <L>Descrição</L><textarea style={Object.assign({},mI,{minHeight:60,resize:"vertical"})} value={nf.description} onChange={function(e){setNf(Object.assign({},nf,{description:e.target.value}))}} placeholder="Detalhes..."/>
       <L>Responsável</L>
-      <select style={mI} value={nf.assigned_to} onChange={function(e){setNf(Object.assign({},nf,{assigned_to:e.target.value?parseInt(e.target.value):""}))}}><option value="">Selecione...</option>{adminUsers.filter(function(u){return u.ativo!==false}).map(function(u){return <option key={u.id} value={u.id}>{u.nome}</option>})}</select>
+      <select style={mI} value={nf.assigned_to} onChange={function(e){setNf(Object.assign({},nf,{assigned_to:e.target.value?parseInt(e.target.value):""}))}}><option value="">Selecione...</option>{adminUsers.filter(function(u){return u.ativo!==false}).map(function(u){return <option key={u.id} value={u.id}>{u.nome} ({u.email})</option>})}</select>
       <L>Prioridade</L>
-      <div style={{display:"flex",gap:4,marginBottom:10}}>{["low","normal","high","urgent"].map(function(p){return <span key={p} className="bh" onClick={function(){setNf(Object.assign({},nf,{priority:p}))}} style={{padding:"6px 12px",borderRadius:8,fontSize:11,fontWeight:600,cursor:"pointer",background:nf.priority===p?priColors[p]+"20":"#111110",color:nf.priority===p?priColors[p]:"#555"}}>{priLabels[p]}</span>})}</div>
+      <div style={{display:"flex",gap:4,marginBottom:10}}>{["low","normal","high","urgent"].map(function(p2){return <span key={p2} className="bh" onClick={function(){setNf(Object.assign({},nf,{priority:p2}))}} style={{padding:"6px 12px",borderRadius:8,fontSize:11,fontWeight:600,cursor:"pointer",background:nf.priority===p2?priColors[p2]+"20":"#111110",color:nf.priority===p2?priColors[p2]:"#555"}}>{priLabels[p2]}</span>})}</div>
       <L>Prazo</L><input style={mI} type="date" value={nf.due_date} onChange={function(e){setNf(Object.assign({},nf,{due_date:e.target.value}))}}/>
       <button className="bh" style={mP("#4CAF7D")} onClick={async function(){
         if(!nf.title.trim()){msg("Título obrigatório");return}
         await DB.addTask({title:nf.title,description:nf.description,assigned_to:nf.assigned_to||null,created_by:currentUser?currentUser.id:null,priority:nf.priority,status:"pending",due_date:nf.due_date});
-        await refreshTasks();setAdding(false);setNf({title:"",description:"",assigned_to:"",priority:"normal",due_date:""});msg("Tarefa criada!");
-      }}>Criar Tarefa</button>
-      <button style={mC} onClick={function(){setAdding(false)}}>Cancelar</button>
+        await refreshTasks();
+        var assignee=adminUsers.find(function(u){return u.id===nf.assigned_to});
+        if(assignee&&assignee.email){sendEmailNotif(assignee,nf.title,nf.description);msg("Tarefa criada! E-mail aberto.")}else{msg("Tarefa criada!")}
+        setMode("list");setNf({title:"",description:"",assigned_to:"",priority:"normal",due_date:""});
+      }}>Criar e Notificar por E-mail</button>
+      <button style={mC} onClick={function(){setMode("list")}}>Cancelar</button>
     </div>;
 
+    // DETAIL MODE
+    if(mode==="detail"&&detail) return <div>
+      <button className="bh" onClick={function(){setMode("list")}} style={{background:"none",border:"none",color:G,fontSize:12,cursor:"pointer",padding:"4px 0",marginBottom:10}}>← Voltar</button>
+      <div style={{padding:16,background:"#111110",borderRadius:14,border:"1px solid rgba(255,255,255,0.03)",marginBottom:14}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+          <span style={{fontSize:9,fontWeight:600,color:priColors[detail.priority],padding:"3px 8px",background:priColors[detail.priority]+"15",borderRadius:6}}>{priLabels[detail.priority]}</span>
+          <span style={{fontSize:10,color:detail.status==="done"?"#4CAF7D":detail.status==="doing"?"#E8A94E":"#555"}}>{detail.status==="done"?"✅ Concluída":detail.status==="doing"?"▶ Em andamento":"⏳ Pendente"}</span>
+        </div>
+        <div style={{fontSize:16,fontWeight:600,marginBottom:6}}>{detail.title}</div>
+        {detail.description&&<div style={{fontSize:12,color:"#999",lineHeight:1.6,marginBottom:10}}>{detail.description}</div>}
+        <div style={{display:"flex",gap:10,fontSize:10,color:"#555",flexWrap:"wrap"}}>
+          {(function(){var a=adminUsers.find(function(u){return u.id===detail.assigned_to});return a?<span>👤 {a.nome}</span>:null})()}
+          {(function(){var c=adminUsers.find(function(u){return u.id===detail.created_by});return c?<span>📝 Criada por {c.nome}</span>:null})()}
+          {detail.due_date&&<span>📅 {detail.due_date}</span>}
+          {detail.completed_at&&<span>✅ {detail.completed_at}</span>}
+        </div>
+        <div style={{display:"flex",gap:4,marginTop:10}}>
+          {detail.status==="pending"&&<button className="bh" onClick={async function(){await DB.updateTask(detail.id,{status:"doing"});await refreshTasks();setDetail(Object.assign({},detail,{status:"doing"}));msg("Iniciada!")}} style={mbtn("#E8A94E")}>▶ Iniciar</button>}
+          {detail.status==="doing"&&<button className="bh" onClick={async function(){await DB.updateTask(detail.id,{status:"done",completed_at:new Date().toLocaleDateString("pt-BR")});await refreshTasks();setDetail(Object.assign({},detail,{status:"done"}));msg("Concluída!")}} style={mbtn("#4CAF7D")}>✅ Concluir</button>}
+          {detail.status==="done"&&<button className="bh" onClick={async function(){await DB.updateTask(detail.id,{status:"pending",completed_at:""});await refreshTasks();setDetail(Object.assign({},detail,{status:"pending"}));msg("Reaberta")}} style={mbtn("#5B8FD4")}>↩ Reabrir</button>}
+        </div>
+      </div>
+      {/* Comments */}
+      <div style={{fontSize:13,fontWeight:600,marginBottom:10,display:"flex",alignItems:"center",gap:6}}>💬 Comentários <span style={{fontSize:10,color:"#555",fontWeight:400}}>({comments.length})</span></div>
+      <div style={{maxHeight:200,overflow:"auto",marginBottom:10}}>
+        {comments.length===0&&<div style={{textAlign:"center",padding:16,color:"#555",fontSize:11}}>Sem comentários. Registre atualizações aqui.</div>}
+        {comments.map(function(c2){
+          var isMe=currentUser&&c2.user_id===currentUser.id;
+          return <div key={c2.id} style={{padding:10,background:"#0d0d0c",borderRadius:10,marginBottom:6,borderLeft:"3px solid "+(isMe?G:"#5B8FD4")}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+              <span style={{fontSize:10,fontWeight:600,color:isMe?G:"#5B8FD4"}}>{c2.user_name}</span>
+              <span style={{fontSize:9,color:"#555"}}>{new Date(c2.created_at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</span>
+            </div>
+            <div style={{fontSize:12,color:"#ccc",lineHeight:1.5}}>{c2.text}</div>
+          </div>;
+        })}
+      </div>
+      <div style={{display:"flex",gap:4}}>
+        <input style={Object.assign({},mI,{flex:1,marginBottom:0})} value={newComment} onChange={function(e){setNewComment(e.target.value)}} onKeyDown={function(e){if(e.key==="Enter")addComment()}} placeholder="Adicionar comentário..."/>
+        <button className="bh" onClick={addComment} style={{padding:"10px 14px",borderRadius:10,background:G,color:"#0a0a09",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>→</button>
+      </div>
+      <button style={mC} onClick={function(){setMode("list")}}>Voltar à Lista</button>
+    </div>;
+
+    // LIST MODE
     return <div>
       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
         <div style={{width:44,height:44,borderRadius:14,background:"linear-gradient(135deg,#E8A94E20,#E8A94E08)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>📋</div>
         <div><div style={{fontSize:18,fontWeight:600,fontFamily:"'Cormorant Garamond',Georgia,serif"}}>Tarefas</div><div style={{fontSize:10,color:"#555"}}>{pendCount} pendentes · {doingCount} em andamento · {doneCount} concluídas</div></div>
       </div>
-      <button className="bh" style={Object.assign({},mP("#4CAF7D"),{marginBottom:12})} onClick={function(){setAdding(true)}}>＋ Nova Tarefa</button>
+      <button className="bh" style={Object.assign({},mP("#4CAF7D"),{marginBottom:12})} onClick={function(){setMode("add")}}>＋ Nova Tarefa</button>
       <div style={{display:"flex",gap:4,marginBottom:12}}>
         {[{v:"pending",l:"Pendentes ("+pendCount+")"},{v:"doing",l:"Andamento ("+doingCount+")"},{v:"done",l:"Concluídas ("+doneCount+")"},{v:"all",l:"Todas"}].map(function(f){
           return <span key={f.v} className="bh" onClick={function(){setTab(f.v)}} style={{padding:"5px 10px",borderRadius:8,fontSize:10,fontWeight:600,cursor:"pointer",background:tab===f.v?G+"18":"#111110",color:tab===f.v?G:"#555"}}>{f.l}</span>;
@@ -1533,26 +1600,19 @@ function App(){
       </div>
       <div style={{maxHeight:400,overflow:"auto"}}>
         {filtered.length===0&&<div style={{textAlign:"center",padding:20,color:"#555"}}>Nenhuma tarefa</div>}
-        {filtered.map(function(t2){
-          var assignee=adminUsers.find(function(u){return u.id===t2.assigned_to});
-          var creator=adminUsers.find(function(u){return u.id===t2.created_by});
-          var overdue=t2.due_date&&t2.status!=="done"&&new Date(t2.due_date)<new Date();
-          return <div key={t2.id} style={{padding:14,background:"#111110",borderRadius:12,marginBottom:8,border:"1px solid rgba(255,255,255,0.03)",borderLeft:"3px solid "+(priColors[t2.priority]||"#555"),opacity:t2.status==="done"?0.5:1}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
-              <span style={{fontSize:13,fontWeight:600,textDecoration:t2.status==="done"?"line-through":"none"}}>{t2.title}</span>
-              <span style={{fontSize:9,fontWeight:600,color:priColors[t2.priority],padding:"2px 6px",background:priColors[t2.priority]+"12",borderRadius:4}}>{priLabels[t2.priority]}</span>
+        {filtered.map(function(t5){
+          var assignee=adminUsers.find(function(u){return u.id===t5.assigned_to});
+          var overdue=t5.due_date&&t5.status!=="done"&&new Date(t5.due_date)<new Date();
+          return <div key={t5.id} onClick={function(){openDetail(t5)}} style={{padding:14,background:"#111110",borderRadius:12,marginBottom:8,border:"1px solid rgba(255,255,255,0.03)",borderLeft:"3px solid "+(priColors[t5.priority]||"#555"),opacity:t5.status==="done"?0.5:1,cursor:"pointer"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
+              <span style={{fontSize:13,fontWeight:600,textDecoration:t5.status==="done"?"line-through":"none"}}>{t5.title}</span>
+              <span style={{fontSize:9,fontWeight:600,color:priColors[t5.priority],padding:"2px 6px",background:priColors[t5.priority]+"12",borderRadius:4}}>{priLabels[t5.priority]}</span>
             </div>
-            {t2.description&&<div style={{fontSize:11,color:"#999",marginBottom:6,lineHeight:1.5}}>{t2.description}</div>}
-            <div style={{display:"flex",gap:8,fontSize:10,color:"#555",marginBottom:8,flexWrap:"wrap"}}>
-              {assignee&&<span>👤 {assignee.nome}</span>}
-              {creator&&<span>📝 {creator.nome}</span>}
-              {t2.due_date&&<span style={{color:overdue?"#D45B5B":"#555"}}>{overdue?"⚠️ ":""}📅 {t2.due_date}</span>}
-            </div>
-            <div style={{display:"flex",gap:4}}>
-              {t2.status==="pending"&&<button className="bh" onClick={async function(){await DB.updateTask(t2.id,{status:"doing"});await refreshTasks();msg("Iniciada!")}} style={mbtn("#E8A94E")}>▶ Iniciar</button>}
-              {t2.status==="doing"&&<button className="bh" onClick={async function(){await DB.updateTask(t2.id,{status:"done",completed_at:new Date().toLocaleDateString("pt-BR")});await refreshTasks();msg("Concluída!")}} style={mbtn("#4CAF7D")}>✅ Concluir</button>}
-              {t2.status==="done"&&<button className="bh" onClick={async function(){await DB.updateTask(t2.id,{status:"pending",completed_at:""});await refreshTasks()}} style={mbtn("#5B8FD4")}>↩ Reabrir</button>}
-              <button className="bh" onClick={async function(){if(confirm("Excluir tarefa?")){await DB.deleteTask(t2.id);await refreshTasks();msg("Removida")}}} style={mbtn("#D45B5B")}>🗑️</button>
+            <div style={{display:"flex",gap:8,fontSize:10,color:"#555",alignItems:"center"}}>
+              {assignee&&<span>👤 {assignee.nome.split(" ")[0]}</span>}
+              {t5.due_date&&<span style={{color:overdue?"#D45B5B":"#555"}}>{overdue?"⚠️ ":""}📅 {t5.due_date}</span>}
+              <span style={{color:t5.status==="done"?"#4CAF7D":t5.status==="doing"?"#E8A94E":"#555"}}>{t5.status==="done"?"✅":t5.status==="doing"?"▶":"⏳"}</span>
+              <span style={{marginLeft:"auto",color:"#555"}}>Toque p/ detalhes →</span>
             </div>
           </div>;
         })}
