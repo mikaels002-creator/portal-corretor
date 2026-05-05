@@ -611,8 +611,8 @@ function App(){
           {bld.status==="construction" && <span style={{fontSize:12,fontWeight:700,color:"#E8A94E"}}>{bld.construction_pct}%</span>}
           <span style={{padding:"2px 8px",borderRadius:5,fontSize:12,fontWeight:600,background:bld.color+"12",color:bld.color}}>💰 {bld.commission||5}% {t.commission}</span>
           {bld.incorporation && <span style={{padding:"2px 8px",borderRadius:5,fontSize:12,fontWeight:600,background:"rgba(91,143,212,0.1)",color:"#5B8FD4"}}>📋 {bld.incorporation}</span>}
-          {isPreLaunch(bld) && <span style={{padding:"2px 8px",borderRadius:5,fontSize:12,fontWeight:600,background:"rgba(232,169,78,0.1)",color:"#E8A94E"}}>🚀 {t.preLaunch}/span>}
-          {!isPreLaunch(bld) && <span style={{padding:"2px 8px",borderRadius:5,fontSize:12,fontWeight:600,background:"rgba(139,111,191,0.1)",color:"#8B6FBF"}}>{lang==="en"?"✅ Incorporated":lang==="es"?"✅ Incorporado":"✅ Incorporado"}/span>}
+          {isPreLaunch(bld) && <span style={{padding:"2px 8px",borderRadius:5,fontSize:12,fontWeight:600,background:"rgba(232,169,78,0.1)",color:"#E8A94E"}}>🚀 {t.preLaunch}</span>}
+          {!isPreLaunch(bld) && <span style={{padding:"2px 8px",borderRadius:5,fontSize:12,fontWeight:600,background:"rgba(139,111,191,0.1)",color:"#8B6FBF"}}>{lang==="en"?"✅ Incorporated":lang==="es"?"✅ Incorporado":"✅ Incorporado"}</span>}
         </div>
 
         {adm && <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
@@ -2738,7 +2738,7 @@ function App(){
           <div style={{fontSize:12,textTransform:"uppercase",letterSpacing:2,color:subColor,marginBottom:14,textAlign:"center"}}>Resumo da Proposta {showUsd&&<span style={{color:"#4CAF7D"}}>(USD)</span>}</div>
           {clientName&&<div style={{textAlign:"center",fontSize:15,fontWeight:600,color:textColor,marginBottom:12}}>👤 {clientName}</div>}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-            <div><div style={{fontSize:12,color:subColor,textTransform:"uppercase",letterSpacing:1}}>"+t.downPay+"</div><div style={{fontSize:18,fontWeight:600,color:G,fontFamily:numFont}}>{$(down)}</div>{showUsd&&<div style={{fontSize:12,color:subColor,fontFamily:numFont}}>{fmt(down)}</div>}</div>
+            <div><div style={{fontSize:12,color:subColor,textTransform:"uppercase",letterSpacing:1}}>{t.downPay}</div><div style={{fontSize:18,fontWeight:600,color:G,fontFamily:numFont}}>{$(down)}</div>{showUsd&&<div style={{fontSize:12,color:subColor,fontFamily:numFont}}>{fmt(down)}</div>}</div>
             {bemVal>0 && <div><div style={{fontSize:12,color:subColor,textTransform:"uppercase",letterSpacing:1}}>Bem ({bemDesc||"Outro"})</div><div style={{fontSize:18,fontWeight:600,color:"#E8A94E",fontFamily:numFont}}>{$(bemVal)}</div></div>}
             <div><div style={{fontSize:12,color:subColor,textTransform:"uppercase",letterSpacing:1}}>{t.balance}</div><div style={{fontSize:18,fontWeight:600,color:"#7A9EC2",fontFamily:numFont}}>{$(saldo)}</div></div>
             {months>0&&<div style={{gridColumn:numBaloes>0?"1":"1/-1"}}><div style={{fontSize:12,color:subColor,textTransform:"uppercase",letterSpacing:1}}>{t.monthly} ({months}x)</div><div style={{fontSize:28,fontWeight:600,color:"#4CAF7D",fontFamily:numFont}}>{$(pmt)}</div>{showUsd&&<div style={{fontSize:13,color:subColor,fontFamily:numFont}}>{fmt(pmt)}</div>}</div>}
