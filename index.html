@@ -2510,24 +2510,34 @@ function App(){
     var mr=rate/100;var pmt=months>0?(mr>0?saldoParcelas*(mr*Math.pow(1+mr,months))/(Math.pow(1+mr,months)-1):saldoParcelas/months):0;
     var totalPago=totalEntrada+(pmt*months)+totalBaloes;
     var indice=finConfig.indice||"CUB-SC";
+    // USD helpers
+    var usdR=getUsdRate();
+    var $=function(v){return showUsd?fmtUsd(Math.round(v/usdR)):fmt(v)};
+    var $eq=function(v){return showUsd?" ("+fmt(v)+")":""};
+    var curr=showUsd?"USD":"BRL";
+    var usdDisclaimer=showUsd?"⚠️ Valores em USD são referenciais. A cotação será definida no momento do fechamento, considerando a volatilidade cambial. Ref: R$ "+usdR.toFixed(2)+"/USD. Contratos em BRL.":"";
 
     // PDF Export
     var exportProposalPdf=function(){
       var coverImg=b.cover_photo?"<img src='"+b.cover_photo+"' style='width:100%;max-height:200px;object-fit:cover;border-radius:12px;margin-bottom:20px'/>":"";
       var logo=cfg.report_logo?"<img src='"+cfg.report_logo+"' style='max-height:45px;max-width:160px'/>":"";
       var clientLine=clientName?"<div style='font-size:14px;color:#555;margin-bottom:16px'>Cliente: <strong style=\"color:#1a1a1a\">"+clientName+"</strong></div>":"";
+      var pf=function(v){return showUsd?fmtUsd(Math.round(v/usdR)):fmt(v)};
+      var peq=function(v){return showUsd?"<span style='font-size:11px;color:#999'>("+fmt(v)+")</span>":""};
+      var usdNote=showUsd?"<div style='background:#FFF8E7;border:1px solid #E8A94E;border-radius:8px;padding:12px;margin:12px 0;font-size:10px;color:#856404;text-align:center;line-height:1.6'>⚠️ Valores em USD são referenciais. A cotação do dólar será definida no momento do fechamento, considerando a volatilidade cambial.<br>Referência: R$ "+usdR.toFixed(2)+"/USD · Contratos em BRL</div>":"";
       var discountHtml="";
       if(totalPago<price){
         var descPct=((1-totalPago/price)*100).toFixed(1);
-        discountHtml="<div style='background:#FFF8E7;border:2px solid #E8A94E;border-radius:12px;padding:16px;margin:16px 0'><div style='font-size:14px;font-weight:700;color:#C47020;margin-bottom:6px'>⚠️ PROPOSTA ABAIXO DO VALOR DE TABELA</div><div style='font-size:13px;color:#333'>Valor tabela: "+fmt(price)+" → Proposta: "+fmt(totalPago)+"</div><div style='font-size:16px;font-weight:700;color:#D45B5B;margin:6px 0'>Desconto solicitado: "+descPct+"% ("+fmt(price-totalPago)+")</div><div style='font-size:12px;color:#C47020;margin-top:8px;padding:8px;background:#FFF0D0;border-radius:6px;text-align:center'>📋 Esta proposta deverá ser remetida à diretoria para análise e aprovação</div></div>";
+        discountHtml="<div style='background:#FFF8E7;border:2px solid #E8A94E;border-radius:12px;padding:16px;margin:16px 0'><div style='font-size:14px;font-weight:700;color:#C47020;margin-bottom:6px'>⚠️ PROPOSTA ABAIXO DO VALOR DE TABELA</div><div style='font-size:13px;color:#333'>Valor tabela: "+pf(price)+" → Proposta: "+pf(totalPago)+"</div><div style='font-size:16px;font-weight:700;color:#D45B5B;margin:6px 0'>Desconto solicitado: "+descPct+"% ("+pf(price-totalPago)+")</div><div style='font-size:12px;color:#C47020;margin-top:8px;padding:8px;background:#FFF0D0;border-radius:6px;text-align:center'>📋 Esta proposta deverá ser remetida à diretoria para análise e aprovação</div></div>";
       }
-      var html="<html><head><meta charset='UTF-8'><title>Proposta — "+b.name+" — "+u.name+"</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Helvetica,Arial,sans-serif;padding:40px;color:#1a1a1a;max-width:700px;margin:0 auto}h1{font-size:11px;text-transform:uppercase;letter-spacing:3px;color:#999;margin-bottom:6px}h2{font-size:28px;font-weight:300;margin-bottom:4px;font-family:Georgia,serif}h3{font-size:14px;color:#666;font-weight:400;margin-bottom:24px}.line{height:1px;background:linear-gradient(90deg,#C8A45C,transparent);margin:20px 0}.box{background:#f8f6f2;border-radius:12px;padding:20px;margin-bottom:16px}.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee}.row:last-child{border:none}.label{font-size:11px;color:#999;text-transform:uppercase;letter-spacing:1px}.val{font-size:16px;font-weight:600}.val.big{font-size:24px;color:#2e7d52}.val.gold{color:#C8A45C}.ft{margin-top:32px;padding-top:16px;border-top:1px solid #ddd;font-size:9px;color:#999;text-align:center;line-height:1.8}</style></head><body>"+logo+coverImg+"<h1>Proposta de Investimento</h1><h2>"+b.name+"</h2><h3>"+b.subtitle+"</h3>"+clientLine+"<div class='line'></div><div class='box'><div class='row'><div><div class='label'>Unidade</div><div class='val gold'>"+u.name+"</div></div><div style='text-align:right'><div class='label'>Área</div><div class='val'>"+u.area+" m²</div></div></div><div class='row'><div><div class='label'>Valor do Imóvel</div><div class='val big'>"+fmt(price)+"</div></div><div style='text-align:right'><div class='label'>R$/m²</div><div class='val'>"+fmt(Math.round(price/u.area))+"</div></div></div></div><div class='line'></div><div style='font-size:13px;font-weight:600;color:#C8A45C;margin-bottom:12px;text-transform:uppercase;letter-spacing:2px'>Plano de Pagamento</div><div class='box'><div class='row'><div><div class='label'>Entrada</div><div class='val'>"+fmt(down)+" <span style=\"font-size:11px;color:#999\">("+((down/price)*100).toFixed(1)+"%)</span></div></div></div>"+(bemVal>0?"<div class='row'><div><div class='label'>Bem ("+bemDesc+")</div><div class='val'>"+fmt(bemVal)+"</div></div></div>":"")+"<div class='row'><div><div class='label'>Saldo a Financiar</div><div class='val'>"+fmt(saldo)+"</div></div></div>"+(months>0?"<div class='row'><div><div class='label'>Parcelas Mensais ("+months+"x)</div><div class='val big'>"+fmt(pmt)+"</div></div></div>":"<div class='row'><div><div class='label'>Parcelas Mensais</div><div class='val' style='color:#D45B5B'>Sem parcelas</div></div></div>")+(numBaloes>0?"<div class='row'><div><div class='label'>Balão "+balaoFreq+" ("+numBaloes+"x)</div><div class='val' style='color:#D45B5B'>"+fmt(balaoValor)+"</div></div></div>":"")+"<div class='row' style='border-top:2px solid #C8A45C;padding-top:12px;margin-top:4px'><div><div class='label'>Total</div><div class='val'>"+fmt(totalPago)+"</div></div></div></div>"+discountHtml+(rate>0?"<div style='font-size:10px;color:#999;margin-bottom:8px'>Taxa: "+rate+"% a.m. · Correção: "+indice+"</div>":"<div style='font-size:10px;color:#999;margin-bottom:8px'>Sem juros · Correção: "+indice+"</div>")+"<div class='ft'>"+contactLine+"<br>"+CT.ig.map(function(i){return i.h}).join(" · ")+"<br><br>Proposta gerada em "+new Date().toLocaleDateString("pt-BR")+" · Valores sujeitos a confirmação<br>Correção pelo "+indice+" · Contrato em BRL</div></body></html>";
+      var html="<html><head><meta charset='UTF-8'><title>Proposta — "+b.name+" — "+u.name+"</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Helvetica,Arial,sans-serif;padding:40px;color:#1a1a1a;max-width:700px;margin:0 auto}h1{font-size:11px;text-transform:uppercase;letter-spacing:3px;color:#999;margin-bottom:6px}h2{font-size:28px;font-weight:300;margin-bottom:4px;font-family:Georgia,serif}h3{font-size:14px;color:#666;font-weight:400;margin-bottom:24px}.line{height:1px;background:linear-gradient(90deg,#C8A45C,transparent);margin:20px 0}.box{background:#f8f6f2;border-radius:12px;padding:20px;margin-bottom:16px}.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee}.row:last-child{border:none}.label{font-size:11px;color:#999;text-transform:uppercase;letter-spacing:1px}.val{font-size:16px;font-weight:600}.val.big{font-size:24px;color:#2e7d52}.val.gold{color:#C8A45C}.ft{margin-top:32px;padding-top:16px;border-top:1px solid #ddd;font-size:9px;color:#999;text-align:center;line-height:1.8}</style></head><body>"+logo+coverImg+"<h1>Proposta de Investimento"+(showUsd?" (USD)":"")+"</h1><h2>"+b.name+"</h2><h3>"+b.subtitle+"</h3>"+clientLine+usdNote+"<div class='line'></div><div class='box'><div class='row'><div><div class='label'>Unidade</div><div class='val gold'>"+u.name+"</div></div><div style='text-align:right'><div class='label'>Área</div><div class='val'>"+u.area+" m²</div></div></div><div class='row'><div><div class='label'>Valor do Imóvel</div><div class='val big'>"+pf(price)+"</div></div><div style='text-align:right'><div class='label'>"+peq(price)+"</div><div class='val'>"+pf(Math.round(price/u.area))+"/m²</div></div></div></div><div class='line'></div><div style='font-size:13px;font-weight:600;color:#C8A45C;margin-bottom:12px;text-transform:uppercase;letter-spacing:2px'>Plano de Pagamento</div><div class='box'><div class='row'><div><div class='label'>Entrada</div><div class='val'>"+pf(down)+" <span style=\"font-size:11px;color:#999\">("+((down/price)*100).toFixed(1)+"%)</span> "+peq(down)+"</div></div></div>"+(bemVal>0?"<div class='row'><div><div class='label'>Bem ("+bemDesc+")</div><div class='val'>"+pf(bemVal)+" "+peq(bemVal)+"</div></div></div>":"")+"<div class='row'><div><div class='label'>Saldo a Financiar</div><div class='val'>"+pf(saldo)+"</div></div></div>"+(months>0?"<div class='row'><div><div class='label'>Parcelas Mensais ("+months+"x)</div><div class='val big'>"+pf(pmt)+" "+peq(pmt)+"</div></div></div>":"<div class='row'><div><div class='label'>Parcelas Mensais</div><div class='val' style='color:#D45B5B'>Sem parcelas</div></div></div>")+(numBaloes>0?"<div class='row'><div><div class='label'>Balão "+balaoFreq+" ("+numBaloes+"x)</div><div class='val' style='color:#D45B5B'>"+pf(balaoValor)+" "+peq(balaoValor)+"</div></div></div>":"")+"<div class='row' style='border-top:2px solid #C8A45C;padding-top:12px;margin-top:4px'><div><div class='label'>Total</div><div class='val'>"+pf(totalPago)+" "+peq(totalPago)+"</div></div></div></div>"+discountHtml+(rate>0?"<div style='font-size:10px;color:#999;margin-bottom:8px'>Taxa: "+rate+"% a.m. · Correção: "+indice+"</div>":"<div style='font-size:10px;color:#999;margin-bottom:8px'>Sem juros · Correção: "+indice+"</div>")+"<div class='ft'>"+contactLine+"<br>"+CT.ig.map(function(i){return i.h}).join(" · ")+"<br><br>Proposta gerada em "+new Date().toLocaleDateString("pt-BR")+" · Valores sujeitos a confirmação<br>Correção pelo "+indice+" · Contrato em BRL</div></body></html>";
       var w=window.open("","_blank");if(w){w.document.write(html);w.document.close();setTimeout(function(){w.print()},600)}
     };
 
     // WhatsApp text
-    var discountWa=totalPago<price?"\n\n⚠️ *PROPOSTA ABAIXO DA TABELA*\nDesconto: "+((1-totalPago/price)*100).toFixed(1)+"% ("+fmt(price-totalPago)+")\n📋 Sujeita à aprovação da diretoria":"";
-    var waText="🏢 *"+b.name+"*\n📍 Unidade *"+u.name+"* — "+u.area+"m²\n\n💰 *"+fmt(price)+"*\n"+(clientName?"👤 "+clientName+"\n":"")+"\n💳 Entrada: "+fmt(down)+" ("+((down/price)*100).toFixed(1)+"%)"+(bemVal>0?"\n🚗 "+bemDesc+": "+fmt(bemVal):"")+"\n🏦 Saldo: "+fmt(saldo)+(months>0?"\n📅 *"+months+"x de "+fmt(pmt)+"*":"\n📅 Sem parcelas mensais")+(numBaloes>0?"\n🎈 Balão "+balaoFreq+": "+numBaloes+"x "+fmt(balaoValor):"")+"\n\n📊 Total: "+fmt(totalPago)+(rate>0?"\n📈 Taxa: "+rate+"% a.m.":"")+"\n📐 Correção: "+indice+discountWa+contactWa;
+    var discountWa=totalPago<price?"\n\n⚠️ *PROPOSTA ABAIXO DA TABELA*\nDesconto: "+((1-totalPago/price)*100).toFixed(1)+"% ("+$(price-totalPago)+")\n📋 Sujeita à aprovação da diretoria":"";
+    var usdWa=showUsd?"\n\n💱 Valores em USD (ref: R$ "+usdR.toFixed(2)+")\nCotação definida no fechamento\nContratos em BRL":"";
+    var waText="🏢 *"+b.name+"*\n📍 Unidade *"+u.name+"* — "+u.area+"m²\n\n💰 *"+$(price)+"*"+(showUsd?" ("+fmt(price)+")":"")+"\n"+(clientName?"👤 "+clientName+"\n":"")+"\n💳 Entrada: "+$(down)+" ("+((down/price)*100).toFixed(1)+"%)"+(bemVal>0?"\n🚗 "+bemDesc+": "+$(bemVal):"")+"\n🏦 Saldo: "+$(saldo)+(months>0?"\n📅 *"+months+"x de "+$(pmt)+"*"+(showUsd?" ("+fmt(pmt)+")":""):"\n📅 Sem parcelas mensais")+(numBaloes>0?"\n🎈 Balão "+balaoFreq+": "+numBaloes+"x "+$(balaoValor):"")+"\n\n📊 Total: "+$(totalPago)+(showUsd?" ("+fmt(totalPago)+")":"")+(rate>0?"\n📈 Taxa: "+rate+"% a.m.":"")+"\n📐 Correção: "+indice+discountWa+usdWa+contactWa;
 
     var numFont="'DM Sans',Helvetica,Arial,sans-serif";
     var nextField=function(e,nextId){if(e.key==="Enter"){e.preventDefault();var el=document.getElementById(nextId);if(el)el.focus()}};
@@ -2557,9 +2567,10 @@ function App(){
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
             <div>
               <div style={{fontSize:12,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Valor</div>
-              <div style={{fontSize:28,fontWeight:700,color:"#4CAF7D",fontFamily:numFont}}>{fmt(price)}</div>
+              <div style={{fontSize:28,fontWeight:700,color:"#4CAF7D",fontFamily:numFont}}>{$(price)}</div>
+              {showUsd&&<div style={{fontSize:13,color:"#555",fontFamily:numFont}}>{fmt(price)}</div>}
             </div>
-            <div style={{fontSize:14,color:"#555",fontFamily:numFont}}>R$ {fmt(Math.round(price/u.area))}/m²</div>
+            <div style={{fontSize:14,color:"#555",fontFamily:numFont}}>{$(Math.round(price/u.area))}/m²</div>
           </div>
         </div>
 
@@ -2592,7 +2603,7 @@ function App(){
               <input id="sim_bem_desc" style={Object.assign({},mI,{marginBottom:4})} value={bemDesc} onChange={function(e){setBemDesc(e.target.value)}} onKeyDown={function(e){nextField(e,"sim_parcelas_livre")}} placeholder="Descrição (Carro, Terreno...)"/>
             </div>
           </div>
-          {bemVal>0&&<div style={{fontSize:13,color:"#E8A94E",fontFamily:numFont}}>Total entrada: {fmt(totalEntrada)} ({price>0?((totalEntrada/price)*100).toFixed(1):"0"}%)</div>}
+          {bemVal>0&&<div style={{fontSize:13,color:"#E8A94E",fontFamily:numFont}}>Total entrada: {$(totalEntrada)} ({price>0?((totalEntrada/price)*100).toFixed(1):"0"}%)</div>}
         </div>
 
         {/* Parcelas */}
@@ -2607,7 +2618,7 @@ function App(){
             <span style={{fontSize:12,color:"#555",whiteSpace:"nowrap"}}>máx {maxParcelas}</span>
           </div>
           {months===0&&<div style={{marginTop:8,padding:"8px 12px",background:"rgba(213,91,91,0.06)",borderRadius:8,fontSize:13,color:"#D45B5B"}}>Sem fluxo mensal — somente entrada + balão</div>}
-          {months>0&&saldoParcelas>0&&<div style={{marginTop:8,fontSize:15,fontWeight:600,color:"#4CAF7D",fontFamily:numFont}}>{months}x de {fmt(pmt)}</div>}
+          {months>0&&saldoParcelas>0&&<div style={{marginTop:8,fontSize:15,fontWeight:600,color:"#4CAF7D",fontFamily:numFont}}>{months}x de {$(pmt)}{$eq(pmt)}</div>}
         </div>
 
         {/* Taxa */}
@@ -2640,34 +2651,37 @@ function App(){
             </div>
             {balaoMode==="pct"?<input style={Object.assign({},mI,{fontFamily:numFont})} type="number" step="0.5" value={balaoPct} onChange={function(e){setBalaoPct(+e.target.value)}} placeholder="% do saldo"/>:<input style={Object.assign({},mI,{fontFamily:numFont})} type="number" value={balaoFixo} onChange={function(e){setBalaoFixo(+e.target.value)}} placeholder="Valor do balão"/>}
             <div style={{padding:"10px 14px",background:"rgba(196,112,112,0.06)",borderRadius:10,fontSize:14,color:"#C47070",fontFamily:numFont,border:"1px solid rgba(196,112,112,0.1)"}}>
-              {numBaloes}x de {fmt(balaoValor)} = <strong>{fmt(totalBaloes)}</strong>
+              {numBaloes}x de {$(balaoValor)} = <strong>{$(totalBaloes)}</strong>{$eq(totalBaloes)}
             </div>
           </div>}
         </div>
 
         {/* ═══ RESUMO ═══ */}
         <div style={{background:"linear-gradient(135deg,#111110,#0d0d0c)",borderRadius:16,padding:18,marginTop:8,border:"1px solid rgba(255,255,255,0.04)"}}>
-          <div style={{fontSize:12,textTransform:"uppercase",letterSpacing:2,color:"#555",marginBottom:14,textAlign:"center"}}>Resumo da Proposta</div>
+          <div style={{fontSize:12,textTransform:"uppercase",letterSpacing:2,color:"#555",marginBottom:14,textAlign:"center"}}>Resumo da Proposta {showUsd&&<span style={{color:"#4CAF7D"}}>(USD)</span>}</div>
           {clientName&&<div style={{textAlign:"center",fontSize:15,fontWeight:600,color:"#F0EBE3",marginBottom:12}}>👤 {clientName}</div>}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-            <div><div style={{fontSize:12,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Entrada</div><div style={{fontSize:18,fontWeight:600,color:G,fontFamily:numFont}}>{fmt(down)}</div></div>
-            {bemVal>0 && <div><div style={{fontSize:12,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Bem ({bemDesc||"Outro"})</div><div style={{fontSize:18,fontWeight:600,color:"#E8A94E",fontFamily:numFont}}>{fmt(bemVal)}</div></div>}
-            <div><div style={{fontSize:12,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Saldo</div><div style={{fontSize:18,fontWeight:600,color:"#7A9EC2",fontFamily:numFont}}>{fmt(saldo)}</div></div>
-            {months>0&&<div style={{gridColumn:numBaloes>0?"1":"1/-1"}}><div style={{fontSize:12,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Mensal ({months}x)</div><div style={{fontSize:28,fontWeight:600,color:"#4CAF7D",fontFamily:numFont}}>{fmt(pmt)}</div></div>}
+            <div><div style={{fontSize:12,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Entrada</div><div style={{fontSize:18,fontWeight:600,color:G,fontFamily:numFont}}>{$(down)}</div>{showUsd&&<div style={{fontSize:12,color:"#555",fontFamily:numFont}}>{fmt(down)}</div>}</div>
+            {bemVal>0 && <div><div style={{fontSize:12,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Bem ({bemDesc||"Outro"})</div><div style={{fontSize:18,fontWeight:600,color:"#E8A94E",fontFamily:numFont}}>{$(bemVal)}</div></div>}
+            <div><div style={{fontSize:12,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Saldo</div><div style={{fontSize:18,fontWeight:600,color:"#7A9EC2",fontFamily:numFont}}>{$(saldo)}</div></div>
+            {months>0&&<div style={{gridColumn:numBaloes>0?"1":"1/-1"}}><div style={{fontSize:12,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Mensal ({months}x)</div><div style={{fontSize:28,fontWeight:600,color:"#4CAF7D",fontFamily:numFont}}>{$(pmt)}</div>{showUsd&&<div style={{fontSize:13,color:"#555",fontFamily:numFont}}>{fmt(pmt)}</div>}</div>}
             {months===0&&<div style={{gridColumn:"1/-1"}}><div style={{fontSize:12,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Parcelas</div><div style={{fontSize:18,fontWeight:600,color:"#D45B5B",fontFamily:numFont}}>Sem parcelas mensais</div></div>}
-            {numBaloes>0 && <div><div style={{fontSize:12,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Balão ({numBaloes}x)</div><div style={{fontSize:18,fontWeight:600,color:"#C47070",fontFamily:numFont}}>{fmt(balaoValor)}</div></div>}
+            {numBaloes>0 && <div><div style={{fontSize:12,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Balão ({numBaloes}x)</div><div style={{fontSize:18,fontWeight:600,color:"#C47070",fontFamily:numFont}}>{$(balaoValor)}</div></div>}
           </div>
           <div style={{height:1,background:"rgba(255,255,255,0.04)",margin:"12px 0"}}/>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
             <span style={{fontSize:12,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Total Geral</span>
-            <span style={{fontSize:22,fontWeight:600,color:"#F0EBE3",fontFamily:numFont}}>{fmt(totalPago)}</span>
+            <span style={{fontSize:22,fontWeight:600,color:"#F0EBE3",fontFamily:numFont}}>{$(totalPago)}</span>
           </div>
+          {showUsd&&<div style={{textAlign:"right",fontSize:13,color:"#555",fontFamily:numFont}}>{fmt(totalPago)}</div>}
           <div style={{fontSize:12,color:"#555",marginTop:6,textAlign:"center"}}>{rate>0?"Taxa: "+rate+"% a.m. · ":"Sem juros · "}Correção: {indice}</div>
+          {/* USD Disclaimer */}
+          {showUsd&&<div style={{marginTop:10,padding:"10px 14px",background:"rgba(232,169,78,0.06)",borderRadius:10,fontSize:12,color:"#E8A94E",lineHeight:1.6,border:"1px solid rgba(232,169,78,0.1)",textAlign:"center"}}>{usdDisclaimer}</div>}
           {/* Discount Alert */}
           {totalPago<price && <div style={{marginTop:12,padding:14,background:"rgba(232,169,78,0.06)",borderRadius:12,border:"1px solid rgba(232,169,78,0.15)"}}>
             <div style={{fontSize:14,fontWeight:600,color:"#E8A94E",marginBottom:4}}>⚠️ Proposta abaixo do valor de tabela</div>
-            <div style={{fontSize:13,color:"#F0EBE3",marginBottom:6,fontFamily:numFont}}>Valor tabela: {fmt(price)} → Proposta: {fmt(totalPago)}</div>
-            <div style={{fontSize:15,fontWeight:700,color:"#D45B5B",fontFamily:numFont}}>Desconto solicitado: {((1-totalPago/price)*100).toFixed(1)}% ({fmt(price-totalPago)})</div>
+            <div style={{fontSize:13,color:"#F0EBE3",marginBottom:6,fontFamily:numFont}}>Valor tabela: {$(price)} → Proposta: {$(totalPago)}</div>
+            <div style={{fontSize:15,fontWeight:700,color:"#D45B5B",fontFamily:numFont}}>Desconto solicitado: {((1-totalPago/price)*100).toFixed(1)}% ({$(price-totalPago)})</div>
             <div style={{fontSize:12,color:"#E8A94E",marginTop:8,padding:"8px 12px",background:"rgba(232,169,78,0.06)",borderRadius:8,textAlign:"center"}}>📋 Esta proposta deverá ser remetida à diretoria para análise e aprovação</div>
           </div>}
         </div>
