@@ -430,6 +430,7 @@ function App(){
   var getDocs = function(bid){return allDocs.filter(function(d){return d.building_id===bid})};
   var getNotices = function(bid){return allNotices.filter(function(n){return n.building_id===bid})};
   var getCover = function(bid){var photos=getPhotos(bid);var cover=photos.find(function(p){return p.is_cover});return cover?cover.url:""};
+  var getCover2 = function(bid){var b=buildings.find(function(x){return x.id===bid});return b&&b.cover_photo_2?b.cover_photo_2:""};
 
   // Corrected price
   var cp = function(u,b){return b&&b.cub_base?Math.round(u.base_price*(b.cub_current/b.cub_base)):u.base_price};
@@ -503,7 +504,7 @@ function App(){
           var a = units.filter(function(u){return u.status==="available"}).length;
           return(
             <div key={b.id} onClick={function(){go(b.id)}} className="ch au" style={{background:"#111110",borderRadius:16,overflow:"hidden",border:"1px solid rgba(255,255,255,0.03)",cursor:"pointer",animationDelay:idx*100+"ms"}}>
-              <div style={{height:180,position:"relative",backgroundImage:cover?"url("+cover+")":"none",backgroundSize:"cover",backgroundPosition:"center",background:cover?undefined:b.gradient}}>
+              <div style={{height:180,position:"relative",background:cover?"url("+cover+") center/cover no-repeat":b.gradient}}>
                 {!cover && <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100%",fontSize:40}}>{b.emoji}</div>}
                 <div style={{position:"absolute",inset:0,background:"linear-gradient(transparent 30%,rgba(10,10,9,0.9))"}}/>
                 <div style={{position:"absolute",top:12,right:12,padding:"5px 12px",borderRadius:20,fontSize:12,fontWeight:600,background:"rgba(0,0,0,0.5)",color:"#fff",backdropFilter:"blur(8px)",border:"1px solid rgba(255,255,255,0.08)",letterSpacing:.5}}>{b.tag}</div>
@@ -549,17 +550,19 @@ function App(){
       <div style={{padding:"20px clamp(16px, 4vw, 48px)"}}>
         <button onClick={function(){setVw("home")}} style={{background:"none",border:"none",color:G,fontSize:14,fontWeight:600,cursor:"pointer",padding:"4px 0",marginBottom:8}}>← {t.back}</button>
         {cover && (function(){
-          var secondP=photos.length>1?photos.find(function(p){return p.url!==cover}):null;
-          return <div style={{borderRadius:14,overflow:"hidden",marginBottom:12,position:"relative"}}>
-            {secondP ? <div style={{display:"flex",height:200}}>
-              <div style={{flex:1,backgroundImage:"url("+cover+")",backgroundSize:"cover",backgroundPosition:"center"}}/>
-              <div style={{flex:1,backgroundImage:"url("+secondP.url+")",backgroundSize:"cover",backgroundPosition:"center"}}/>
+          var cover2=getCover2(bld.id);
+          return <div style={{borderRadius:16,overflow:"hidden",marginBottom:14,position:"relative",border:"1px solid rgba(255,255,255,0.06)",boxShadow:"0 8px 32px rgba(0,0,0,0.3)"}}>
+            {cover2 ? <div style={{display:"flex",height:220}}>
+              <div style={{flex:1,background:"url("+cover+") center/cover no-repeat"}}/>
+              <div style={{width:2,background:"rgba(255,255,255,0.08)",zIndex:2}}/>
+              <div style={{flex:1,background:"url("+cover2+") center/cover no-repeat"}}/>
             </div>
-            : <div style={{height:200,backgroundImage:"url("+cover+")",backgroundSize:"cover",backgroundPosition:"center"}}/>}
-            <div style={{position:"absolute",inset:0,background:"linear-gradient(transparent 50%,rgba(0,0,0,0.7))"}}>
-              <div style={{position:"absolute",bottom:10,left:12}}>
-                <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:22,fontWeight:700,color:"#fff"}}>{bld.name}</div>
+            : <div style={{height:220,background:"url("+cover+") center/cover no-repeat"}}/>}
+            <div style={{position:"absolute",inset:0,background:"linear-gradient(transparent 40%,rgba(10,10,9,0.85))"}}>
+              <div style={{position:"absolute",bottom:14,left:16}}>
+                <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:24,fontWeight:700,color:"#fff",textShadow:"0 2px 12px rgba(0,0,0,0.8)"}}>{bld.name}</div>
               </div>
+              {cover2 && <div style={{position:"absolute",bottom:14,right:16,fontSize:12,color:"rgba(255,255,255,0.4)"}}>📸 2 fotos</div>}
             </div>
           </div>;
         })()}
@@ -710,6 +713,7 @@ function App(){
                   return <div key={photo.id} className="ch" onClick={function(){if(!adm)openLightbox(filteredPhotos,i)}} style={{aspectRatio:"1",borderRadius:12,overflow:"hidden",position:"relative",border:photo.is_cover?"2px solid "+G:"1px solid rgba(255,255,255,0.06)",cursor:adm?"default":"zoom-in"}}>
                     <img src={photo.url} alt={photo.label||""} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
                     {photo.is_cover && <div style={{position:"absolute",top:6,left:6,padding:"3px 8px",borderRadius:6,fontSize:12,fontWeight:700,background:G,color:"#0a0a09"}}>⭐ Capa</div>}
+                    {bld.cover_photo_2===photo.url && !photo.is_cover && <div style={{position:"absolute",top:6,left:6,padding:"3px 8px",borderRadius:6,fontSize:12,fontWeight:700,background:"#5B8FD4",color:"#fff"}}>② Capa 2</div>}
                     {linkedUnit && photoUnit==="all" && <div style={{position:"absolute",top:6,left:photo.is_cover?60:6,padding:"3px 8px",borderRadius:6,fontSize:12,fontWeight:600,background:"rgba(0,0,0,0.7)",color:"#fff",backdropFilter:"blur(4px)"}}>{linkedUnit.name}</div>}
                     <div style={{position:"absolute",bottom:0,left:0,right:0,background:"linear-gradient(transparent,rgba(0,0,0,0.8))",padding:"10px 10px 8px"}}>
                       {adm?<input value={photo.label||""} onChange={function(e){
@@ -719,7 +723,8 @@ function App(){
                       :<div style={{fontSize:12,color:"#fff",fontWeight:500}}>{photo.label||"Foto "+(i+1)}</div>}
                     </div>
                     {adm && <div style={{position:"absolute",top:6,right:6,display:"flex",gap:3}} onClick={function(e){e.stopPropagation()}}>
-                      <button className="bh" onClick={async function(){await sb.from("photos").update({is_cover:false}).eq("building_id",bld.id);await DB.updatePhoto(photo.id,{is_cover:true});await sb.from("buildings").update({cover_photo:photo.url}).eq("id",bld.id);await refreshPhotos();await refreshBuildings();msg("Capa!")}} style={{width:26,height:26,borderRadius:8,background:photo.is_cover?"rgba(200,164,92,0.9)":"rgba(0,0,0,0.6)",color:photo.is_cover?"#0a0a09":"#fff",border:"none",fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(4px)"}}>⭐</button>
+                      <button className="bh" title="Capa 1" onClick={async function(){await sb.from("photos").update({is_cover:false}).eq("building_id",bld.id);await DB.updatePhoto(photo.id,{is_cover:true});await sb.from("buildings").update({cover_photo:photo.url}).eq("id",bld.id);await refreshPhotos();await refreshBuildings();msg("Capa 1!")}} style={{width:26,height:26,borderRadius:8,background:photo.is_cover?"rgba(200,164,92,0.9)":"rgba(0,0,0,0.6)",color:photo.is_cover?"#0a0a09":"#fff",border:"none",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(4px)"}}>⭐</button>
+                      <button className="bh" title="Capa 2" onClick={async function(){await sb.from("buildings").update({cover_photo_2:photo.url}).eq("id",bld.id);await refreshBuildings();msg("Capa 2!")}} style={{width:26,height:26,borderRadius:8,background:bld.cover_photo_2===photo.url?"rgba(91,143,212,0.9)":"rgba(0,0,0,0.6)",color:bld.cover_photo_2===photo.url?"#fff":"#5B8FD4",border:"none",fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(4px)"}}>②</button>
                       <button className="bh" onClick={async function(){await DB.deletePhoto(photo.id);await refreshPhotos();msg("Removida")}} style={{width:26,height:26,borderRadius:8,background:"rgba(213,91,91,0.8)",color:"#fff",border:"none",fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(4px)"}}>✕</button>
                     </div>}
                   </div>;
