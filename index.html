@@ -2497,8 +2497,9 @@ function App(){
     var _clientName=useState("");var clientName=_clientName[0];var setClientName=_clientName[1];
     var totalEntrada=down+bemVal;var saldo=Math.max(price-totalEntrada,0);
     var balaoMeses=balaoFreq==="trimestral"?3:balaoFreq==="semestral"?6:balaoFreq==="anual"?12:0;
-    var numBaloes=balaoMeses>0?Math.floor(months/balaoMeses):0;
-    var balaoValor=balaoMode==="fixo"?balaoFixo:(numBaloes>0?Math.round(saldo*balaoPct/100):0);
+    var duracao=months>0?months:(balaoMeses>0?balaoMeses*12:12);
+    var numBaloes=balaoMeses>0?Math.floor(duracao/balaoMeses):0;
+    var balaoValor=balaoFreq==="none"?0:(balaoMode==="fixo"?balaoFixo:(numBaloes>0?Math.round(saldo*balaoPct/100):0));
     var totalBaloes=balaoValor*numBaloes;var saldoParcelas=Math.max(saldo-totalBaloes,0);
     var mr=rate/100;var pmt=months>0?(mr>0?saldoParcelas*(mr*Math.pow(1+mr,months))/(Math.pow(1+mr,months)-1):saldoParcelas/months):0;
     var totalPago=totalEntrada+(pmt*months)+totalBaloes;
@@ -2557,57 +2558,86 @@ function App(){
         </div>
 
         {/* Client Name - FIRST FIELD */}
-        <L>👤 Nome do Cliente</L>
-        <input id="sim_client" style={mI} value={clientName} onChange={function(e){setClientName(e.target.value)}} onKeyDown={function(e){nextField(e,"sim_entrada")}} placeholder="Nome do cliente" autoFocus/>
+        <div style={{background:"#111110",borderRadius:14,padding:16,marginBottom:12,border:"1px solid rgba(255,255,255,0.03)"}}>
+          <div style={{fontSize:14,fontWeight:600,color:"#F0EBE3",marginBottom:8}}>👤 Cliente</div>
+          <input id="sim_client" style={Object.assign({},mI,{marginBottom:0})} value={clientName} onChange={function(e){setClientName(e.target.value)}} onKeyDown={function(e){nextField(e,"sim_entrada")}} placeholder="Nome do cliente" autoFocus/>
+        </div>
 
         {/* Entrada */}
-        <div style={{fontSize:14,fontWeight:600,color:G,marginBottom:6,display:"flex",alignItems:"center",gap:6}}>💰 Entrada</div>
-        <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:4}}>
-          <input id="sim_entrada" style={Object.assign({},mI,{flex:1,marginBottom:0,fontFamily:numFont})} type="number" value={down} onChange={function(e){setDown(+e.target.value)}} onKeyDown={function(e){nextField(e,"sim_bem_val")}}/>
-          <div style={{padding:"10px 14px",background:G+"15",borderRadius:10,fontSize:16,fontWeight:700,color:G,minWidth:50,textAlign:"center",fontFamily:numFont}}>{price>0?((down/price)*100).toFixed(0):"0"}%</div>
-        </div>
-        <div style={{display:"flex",gap:4,marginBottom:10}}>
-          {[10,20,25,30,40,50].map(function(p){return <span key={p} className="bh" onClick={function(){setDown(Math.round(price*p/100))}} style={{padding:"5px 10px",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",background:Math.round((down/price)*100)===p?G+"20":"#111110",color:Math.round((down/price)*100)===p?G:"#555",fontFamily:numFont}}>{p}%</span>})}
+        <div style={{background:"#111110",borderRadius:14,padding:16,marginBottom:12,border:"1px solid rgba(200,164,92,0.08)"}}>
+          <div style={{fontSize:14,fontWeight:600,color:G,marginBottom:8}}>💰 Entrada</div>
+          <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:6}}>
+            <input id="sim_entrada" style={Object.assign({},mI,{flex:1,marginBottom:0,fontFamily:numFont})} type="number" value={down} onChange={function(e){setDown(+e.target.value)}} onKeyDown={function(e){nextField(e,"sim_bem_val")}}/>
+            <div style={{padding:"10px 14px",background:G+"15",borderRadius:10,fontSize:16,fontWeight:700,color:G,minWidth:55,textAlign:"center",fontFamily:numFont}}>{price>0?((down/price)*100).toFixed(0):"0"}%</div>
+          </div>
+          <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+            {[10,20,25,30,40,50].map(function(p){return <span key={p} className="bh" onClick={function(){setDown(Math.round(price*p/100))}} style={{padding:"6px 12px",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",background:Math.round((down/price)*100)===p?G+"20":"#0a0a09",color:Math.round((down/price)*100)===p?G:"#555",fontFamily:numFont}}>{p}%</span>})}
+          </div>
         </div>
 
         {/* Bem */}
-        <details style={{marginBottom:10}}>
-          <summary style={{fontSize:14,fontWeight:600,color:G,cursor:"pointer",marginBottom:6}}>🚗 Entrada com Bem (opcional)</summary>
-          <input id="sim_bem_val" style={Object.assign({},mI,{fontFamily:numFont})} type="number" value={bemVal||""} onChange={function(e){setBemVal(+e.target.value)}} onKeyDown={function(e){nextField(e,"sim_bem_desc")}} placeholder="Valor do bem"/>
-          <input id="sim_bem_desc" style={mI} value={bemDesc} onChange={function(e){setBemDesc(e.target.value)}} onKeyDown={function(e){nextField(e,"sim_parcelas_livre")}} placeholder="Ex: Carro, Terreno, Imóvel"/>
-        </details>
+        <div style={{background:"#111110",borderRadius:14,padding:16,marginBottom:12,border:"1px solid "+(bemVal>0?"rgba(232,169,78,0.15)":"rgba(255,255,255,0.03)")}}>
+          <div style={{fontSize:14,fontWeight:600,color:"#E8A94E",marginBottom:8}}>🚗 Entrada com Bem</div>
+          <div style={{display:"flex",gap:8,marginBottom:0}}>
+            <div style={{flex:1}}>
+              <input id="sim_bem_val" style={Object.assign({},mI,{fontFamily:numFont,marginBottom:4})} type="number" value={bemVal||""} onChange={function(e){setBemVal(+e.target.value)}} onKeyDown={function(e){nextField(e,"sim_bem_desc")}} placeholder="Valor (R$)"/>
+            </div>
+            <div style={{flex:1}}>
+              <input id="sim_bem_desc" style={Object.assign({},mI,{marginBottom:4})} value={bemDesc} onChange={function(e){setBemDesc(e.target.value)}} onKeyDown={function(e){nextField(e,"sim_parcelas_livre")}} placeholder="Descrição (Carro, Terreno...)"/>
+            </div>
+          </div>
+          {bemVal>0&&<div style={{fontSize:13,color:"#E8A94E",fontFamily:numFont}}>Total entrada: {fmt(totalEntrada)} ({price>0?((totalEntrada/price)*100).toFixed(1):"0"}%)</div>}
+        </div>
 
         {/* Parcelas */}
-        <div style={{fontSize:14,fontWeight:600,color:G,marginBottom:8}}>📅 Parcelas</div>
-        <div style={{display:"flex",gap:5,marginBottom:8,flexWrap:"wrap",alignItems:"center"}}>
-          <span className="bh" onClick={function(){setMonths(0)}} style={{padding:"8px 14px",borderRadius:10,fontSize:14,fontWeight:600,cursor:"pointer",background:months===0?"#D45B5B20":"#111110",color:months===0?"#D45B5B":"#555",border:months===0?"1px solid #D45B5B30":"1px solid rgba(255,255,255,0.03)",fontFamily:numFont}}>0x</span>
-          {parcOpts.map(function(m){return <span key={m} className="bh" onClick={function(){setMonths(m)}} style={{padding:"8px 14px",borderRadius:10,fontSize:14,fontWeight:600,cursor:"pointer",background:months===m?b.color+"20":"#111110",color:months===m?b.color:"#555",border:months===m?"1px solid "+b.color+"30":"1px solid rgba(255,255,255,0.03)",fontFamily:numFont}}>{m}x</span>})}
+        <div style={{background:"#111110",borderRadius:14,padding:16,marginBottom:12,border:"1px solid rgba(91,143,212,0.08)"}}>
+          <div style={{fontSize:14,fontWeight:600,color:"#5B8FD4",marginBottom:8}}>📅 Parcelas Mensais</div>
+          <div style={{display:"flex",gap:5,marginBottom:8,flexWrap:"wrap",alignItems:"center"}}>
+            <span className="bh" onClick={function(){setMonths(0)}} style={{padding:"8px 14px",borderRadius:10,fontSize:14,fontWeight:600,cursor:"pointer",background:months===0?"#D45B5B20":"#0a0a09",color:months===0?"#D45B5B":"#555",fontFamily:numFont}}>0x</span>
+            {parcOpts.map(function(m){return <span key={m} className="bh" onClick={function(){setMonths(m)}} style={{padding:"8px 14px",borderRadius:10,fontSize:14,fontWeight:600,cursor:"pointer",background:months===m?b.color+"20":"#0a0a09",color:months===m?b.color:"#555",fontFamily:numFont}}>{m}x</span>})}
+          </div>
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            <input id="sim_parcelas_livre" style={Object.assign({},mI,{flex:1,marginBottom:0,fontFamily:numFont})} type="number" min="0" max={maxParcelas} value={months} onChange={function(e){var v=Math.min(+e.target.value,maxParcelas);setMonths(Math.max(0,v))}} onKeyDown={function(e){nextField(e,"sim_taxa")}} placeholder="Nº de parcelas"/>
+            <span style={{fontSize:12,color:"#555",whiteSpace:"nowrap"}}>máx {maxParcelas}</span>
+          </div>
+          {months===0&&<div style={{marginTop:8,padding:"8px 12px",background:"rgba(213,91,91,0.06)",borderRadius:8,fontSize:13,color:"#D45B5B"}}>Sem fluxo mensal — somente entrada + balão</div>}
+          {months>0&&saldoParcelas>0&&<div style={{marginTop:8,fontSize:15,fontWeight:600,color:"#4CAF7D",fontFamily:numFont}}>{months}x de {fmt(pmt)}</div>}
         </div>
-        <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:10}}>
-          <input id="sim_parcelas_livre" style={Object.assign({},mI,{flex:1,marginBottom:0,fontFamily:numFont})} type="number" min="0" max={maxParcelas} value={months} onChange={function(e){var v=Math.min(+e.target.value,maxParcelas);setMonths(Math.max(0,v))}} onKeyDown={function(e){nextField(e,"sim_taxa")}} placeholder="Nº de parcelas"/>
-          <span style={{fontSize:12,color:"#555",whiteSpace:"nowrap"}}>máx {maxParcelas}x</span>
-        </div>
-        {months===0&&<div style={{padding:"10px 14px",background:"rgba(213,91,91,0.06)",borderRadius:10,fontSize:13,color:"#D45B5B",marginBottom:10,border:"1px solid rgba(213,91,91,0.1)"}}>⚠️ Sem parcelas mensais — cliente pagará apenas entrada + balão</div>}
 
-        {<div style={{marginBottom:10}}><L>Taxa Mensal (%)</L><input id="sim_taxa" style={Object.assign({},mI,{fontFamily:numFont})} type="number" step="0.01" value={rate} onChange={function(e){setRate(+e.target.value)}} onKeyDown={function(e){if(e.key==="Enter")e.preventDefault()}}/></div>}
+        {/* Taxa */}
+        <div style={{background:"#111110",borderRadius:14,padding:16,marginBottom:12,border:"1px solid rgba(255,255,255,0.03)"}}>
+          <div style={{fontSize:14,fontWeight:600,color:"#F0EBE3",marginBottom:8}}>📈 Taxa e Correção</div>
+          <div style={{display:"flex",gap:8}}>
+            <div style={{flex:1}}>
+              <div style={{fontSize:12,color:"#555",marginBottom:4}}>Taxa mensal (%)</div>
+              <input id="sim_taxa" style={Object.assign({},mI,{fontFamily:numFont,marginBottom:0})} type="number" step="0.01" value={rate} onChange={function(e){setRate(+e.target.value)}} onKeyDown={function(e){if(e.key==="Enter")e.preventDefault()}}/>
+            </div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:12,color:"#555",marginBottom:4}}>Índice</div>
+              <div style={{padding:"13px 16px",background:"#1a1a19",borderRadius:10,fontSize:15,color:"#F0EBE3",border:"1px solid rgba(255,255,255,0.06)"}}>{indice}</div>
+            </div>
+          </div>
+        </div>
 
         {/* Balão */}
-        <details style={{marginBottom:12}}>
-          <summary style={{fontSize:14,fontWeight:600,color:G,cursor:"pointer",marginBottom:6}}>🎈 Parcelas Balão (opcional)</summary>
-          <div style={{display:"flex",gap:5,marginBottom:8,flexWrap:"wrap"}}>
+        <div style={{background:"#111110",borderRadius:14,padding:16,marginBottom:12,border:"1px solid "+(balaoFreq!=="none"?"rgba(196,112,112,0.15)":"rgba(255,255,255,0.03)")}}>
+          <div style={{fontSize:14,fontWeight:600,color:"#C47070",marginBottom:10}}>🎈 Parcelas Balão</div>
+          <div style={{display:"flex",gap:5,marginBottom:10,flexWrap:"wrap"}}>
             {[{v:"none",l:"Nenhum"},{v:"trimestral",l:"Trimestral"},{v:"semestral",l:"Semestral"},{v:"anual",l:"Anual"}].map(function(o){
-              return <span key={o.v} className="bh" onClick={function(){setBalaoFreq(o.v)}} style={{padding:"7px 14px",borderRadius:8,fontSize:14,fontWeight:600,cursor:"pointer",background:balaoFreq===o.v?b.color+"20":"#111110",color:balaoFreq===o.v?b.color:"#555"}}>{o.l}</span>
+              return <span key={o.v} className="bh" onClick={function(){setBalaoFreq(o.v)}} style={{padding:"8px 14px",borderRadius:10,fontSize:14,fontWeight:600,cursor:"pointer",background:balaoFreq===o.v?"#C4707020":"#0a0a09",color:balaoFreq===o.v?"#C47070":"#555"}}>{o.l}</span>
             })}
           </div>
           {balaoFreq!=="none" && <div>
-            <div style={{display:"flex",gap:4,marginBottom:8}}>
-              <span className="bh" onClick={function(){setBalaoMode("pct")}} style={{padding:"5px 12px",borderRadius:6,fontSize:13,cursor:"pointer",background:balaoMode==="pct"?b.color+"20":"#111110",color:balaoMode==="pct"?b.color:"#555"}}>% do saldo</span>
-              <span className="bh" onClick={function(){setBalaoMode("fixo")}} style={{padding:"5px 12px",borderRadius:6,fontSize:13,cursor:"pointer",background:balaoMode==="fixo"?b.color+"20":"#111110",color:balaoMode==="fixo"?b.color:"#555"}}>Valor fixo</span>
+            <div style={{display:"flex",gap:6,marginBottom:8}}>
+              <span className="bh" onClick={function(){setBalaoMode("pct")}} style={{padding:"7px 14px",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",background:balaoMode==="pct"?"#C4707020":"#0a0a09",color:balaoMode==="pct"?"#C47070":"#555"}}>% do saldo</span>
+              <span className="bh" onClick={function(){setBalaoMode("fixo")}} style={{padding:"7px 14px",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",background:balaoMode==="fixo"?"#C4707020":"#0a0a09",color:balaoMode==="fixo"?"#C47070":"#555"}}>Valor fixo</span>
             </div>
-            {balaoMode==="pct"?<input style={Object.assign({},mI,{fontFamily:numFont})} type="number" step="0.5" value={balaoPct} onChange={function(e){setBalaoPct(+e.target.value)}}/>:<input style={Object.assign({},mI,{fontFamily:numFont})} type="number" value={balaoFixo} onChange={function(e){setBalaoFixo(+e.target.value)}}/>}
-            <div style={{fontSize:13,color:"#555",fontFamily:numFont}}>{numBaloes}x de {fmt(balaoValor)} = {fmt(totalBaloes)}</div>
+            {balaoMode==="pct"?<input style={Object.assign({},mI,{fontFamily:numFont})} type="number" step="0.5" value={balaoPct} onChange={function(e){setBalaoPct(+e.target.value)}} placeholder="% do saldo"/>:<input style={Object.assign({},mI,{fontFamily:numFont})} type="number" value={balaoFixo} onChange={function(e){setBalaoFixo(+e.target.value)}} placeholder="Valor do balão"/>}
+            <div style={{padding:"10px 14px",background:"rgba(196,112,112,0.06)",borderRadius:10,fontSize:14,color:"#C47070",fontFamily:numFont,border:"1px solid rgba(196,112,112,0.1)"}}>
+              {numBaloes}x de {fmt(balaoValor)} = <strong>{fmt(totalBaloes)}</strong>
+            </div>
           </div>}
-        </details>
+        </div>
 
         {/* ═══ RESUMO ═══ */}
         <div style={{background:"linear-gradient(135deg,#111110,#0d0d0c)",borderRadius:16,padding:18,marginTop:8,border:"1px solid rgba(255,255,255,0.04)"}}>
