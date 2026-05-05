@@ -503,7 +503,7 @@ function App(){
           var a = units.filter(function(u){return u.status==="available"}).length;
           return(
             <div key={b.id} onClick={function(){go(b.id)}} className="ch au" style={{background:"#111110",borderRadius:16,overflow:"hidden",border:"1px solid rgba(255,255,255,0.03)",cursor:"pointer",animationDelay:idx*100+"ms"}}>
-              <div style={{height:180,background:cover?"url("+cover+") center/cover no-repeat":b.gradient,position:"relative"}}>
+              <div style={{height:180,position:"relative",backgroundImage:cover?"url("+cover+")":"none",backgroundSize:"cover",backgroundPosition:"center",background:cover?undefined:b.gradient}}>
                 {!cover && <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100%",fontSize:40}}>{b.emoji}</div>}
                 <div style={{position:"absolute",inset:0,background:"linear-gradient(transparent 30%,rgba(10,10,9,0.9))"}}/>
                 <div style={{position:"absolute",top:12,right:12,padding:"5px 12px",borderRadius:20,fontSize:12,fontWeight:600,background:"rgba(0,0,0,0.5)",color:"#fff",backdropFilter:"blur(8px)",border:"1px solid rgba(255,255,255,0.08)",letterSpacing:.5}}>{b.tag}</div>
@@ -548,13 +548,21 @@ function App(){
     return(
       <div style={{padding:"20px clamp(16px, 4vw, 48px)"}}>
         <button onClick={function(){setVw("home")}} style={{background:"none",border:"none",color:G,fontSize:14,fontWeight:600,cursor:"pointer",padding:"4px 0",marginBottom:8}}>← {t.back}</button>
-        {cover && <div style={{height:200,borderRadius:14,overflow:"hidden",marginBottom:12,position:"relative",backgroundImage:"url("+cover+")",backgroundSize:"cover",backgroundPosition:"center"}}>
-          <div style={{position:"absolute",inset:0,background:"linear-gradient(transparent 50%,rgba(0,0,0,0.7))"}}>
-            <div style={{position:"absolute",bottom:10,left:12}}>
-              <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:22,fontWeight:700,color:"#fff"}}>{bld.name}</div>
+        {cover && (function(){
+          var secondP=photos.length>1?photos.find(function(p){return p.url!==cover}):null;
+          return <div style={{borderRadius:14,overflow:"hidden",marginBottom:12,position:"relative"}}>
+            {secondP ? <div style={{display:"flex",height:200}}>
+              <div style={{flex:1,backgroundImage:"url("+cover+")",backgroundSize:"cover",backgroundPosition:"center"}}/>
+              <div style={{flex:1,backgroundImage:"url("+secondP.url+")",backgroundSize:"cover",backgroundPosition:"center"}}/>
             </div>
-          </div>
-        </div>}
+            : <div style={{height:200,backgroundImage:"url("+cover+")",backgroundSize:"cover",backgroundPosition:"center"}}/>}
+            <div style={{position:"absolute",inset:0,background:"linear-gradient(transparent 50%,rgba(0,0,0,0.7))"}}>
+              <div style={{position:"absolute",bottom:10,left:12}}>
+                <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:22,fontWeight:700,color:"#fff"}}>{bld.name}</div>
+              </div>
+            </div>
+          </div>;
+        })()}
         {!cover && <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:28,fontWeight:500,color:bld.color,letterSpacing:"-0.02em",marginBottom:2}}>{bld.name}</div>}
         <div style={{fontSize:12,color:"#9A9590",marginBottom:10}}>{bld.subtitle}</div>
         <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:8,flexWrap:"wrap"}}>
