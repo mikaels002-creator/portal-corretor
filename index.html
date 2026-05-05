@@ -16,13 +16,25 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#0a0a09;font-size:16px;font-family:'DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+body{background:var(--bg,#0a0a09);font-size:16px;font-family:'DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--text,#F0EBE3);transition:background 0.3s,color 0.3s}
 #root{min-height:100vh}
 ::selection{background:rgba(200,164,92,0.3)}
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-thumb{background:rgba(200,164,92,0.15);border-radius:4px}
 input,select,textarea,button{font-family:inherit}
 @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+/* Light Theme Overrides */
+body.light{background:#F5F2ED!important;color:#1a1a1a!important}
+body.light div[style*="background:#111110"],body.light div[style*="background: #111110"]{background:#fff!important;border-color:rgba(0,0,0,0.08)!important}
+body.light div[style*="background:#0a0a09"],body.light div[style*="background:#141413"]{background:#F5F2ED!important}
+body.light div[style*="background:#1a1a19"],body.light div[style*="background:#0d0d0c"]{background:#F0EDE6!important}
+body.light input,body.light textarea,body.light select{background:#F0EDE6!important;color:#1a1a1a!important;border-color:rgba(0,0,0,0.1)!important}
+body.light div[style*="color:#F0EBE3"],body.light span[style*="color:#F0EBE3"]{color:#1a1a1a!important}
+body.light div[style*="color:#9A9590"],body.light span[style*="color:#9A9590"]{color:#666!important}
+body.light div[style*="color:#555"],body.light span[style*="color:#555"]{color:#888!important}
+body.light div[style*="color:#7A7570"],body.light span[style*="color:#7A7570"]{color:#777!important}
+body.light table th{background:#F5F0E8!important}
+body.light table td{border-color:rgba(0,0,0,0.06)!important}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.9)}}
 @keyframes glow{0%,100%{box-shadow:0 0 20px rgba(200,164,92,0.08)}50%{box-shadow:0 0 40px rgba(200,164,92,0.16)}}
@@ -96,8 +108,12 @@ var CLR = ["#5B8FD4","#D4735B","#C8A45C","#8B6FBF","#5BB8B0","#E06090","#7CB342"
 var CT = {email:"contato@mkcrealty.com.br",phone:"+55 47 992134870",wa:"5547992134870",ig:[{h:"@mkcrealty",u:"https://www.instagram.com/mkcrealty"},{h:"@dsincorporacao",u:"https://www.instagram.com/dsincorporacao"}]};
 var G = "#C8A45C";
 var TR = {
-  pt:{home:"Início",table:"Tabela",photos:"Fotos",plants:"Plantas",docs:"Docs",notices:"Avisos",back:"Voltar",available:"Disponível",reserved:"Reservado",sold:"Vendido",ready:"Pronto para Morar",construction:"Em Construção",unit:"Unid.",area:"Área",value:"Valor",status:"Status",actions:"Ações",filter:"Filtrar",all:"Todos",export:"Exportar PDF",commission:"comissão",compare:"Comparar",simulator:"Simulador de Financiamento",send:"Enviar via WhatsApp",close:"Fechar",showUsd:"Mostrar em USD",showBrl:"Mostrar em BRL"},
-  es:{home:"Inicio",table:"Tabla",photos:"Fotos",plants:"Planos",docs:"Docs",notices:"Avisos",back:"Volver",available:"Disponible",reserved:"Reservado",sold:"Vendido",ready:"Listo para vivir",construction:"En Construcción",unit:"Unid.",area:"Área",value:"Valor",status:"Estado",actions:"Acciones",filter:"Filtrar",all:"Todos",export:"Exportar PDF",commission:"comisión",compare:"Comparar",simulator:"Simulador de Financiación",send:"Enviar por WhatsApp",close:"Cerrar",showUsd:"Mostrar en USD",showBrl:"Mostrar en BRL"}
+  pt:{home:"Início",table:"Tabela",photos:"Fotos",plants:"Plantas",docs:"Docs",notices:"Avisos",back:"Voltar",available:"Disponível",reserved:"Reservado",sold:"Vendido",ready:"Pronto para Morar",construction:"Em Construção",unit:"Unid.",area:"Área",value:"Valor",status:"Status",actions:"Ações",filter:"Filtrar",all:"Todos",export:"Exportar PDF",commission:"comissão",compare:"Comparar",simulator:"Simulador de Financiamento",send:"Enviar via WhatsApp",close:"Fechar",showUsd:"USD",showBrl:"BRL",
+    invest:"Proposta de Investimento",client:"Cliente",downPay:"Entrada",balance:"Saldo",monthly:"Mensal",balloon:"Balão",total:"Total Geral",rate:"Taxa",noRate:"Sem juros",correction:"Correção",prop:"Proposta",sendProp:"Enviar Proposta via WhatsApp",genPdf:"Gerar Proposta em PDF",disp:"disp.",exclusive:"Conteúdo Exclusivo",exclusiveMsg:"As tabelas de vendas são exclusivas para corretores parceiros. Cadastre-se para ter acesso completo.",loginBroker:"Entrar como Corretor",register:"Não tem conta? Cadastre-se gratuitamente",search:"Buscar unidade...",enter:"Entrar",belowTable:"Proposta abaixo do valor de tabela",discountReq:"Desconto solicitado",boardApproval:"Esta proposta deverá ser remetida à diretoria para análise e aprovação",noParcels:"Sem parcelas mensais",maxParcels:"máx",parcels:"Parcelas",bem:"Entrada com Bem",bemVal:"Valor",bemDesc:"Descrição",rateLabel:"Taxa mensal",index:"Índice",freq:"Frequência",none:"Nenhum",quarterly:"Trimestral",semiannual:"Semestral",annual:"Anual",pctBalance:"% do saldo",fixedVal:"Valor fixo",summary:"Resumo da Proposta",tableValue:"Valor tabela",proposal:"Proposta",ready2:"Pronto",obra:"Obra",preLaunch:"Pré-Lanç."},
+  es:{home:"Inicio",table:"Tabla",photos:"Fotos",plants:"Planos",docs:"Docs",notices:"Avisos",back:"Volver",available:"Disponible",reserved:"Reservado",sold:"Vendido",ready:"Listo para vivir",construction:"En Construcción",unit:"Unid.",area:"Área",value:"Valor",status:"Estado",actions:"Acciones",filter:"Filtrar",all:"Todos",export:"Exportar PDF",commission:"comisión",compare:"Comparar",simulator:"Simulador de Financiación",send:"Enviar por WhatsApp",close:"Cerrar",showUsd:"USD",showBrl:"BRL",
+    invest:"Propuesta de Inversión",client:"Cliente",downPay:"Entrada",balance:"Saldo",monthly:"Mensual",balloon:"Balón",total:"Total General",rate:"Tasa",noRate:"Sin intereses",correction:"Corrección",prop:"Propuesta",sendProp:"Enviar Propuesta por WhatsApp",genPdf:"Generar Propuesta en PDF",disp:"disp.",exclusive:"Contenido Exclusivo",exclusiveMsg:"Las tablas de ventas son exclusivas para corredores asociados. Regístrese para acceso completo.",loginBroker:"Entrar como Corredor",register:"¿No tiene cuenta? Regístrese gratis",search:"Buscar unidad...",enter:"Entrar",belowTable:"Propuesta por debajo del valor de tabla",discountReq:"Descuento solicitado",boardApproval:"Esta propuesta deberá ser remitida a la dirección para análisis y aprobación",noParcels:"Sin cuotas mensuales",maxParcels:"máx",parcels:"Cuotas",bem:"Entrada con Bien",bemVal:"Valor",bemDesc:"Descripción",rateLabel:"Tasa mensual",index:"Índice",freq:"Frecuencia",none:"Ninguno",quarterly:"Trimestral",semiannual:"Semestral",annual:"Anual",pctBalance:"% del saldo",fixedVal:"Valor fijo",summary:"Resumen de la Propuesta",tableValue:"Valor tabla",proposal:"Propuesta",ready2:"Listo",obra:"Obra",preLaunch:"Pre-Lanz."},
+  en:{home:"Home",table:"Units",photos:"Photos",plants:"Floor Plans",docs:"Docs",notices:"News",back:"Back",available:"Available",reserved:"Reserved",sold:"Sold",ready:"Ready to Move In",construction:"Under Construction",unit:"Unit",area:"Area",value:"Price",status:"Status",actions:"Actions",filter:"Filter",all:"All",export:"Export PDF",commission:"commission",compare:"Compare",simulator:"Financing Simulator",send:"Send via WhatsApp",close:"Close",showUsd:"USD",showBrl:"BRL",
+    invest:"Investment Proposal",client:"Client",downPay:"Down Payment",balance:"Balance",monthly:"Monthly",balloon:"Balloon",total:"Grand Total",rate:"Rate",noRate:"No interest",correction:"Adjustment",prop:"Proposal",sendProp:"Send Proposal via WhatsApp",genPdf:"Generate Proposal PDF",disp:"avail.",exclusive:"Exclusive Content",exclusiveMsg:"Sales tables are exclusive to partner brokers. Register for full access to tables, financing simulator and sales tools.",loginBroker:"Login as Broker",register:"Don't have an account? Register for free",search:"Search unit...",enter:"Login",belowTable:"Proposal below table price",discountReq:"Discount requested",boardApproval:"This proposal must be submitted to the board for review and approval",noParcels:"No monthly installments",maxParcels:"max",parcels:"Installments",bem:"Down Payment with Asset",bemVal:"Value",bemDesc:"Description",rateLabel:"Monthly rate",index:"Index",freq:"Frequency",none:"None",quarterly:"Quarterly",semiannual:"Semi-annual",annual:"Annual",pctBalance:"% of balance",fixedVal:"Fixed amount",summary:"Proposal Summary",tableValue:"Table price",proposal:"Proposal",ready2:"Ready",obra:"Progress",preLaunch:"Pre-Launch"}
 };
 var WaIcon = function(props){return <svg width={props.size||14} height={props.size||14} viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>};
 var IgIcon = function(){return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>};
@@ -282,7 +298,7 @@ var mI = {width:"100%",padding:"13px 16px",background:"#1a1a19",border:"1px soli
 var mP = function(c){return{width:"100%",padding:"14px",borderRadius:10,fontSize:17,fontWeight:600,background:c||G,color:"#0a0a09",border:"none",cursor:"pointer",marginTop:6}};
 var mC = {width:"100%",padding:"14px",borderRadius:10,fontSize:17,fontWeight:600,background:"transparent",color:"#9A9590",border:"1px solid rgba(255,255,255,0.06)",cursor:"pointer",marginTop:6};
 var L = function(props){return <label style={{fontSize:14,color:"#9A9590",fontWeight:600,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:.8}}>{props.children}</label>};
-var TabBtn = function(props){return <div className="bh" onClick={props.onClick} style={{flexShrink:0,padding:"10px 18px",borderRadius:12,fontSize:16,fontWeight:600,cursor:"pointer",border:props.active?"1px solid "+(props.green?"#4CAF7D":G):"1px solid rgba(255,255,255,0.04)",background:props.active?(props.green?"#4CAF7D":G):"transparent",color:props.active?"#0a0a09":"#9A9590",whiteSpace:"nowrap",transition:"all .2s"}}>{props.children}</div>};
+var TabBtn = function(props){var dk=!document.body.classList.contains("light");return <div className="bh" onClick={props.onClick} style={{flexShrink:0,padding:"10px 18px",borderRadius:12,fontSize:16,fontWeight:600,cursor:"pointer",border:props.active?"1px solid "+(props.green?"#4CAF7D":G):"1px solid "+(dk?"rgba(255,255,255,0.04)":"rgba(0,0,0,0.08)"),background:props.active?(props.green?"#4CAF7D":G):"transparent",color:props.active?(dk?"#0a0a09":"#fff"):(dk?"#9A9590":"#666"),whiteSpace:"nowrap",transition:"all .2s"}}>{props.children}</div>};
 
 // Smart image component - auto-detects orientation and adjusts crop
 var SmartImg = function(props){
@@ -325,6 +341,13 @@ function App(){
   var _simUnit = useState(null); var simUnit = _simUnit[0]; var setSimUnit = _simUnit[1];
   var _printHtml = useState(null); var printHtml = _printHtml[0]; var setPrintHtml = _printHtml[1];
   var _lang = useState("pt"); var lang = _lang[0]; var setLang = _lang[1];
+  var _theme = useState("dark"); var theme = _theme[0]; var setTheme = _theme[1];
+  var isDark = theme==="dark";
+  var bgColor = isDark?"#0a0a09":"#F5F2ED";
+  var cardBg = isDark?"#111110":"#FFFFFF";
+  var textColor = isDark?"#F0EBE3":"#1a1a1a";
+  var subColor = isDark?"#9A9590":"#666";
+  var borderColor = isDark?"rgba(255,255,255,0.03)":"rgba(0,0,0,0.08)";
   var _showUsd = useState(false); var showUsd = _showUsd[0]; var setShowUsd = _showUsd[1];
   var _compare = useState([]); var compare = _compare[0]; var setCompare = _compare[1];
   var _lightbox = useState(null); var lightbox = _lightbox[0]; var setLightbox = _lightbox[1];
@@ -458,7 +481,10 @@ function App(){
   // === NAVIGATION ===
   var go = function(id){setSel(id);setVw("detail");var defaultTab=(cfg.restrict_tables==="true"&&!adm&&!broker)?"photos":"table";setDtab(defaultTab);setFilter("all");setSearch("");setPhotoUnit("all");setCompare([]);DB.trackEvent("view_building",{building_id:id})};
 
-  // Track page view on load
+  useEffect(function(){
+    document.body.style.background=bgColor;document.body.style.color=textColor;
+    if(isDark){document.body.classList.remove("light")}else{document.body.classList.add("light")}
+  },[theme]);
   useEffect(function(){DB.trackEvent("page_view",{})},[])
 
   // Stats
@@ -533,11 +559,11 @@ function App(){
                 <div style={{fontSize:15,color:"#7A7570",marginBottom:12,lineHeight:1.5,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{b.subtitle}</div>
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                   <div style={{display:"flex",alignItems:"center",gap:6}}>
-                    <span style={{padding:"4px 10px",borderRadius:6,fontSize:12,fontWeight:600,background:b.status==="ready"?"rgba(76,175,125,0.08)":"rgba(232,169,78,0.08)",color:b.status==="ready"?"#4CAF7D":"#E8A94E"}}>{b.status==="ready"?"Pronto":"Obra "+b.construction_pct+"%"}</span>
-                    {isPreLaunch(b) && <span style={{padding:"4px 10px",borderRadius:6,fontSize:12,fontWeight:600,background:"rgba(232,169,78,0.08)",color:"#E8A94E"}}>🚀 Pré-Lanç.</span>}
+                    <span style={{padding:"4px 10px",borderRadius:6,fontSize:12,fontWeight:600,background:b.status==="ready"?"rgba(76,175,125,0.08)":"rgba(232,169,78,0.08)",color:b.status==="ready"?"#4CAF7D":"#E8A94E"}}>{b.status==="ready"?t.ready2:t.obra+" "+b.construction_pct+"%"}</span>
+                    {isPreLaunch(b) && <span style={{padding:"4px 10px",borderRadius:6,fontSize:12,fontWeight:600,background:"rgba(232,169,78,0.08)",color:"#E8A94E"}}>🚀 {t.preLaunch}</span>}
                   </div>
                   <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                    <span style={{fontSize:13,color:"#7A7570"}}>{a}/{units.length} disp.</span>
+                    <span style={{fontSize:13,color:subColor}}>{a}/{units.length} {t.disp}</span>
                     <span style={{fontSize:13,color:G}}>→</span>
                   </div>
                 </div>
@@ -611,10 +637,10 @@ function App(){
         {/* ═══ TABLE TAB ═══ */}
         {dtab==="table" && (cfg.restrict_tables==="true"&&!adm&&!broker ? <div style={{textAlign:"center",padding:"40px 20px"}}>
             <div style={{fontSize:48,marginBottom:16}}>🔒</div>
-            <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:24,fontWeight:500,color:"#F0EBE3",marginBottom:8}}>Conteúdo Exclusivo</div>
-            <div style={{fontSize:14,color:"#9A9590",lineHeight:1.8,marginBottom:20}}>As tabelas de vendas são exclusivas para corretores parceiros. Cadastre-se para ter acesso completo às tabelas, simulador de financiamento e ferramentas de venda.</div>
-            <button className="bh" onClick={function(){setMdl({t:"login"})}} style={{padding:"14px 32px",borderRadius:12,fontSize:16,fontWeight:600,background:G+"18",color:G,border:"1px solid "+G+"30",cursor:"pointer",marginBottom:10,display:"inline-flex",alignItems:"center",gap:8}}>👤 Entrar como Corretor</button>
-            <div style={{marginTop:8}}><span onClick={function(){setMdl({t:"brokerRegister"})}} style={{fontSize:14,color:"#5B8FD4",cursor:"pointer"}}>Não tem conta? Cadastre-se gratuitamente →</span></div>
+            <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:24,fontWeight:500,color:textColor,marginBottom:8}}>{t.exclusive}</div>
+            <div style={{fontSize:14,color:subColor,lineHeight:1.8,marginBottom:20}}>{t.exclusiveMsg}</div>
+            <button className="bh" onClick={function(){setMdl({t:"login"})}} style={{padding:"14px 32px",borderRadius:12,fontSize:16,fontWeight:600,background:G+"18",color:G,border:"1px solid "+G+"30",cursor:"pointer",marginBottom:10,display:"inline-flex",alignItems:"center",gap:8}}>👤 {t.loginBroker}</button>
+            <div style={{marginTop:8}}><span onClick={function(){setMdl({t:"brokerRegister"})}} style={{fontSize:14,color:"#5B8FD4",cursor:"pointer"}}>{t.register} →</span></div>
           </div> : <div>
           <div style={{padding:10,background:"rgba(200,164,92,0.05)",borderRadius:8,marginBottom:12}}>
             <div style={{fontSize:12,color:"#9A9590",fontWeight:600,textTransform:"uppercase",letterSpacing:1,marginBottom:3}}>CUB/SC</div>
@@ -634,7 +660,7 @@ function App(){
           </div>
 
           {/* Search */}
-          <input value={search} onChange={function(e){setSearch(e.target.value)}} placeholder={"🔍 Buscar unidade..."} style={Object.assign({},mI,{background:"#111110",marginBottom:14,border:"1px solid rgba(255,255,255,0.04)"})}/>
+          <input value={search} onChange={function(e){setSearch(e.target.value)}} placeholder={"🔍 "+t.search} style={Object.assign({},mI,{background:cardBg,marginBottom:14,border:"1px solid "+borderColor})}/>
 
           <div style={{overflowX:"auto",borderRadius:14,border:"1px solid rgba(255,255,255,0.03)",overflow:"hidden"}}>
             <table style={{width:"100%",borderCollapse:"collapse"}}>
@@ -2348,7 +2374,7 @@ function App(){
   var bgColor = cfg.bg_color || "#0a0a09";
 
   return(
-    <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",background:bgColor,color:"#F0EBE3",minHeight:"100vh",maxWidth:1024,margin:"0 auto",position:"relative",paddingBottom:80}}>
+    <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",background:bgColor,color:textColor,minHeight:"100vh",maxWidth:1024,margin:"0 auto",position:"relative",paddingBottom:80}}>
       <style>{"@keyframes p{0%,100%{opacity:1}50%{opacity:.3}}"}</style>
 
       {/* HERO */}
@@ -2360,7 +2386,14 @@ function App(){
         <h1 className="au" style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:"clamp(36px, 7vw, 64px)",fontWeight:500,lineHeight:1.05,marginBottom:12,position:"relative",letterSpacing:"-0.02em",animationDelay:"80ms"}}>Portal do <span style={{color:G,fontWeight:600}}>Corretor</span></h1>
         <p className="au" style={{fontSize:"clamp(12px, 1.6vw, 17px)",color:"#7A7570",maxWidth:480,margin:"0 auto",lineHeight:1.7,position:"relative",fontWeight:300,animationDelay:"160ms"}}>Empreendimentos, tabelas com correção CUB/SC, simulador e materiais exclusivos.</p>
         <div className="au" style={{marginTop:18,display:"flex",justifyContent:"center",gap:8,position:"relative",animationDelay:"240ms"}}>
-          <button className="bh" onClick={function(){setLang(lang==="pt"?"es":"pt")}} style={{padding:"8px 18px",borderRadius:50,fontSize:13,fontWeight:600,background:"rgba(255,255,255,0.03)",color:"#7A7570",border:"1px solid rgba(255,255,255,0.06)",cursor:"pointer"}}>{lang==="pt"?"🇪🇸 Español":"🇧🇷 Português"}</button>
+          <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",justifyContent:"center"}}>
+            <div style={{display:"flex",gap:2,borderRadius:12,overflow:"hidden",border:"1px solid "+borderColor}}>
+              {[{l:"pt",f:"🇧🇷"},{l:"es",f:"🇪🇸"},{l:"en",f:"🇺🇸"}].map(function(lg){
+                return <button key={lg.l} className="bh" onClick={function(){setLang(lg.l)}} style={{padding:"6px 14px",fontSize:14,fontWeight:600,background:lang===lg.l?G+"20":"transparent",color:lang===lg.l?G:subColor,border:"none",cursor:"pointer"}}>{lg.f}</button>;
+              })}
+            </div>
+            <button className="bh" onClick={function(){setTheme(isDark?"light":"dark")}} style={{padding:"6px 14px",borderRadius:12,fontSize:14,fontWeight:600,background:"transparent",color:subColor,border:"1px solid "+borderColor,cursor:"pointer"}}>{isDark?"☀️":"🌙"}</button>
+          </div>
         </div>
       </div>
 
@@ -2372,7 +2405,7 @@ function App(){
       </div>
 
       {/* NAV */}
-      <div style={{position:"sticky",top:0,zIndex:100,background:bgColor+"ee",backdropFilter:"blur(16px)",WebkitBackdropFilter:"blur(16px)",padding:"14px 16px 0",borderBottom:"1px solid rgba(255,255,255,0.03)"}}>
+      <div style={{position:"sticky",top:0,zIndex:100,background:isDark?bgColor+"ee":"rgba(245,242,237,0.95)",backdropFilter:"blur(16px)",WebkitBackdropFilter:"blur(16px)",padding:"14px 16px 0",borderBottom:"1px solid "+borderColor}}>
         <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:10,alignItems:"center"}}>
           <TabBtn active={vw==="home"} onClick={function(){setVw("home")}}>{t.home}</TabBtn>
           {adm && <TabBtn active={vw==="manage"} green onClick={function(){setVw("manage")}}>Gerenciar</TabBtn>}
@@ -2380,7 +2413,7 @@ function App(){
           {vis.map(function(b){return <TabBtn key={b.id} active={vw==="detail"&&sel===b.id} onClick={function(){go(b.id)}}>{b.name.replace("Ed. ","").replace("Res. ","").replace("Imóveis de ","")}</TabBtn>})}
           <div style={{flex:1}}/>
           {/* User Area */}
-          {!adm && !broker && <span className="bh" onClick={function(){setMdl({t:"login"})}} style={{flexShrink:0,padding:"7px 14px",borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",background:"rgba(255,255,255,0.03)",color:"#555",border:"1px solid rgba(255,255,255,0.04)"}}>Entrar</span>}
+          {!adm && !broker && <span className="bh" onClick={function(){setMdl({t:"login"})}} style={{flexShrink:0,padding:"7px 14px",borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",background:isDark?"rgba(255,255,255,0.03)":"rgba(0,0,0,0.04)",color:subColor,border:"1px solid "+borderColor}}>{t.enter}</span>}
           {broker && <span className="bh" onClick={function(){setMdl({t:"brokerDash"})}} style={{flexShrink:0,padding:"7px 14px",borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",background:"rgba(91,143,212,0.08)",color:"#5B8FD4",border:"1px solid rgba(91,143,212,0.12)",display:"flex",alignItems:"center",gap:4}}>👤 {broker.nome.split(" ")[0]}</span>}
           {adm && currentUser && (function(){
             var myPendTasks=tasks.filter(function(t3){return t3.assigned_to===currentUser.id&&t3.status!=="done"}).length;
@@ -2433,14 +2466,14 @@ function App(){
 
       {/* MODAL */}
       {mdl && <div onClick={function(){setMdl(null)}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",backdropFilter:"blur(8px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
-        <div onClick={function(e){e.stopPropagation()}} style={{background:"#111110",borderRadius:20,padding:24,width:"100%",maxWidth:440,maxHeight:"85vh",overflow:"auto",border:"1px solid rgba(255,255,255,0.06)"}}>
+        <div onClick={function(e){e.stopPropagation()}} style={{background:cardBg,borderRadius:20,padding:24,width:"100%",maxWidth:440,maxHeight:"85vh",overflow:"auto",border:"1px solid rgba(255,255,255,0.06)"}}>
           <ModalContent/>
         </div>
       </div>}
 
       {/* SIMULATOR */}
       {simUnit && <div onClick={function(){setSimUnit(null)}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",backdropFilter:"blur(8px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
-        <div onClick={function(e){e.stopPropagation()}} style={{background:"#111110",borderRadius:20,padding:24,width:"100%",maxWidth:440,maxHeight:"85vh",overflow:"auto",border:"1px solid rgba(255,255,255,0.06)"}}>
+        <div onClick={function(e){e.stopPropagation()}} style={{background:cardBg,borderRadius:20,padding:24,width:"100%",maxWidth:440,maxHeight:"85vh",overflow:"auto",border:"1px solid rgba(255,255,255,0.06)"}}>
           <SimModal/>
         </div>
       </div>}
@@ -2480,7 +2513,7 @@ function App(){
       {miniChat && <MiniChatWidget/>}
 
       {/* TOAST */}
-      {toast && <div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",background:"#141413",color:"#F0EBE3",padding:"12px 24px",borderRadius:14,fontSize:15,fontWeight:500,zIndex:700,boxShadow:"0 8px 32px rgba(0,0,0,0.5)",whiteSpace:"nowrap",border:"1px solid rgba(255,255,255,0.06)"}}>{toast}</div>}
+      {toast && <div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",background:cardBg,color:textColor,padding:"12px 24px",borderRadius:14,fontSize:15,fontWeight:500,zIndex:700,boxShadow:"0 8px 32px rgba(0,0,0,0.5)",whiteSpace:"nowrap",border:"1px solid rgba(255,255,255,0.06)"}}>{toast}</div>}
     </div>
   );
 
