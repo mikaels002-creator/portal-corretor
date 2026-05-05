@@ -284,6 +284,22 @@ var mC = {width:"100%",padding:"14px",borderRadius:10,fontSize:17,fontWeight:600
 var L = function(props){return <label style={{fontSize:14,color:"#9A9590",fontWeight:600,display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:.8}}>{props.children}</label>};
 var TabBtn = function(props){return <div className="bh" onClick={props.onClick} style={{flexShrink:0,padding:"10px 18px",borderRadius:12,fontSize:16,fontWeight:600,cursor:"pointer",border:props.active?"1px solid "+(props.green?"#4CAF7D":G):"1px solid rgba(255,255,255,0.04)",background:props.active?(props.green?"#4CAF7D":G):"transparent",color:props.active?"#0a0a09":"#9A9590",whiteSpace:"nowrap",transition:"all .2s"}}>{props.children}</div>};
 
+// Smart image component - auto-detects orientation and adjusts crop
+var SmartImg = function(props){
+  var _pos=useState("center center");var pos=_pos[0];var setPos=_pos[1];
+  var _loaded=useState(false);var loaded=_loaded[0];var setLoaded=_loaded[1];
+  return <img src={props.src} alt={props.alt||""} onLoad={function(e){
+    var img=e.target;var r=img.naturalWidth/img.naturalHeight;
+    // Portrait (tall): show upper portion where buildings/sky are
+    if(r<0.7) setPos("center 15%");
+    // Slightly portrait
+    else if(r<1) setPos("center 25%");
+    // Square or landscape: center
+    else setPos("center center");
+    setLoaded(true);
+  }} style={Object.assign({width:"100%",height:"100%",objectFit:"cover",objectPosition:pos,transition:"opacity 0.3s",opacity:loaded?1:0},props.style||{})}/>;
+};
+
 // ═══════════════════════════════════════
 // MAIN APP
 // ═══════════════════════════════════════
@@ -504,8 +520,8 @@ function App(){
           var a = units.filter(function(u){return u.status==="available"}).length;
           return(
             <div key={b.id} onClick={function(){go(b.id)}} className="ch au" style={{background:"#111110",borderRadius:16,overflow:"hidden",border:"1px solid rgba(255,255,255,0.03)",cursor:"pointer",animationDelay:idx*100+"ms"}}>
-              <div style={{height:180,position:"relative",background:cover?"url("+cover+") center/cover no-repeat":b.gradient}}>
-                {!cover && <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100%",fontSize:40}}>{b.emoji}</div>}
+              <div style={{height:180,position:"relative",overflow:"hidden"}}>
+                {cover ? <SmartImg src={cover} style={{position:"absolute",inset:0}}/> : <div style={{height:"100%",background:b.gradient,display:"flex",alignItems:"center",justifyContent:"center",fontSize:40}}>{b.emoji}</div>}
                 <div style={{position:"absolute",inset:0,background:"linear-gradient(transparent 30%,rgba(10,10,9,0.9))"}}/>
                 <div style={{position:"absolute",top:12,right:12,padding:"5px 12px",borderRadius:20,fontSize:12,fontWeight:600,background:"rgba(0,0,0,0.5)",color:"#fff",backdropFilter:"blur(8px)",border:"1px solid rgba(255,255,255,0.08)",letterSpacing:.5}}>{b.tag}</div>
                 {!b.active && adm && <div style={{position:"absolute",top:12,left:12,padding:"5px 12px",borderRadius:20,fontSize:12,fontWeight:600,background:"rgba(213,91,91,0.8)",color:"#fff"}}>Oculto</div>}
@@ -553,11 +569,11 @@ function App(){
           var cover2=getCover2(bld.id);
           return <div style={{borderRadius:16,overflow:"hidden",marginBottom:14,position:"relative",border:"1px solid rgba(255,255,255,0.06)",boxShadow:"0 8px 32px rgba(0,0,0,0.3)"}}>
             {cover2 ? <div style={{display:"flex",height:220}}>
-              <div style={{flex:1,background:"url("+cover+") center/cover no-repeat"}}/>
-              <div style={{width:2,background:"rgba(255,255,255,0.08)",zIndex:2}}/>
-              <div style={{flex:1,background:"url("+cover2+") center/cover no-repeat"}}/>
+              <div style={{flex:1,position:"relative",overflow:"hidden"}}><SmartImg src={cover}/></div>
+              <div style={{width:2,background:"rgba(255,255,255,0.1)",zIndex:2}}/>
+              <div style={{flex:1,position:"relative",overflow:"hidden"}}><SmartImg src={cover2}/></div>
             </div>
-            : <div style={{height:220,background:"url("+cover+") center/cover no-repeat"}}/>}
+            : <div style={{height:220,position:"relative",overflow:"hidden"}}><SmartImg src={cover}/></div>}
             <div style={{position:"absolute",inset:0,background:"linear-gradient(transparent 40%,rgba(10,10,9,0.85))"}}>
               <div style={{position:"absolute",bottom:14,left:16}}>
                 <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:24,fontWeight:700,color:"#fff",textShadow:"0 2px 12px rgba(0,0,0,0.8)"}}>{bld.name}</div>
@@ -711,7 +727,7 @@ function App(){
                 {filteredPhotos.length>0?filteredPhotos.map(function(photo,i){
                   var linkedUnit=photo.unit_id?units.find(function(x){return x.id===photo.unit_id}):null;
                   return <div key={photo.id} className="ch" onClick={function(){if(!adm)openLightbox(filteredPhotos,i)}} style={{aspectRatio:"1",borderRadius:12,overflow:"hidden",position:"relative",border:photo.is_cover?"2px solid "+G:"1px solid rgba(255,255,255,0.06)",cursor:adm?"default":"zoom-in"}}>
-                    <img src={photo.url} alt={photo.label||""} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                    <SmartImg src={photo.url} alt={photo.label||""}/>
                     {photo.is_cover && <div style={{position:"absolute",top:6,left:6,padding:"3px 8px",borderRadius:6,fontSize:12,fontWeight:700,background:G,color:"#0a0a09"}}>⭐ Capa</div>}
                     {bld.cover_photo_2===photo.url && !photo.is_cover && <div style={{position:"absolute",top:6,left:6,padding:"3px 8px",borderRadius:6,fontSize:12,fontWeight:700,background:"#5B8FD4",color:"#fff"}}>② Capa 2</div>}
                     {linkedUnit && photoUnit==="all" && <div style={{position:"absolute",top:6,left:photo.is_cover?60:6,padding:"3px 8px",borderRadius:6,fontSize:12,fontWeight:600,background:"rgba(0,0,0,0.7)",color:"#fff",backdropFilter:"blur(4px)"}}>{linkedUnit.name}</div>}
