@@ -23,35 +23,76 @@ body{background:var(--bg,#0a0a09);font-size:16px;font-family:'DM Sans',system-ui
 ::-webkit-scrollbar-thumb{background:rgba(200,164,92,0.15);border-radius:4px}
 input,select,textarea,button{font-family:inherit}
 @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-body.light{background:#F5F2ED!important;color:#1a1a1a!important}
-body.light #root{color:#1a1a1a}
-body.light #root>div{background:#F5F2ED!important;color:#1a1a1a!important}
-body.light div[style*="background: rgb(17, 17, 16)"],body.light div[style*="background: rgb(10, 10, 9)"],body.light div[style*="background: rgb(20, 20, 19)"],body.light div[style*="background: rgb(26, 26, 25)"]{background:#FFFFFF!important;box-shadow:0 1px 8px rgba(0,0,0,0.06)!important}
-body.light div[style*="background: rgb(13, 13, 12)"]{background:#F8F5F0!important}
-body.light span[style*="background: rgb(10, 10, 9)"],body.light span[style*="background: rgb(17, 17, 16)"]{background:#EFEBE4!important}
-body.light div[style*="color: rgb(240, 235, 227)"],body.light span[style*="color: rgb(240, 235, 227)"]{color:#1a1a1a!important}
-body.light div[style*="color: rgb(154, 149, 144)"],body.light span[style*="color: rgb(154, 149, 144)"]{color:#777!important}
-body.light div[style*="color: rgb(85, 85, 85)"],body.light span[style*="color: rgb(85, 85, 85)"]{color:#999!important}
-body.light div[style*="color: rgb(122, 117, 112)"],body.light span[style*="color: rgb(122, 117, 112)"]{color:#888!important}
-body.light input,body.light textarea,body.light select{background:#EFEBE4!important;color:#1a1a1a!important;border-color:rgba(0,0,0,0.12)!important}
-body.light table th{background:#EDE8E0!important;color:#555!important;border-color:rgba(200,164,92,0.15)!important}
-body.light table td{color:#1a1a1a!important;border-color:rgba(0,0,0,0.06)!important}
-body.light *{border-color:rgba(0,0,0,0.08)!important}
-body.light img,body.light svg{border-color:transparent!important}
-body.light .bh:hover{opacity:0.85}
-body.light div[style*="box-shadow"]{box-shadow:0 2px 12px rgba(0,0,0,0.06)!important}
-body.light div[style*="backdrop-filter"]{background:rgba(245,242,237,0.95)!important}
-body.light div[style*="linear-gradient(175deg"]{background:linear-gradient(175deg,#F5F2ED 0%,#EDE8E0 40%,#F0EDE6 70%,#F5F2ED 100%)!important}
-body.light div[style*="linear-gradient(135deg, rgb(17"]{background:#F8F5F0!important}
-body.light div[style*="linear-gradient(transparent"]{background:linear-gradient(transparent 30%,rgba(245,242,237,0.9))!important}
-body.light details summary{color:#333!important}
-body.light ::placeholder{color:#aaa!important}
+/* ═══ LIGHT THEME — Premium Design ═══ */
+body.light{background:#F5F1EB!important;color:#222!important}
+body.light *:not(img):not(svg):not(path):not(line):not(rect):not(circle):not(text):not([style*="text-shadow"]){border-color:rgba(0,0,0,0.07)!important}
+body.light ::selection{background:rgba(200,164,92,0.25)}
+body.light ::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.1)}
+body.light ::placeholder{color:rgba(0,0,0,0.35)!important}
+/* Main containers */
+body.light #root>div{background:#F5F1EB!important}
+/* Card backgrounds → white + subtle shadow */
+body.light [style*="background: rgb(17, 17, 16)"],
+body.light [style*="background: rgb(20, 20, 19)"]{background:#fff!important;box-shadow:0 1px 6px rgba(0,0,0,0.05),0 0 0 1px rgba(0,0,0,0.03)!important}
+/* Deep containers → cream */
+body.light [style*="background: rgb(10, 10, 9)"],
+body.light [style*="background: rgb(13, 13, 12)"]{background:#F5F1EB!important;box-shadow:none!important}
+/* Input bg → warm beige */
+body.light [style*="background: rgb(26, 26, 25)"]{background:#EFEBE4!important}
+/* Nav sticky */
+body.light [style*="backdrop-filter"]{background:rgba(245,241,235,0.92)!important}
+/* Hero gradient */
+body.light [style*="linear-gradient(175deg"]{background:linear-gradient(175deg,#EDE8E0 0%,#E5DFD5 40%,#EDE8E0 100%)!important}
+body.light [style*="radial-gradient(ellipse"]{background:radial-gradient(ellipse at 50% 40%,rgba(200,164,92,0.06) 0%,transparent 50%)!important}
+/* Photo overlays: ALWAYS DARK (text is white) */
+body.light [style*="linear-gradient(transparent 20%"]{background:linear-gradient(transparent 20%,rgba(0,0,0,0.75))!important}
+body.light [style*="linear-gradient(transparent 30%"]{background:linear-gradient(transparent 30%,rgba(0,0,0,0.75))!important}
+body.light [style*="linear-gradient(transparent 40%"]{background:linear-gradient(transparent 40%,rgba(0,0,0,0.75))!important}
+body.light [style*="linear-gradient(transparent 50%"]{background:linear-gradient(transparent 50%,rgba(0,0,0,0.65))!important}
+/* Transparent overlays → subtle tints */
+body.light [style*="background: rgba(255, 255, 255, 0.0"]{background:rgba(0,0,0,0.015)!important}
+/* Card inner gradients */
+body.light [style*="linear-gradient(135deg, rgb(17"]{background:rgba(0,0,0,0.015)!important}
+/* Text colors */
+body.light [style*="color: rgb(240, 235, 227)"]{color:#222!important}
+body.light [style*="color: rgb(154, 149, 144)"]{color:#666!important}
+body.light [style*="color: rgb(85, 85, 85)"]{color:#888!important}
+body.light [style*="color: rgb(122, 117, 112)"]{color:#777!important}
+body.light [style*="color: rgb(170, 170, 170)"]{color:#777!important}
+/* Inputs */
+body.light input,body.light textarea,body.light select{background:#EFEBE4!important;color:#222!important;border-color:rgba(0,0,0,0.1)!important}
+/* Table */
+body.light table{border-collapse:collapse}
+body.light table th{background:#E8E2D8!important;color:#444!important}
+body.light table td{color:#222!important;border-color:rgba(0,0,0,0.05)!important}
+/* Modal backdrop */
+body.light [style*="rgba(0, 0, 0, 0.8)"]{background:rgba(0,0,0,0.45)!important}
+/* Hover */
+body.light .ch:hover{box-shadow:0 8px 28px rgba(0,0,0,0.1)!important}
+body.light .bh:hover{filter:brightness(0.96)!important}
+/* Pill buttons with dark bg → light */
+body.light span[style*="background: rgb(10, 10, 9)"]{background:#EFEBE4!important;color:#555!important}
+body.light button[style*="background: rgb(17, 17, 16)"]{background:#fff!important;box-shadow:0 1px 4px rgba(0,0,0,0.05)!important}
+/* Filter/tab active states with rgba opacity */
+body.light [style*="rgba(255, 255, 255, 0.04)"]{border-color:rgba(0,0,0,0.08)!important}
+/* Progress bar bg */
+body.light [style*="background: rgba(255, 255, 255, 0.03)"],
+body.light [style*="background: rgba(255, 255, 255, 0.04)"],
+body.light [style*="background: rgba(255, 255, 255, 0.05)"]{background:rgba(0,0,0,0.04)!important}
+/* Mini chat / floating elements */
+body.light [style*="position: fixed"][style*="background: rgb(17"]{background:#fff!important;box-shadow:0 4px 20px rgba(0,0,0,0.12)!important}
+/* KPI and status cards with color tints - keep them visible */
+body.light [style*="rgba(76, 175, 125, 0.0"]{background:rgba(76,175,125,0.06)!important}
+body.light [style*="rgba(232, 169, 78, 0.0"]{background:rgba(232,169,78,0.06)!important}
+body.light [style*="rgba(213, 91, 91, 0.0"]{background:rgba(213,91,91,0.06)!important}
+body.light [style*="rgba(91, 143, 212, 0.0"]{background:rgba(91,143,212,0.06)!important}
+body.light [style*="rgba(139, 111, 191, 0.0"]{background:rgba(139,111,191,0.06)!important}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.9)}}
 @keyframes glow{0%,100%{box-shadow:0 0 20px rgba(200,164,92,0.08)}50%{box-shadow:0 0 40px rgba(200,164,92,0.16)}}
 @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
 .au{animation:fadeUp .5s ease both}
-.ch{transition:all .25s ease}.ch:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(0,0,0,0.4)}
+.ch{transition:all .25s ease}.ch:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(0,0,0,0.15)}
 .bh{transition:all .2s ease}.bh:hover{transform:translateY(-1px);filter:brightness(1.1)}
 @media(min-width:768px){
   .bld-grid{display:grid!important;grid-template-columns:1fr 1fr!important;gap:16px!important}
@@ -547,8 +588,8 @@ function App(){
     return(
       <div style={{padding:"20px clamp(14px, 4vw, 48px)"}}>
         <div className="au" style={{marginBottom:24}}>
-          <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:28,fontWeight:500,letterSpacing:"-0.02em"}}>{lang==="es"?"Emprendimientos":"Empreendimentos"}</div>
-          <div style={{fontSize:14,color:subColor,marginTop:4}}>{vis.length} {lang==="es"?"activos":"ativos"}</div>
+          <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:28,fontWeight:600,letterSpacing:"-0.02em",color:textColor}}>{lang==="en"?"Properties":lang==="es"?"Emprendimientos":"Empreendimentos"}</div>
+          <div style={{fontSize:14,color:subColor,marginTop:4}}>{vis.length} {lang==="en"?"active":lang==="es"?"activos":"ativos"}</div>
         </div>
         <div className="bld-grid">
         {vis.map(function(b,idx){
@@ -559,19 +600,19 @@ function App(){
             <div key={b.id} onClick={function(){go(b.id)}} className="ch au" style={{background:cardBg,borderRadius:16,overflow:"hidden",border:"1px solid "+borderColor,cursor:"pointer",animationDelay:idx*100+"ms"}}>
               <div style={{height:180,position:"relative",overflow:"hidden"}}>
                 {cover ? <SmartImg src={cover} style={{position:"absolute",inset:0}}/> : <div style={{height:"100%",background:b.gradient,display:"flex",alignItems:"center",justifyContent:"center",fontSize:40}}>{b.emoji}</div>}
-                <div style={{position:"absolute",inset:0,background:isDark?"linear-gradient(transparent 30%,rgba(10,10,9,0.9))":"linear-gradient(transparent 30%,rgba(245,242,237,0.9))"}}/>
-                <div style={{position:"absolute",top:12,right:12,padding:"5px 12px",borderRadius:20,fontSize:12,fontWeight:600,background:"rgba(0,0,0,0.5)",color:"#fff",backdropFilter:"blur(8px)",border:"1px solid rgba(255,255,255,0.08)",letterSpacing:.5}}>{b.tag}</div>
+                <div style={{position:"absolute",inset:0,background:"linear-gradient(transparent 20%,rgba(0,0,0,0.75))"}}/>
+                <div style={{position:"absolute",top:12,right:12,padding:"5px 12px",borderRadius:20,fontSize:11,fontWeight:700,background:"rgba(0,0,0,0.55)",color:"#fff",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",border:"1px solid rgba(255,255,255,0.12)",letterSpacing:1,textTransform:"uppercase"}}>{b.tag}</div>
                 {!b.active && adm && <div style={{position:"absolute",top:12,left:12,padding:"5px 12px",borderRadius:20,fontSize:12,fontWeight:600,background:"rgba(213,91,91,0.8)",color:"#fff"}}>Oculto</div>}
                 <div style={{position:"absolute",bottom:16,left:18,right:18}}>
-                  <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:26,fontWeight:500,lineHeight:1.15,textShadow:"0 2px 12px rgba(0,0,0,0.6)"}}>{b.name}</div>
+                  <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:26,fontWeight:600,lineHeight:1.15,color:"#fff",textShadow:"0 1px 3px rgba(0,0,0,0.8),0 4px 16px rgba(0,0,0,0.4)"}}>{b.name}</div>
                 </div>
               </div>
               <div style={{padding:"16px 18px 18px"}}>
-                <div style={{fontSize:15,color:subColor,marginBottom:12,lineHeight:1.5,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{b.subtitle}</div>
+                <div style={{fontSize:14,color:subColor,marginBottom:12,lineHeight:1.6,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{b.subtitle}</div>
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:6}}>
-                    <span style={{padding:"4px 10px",borderRadius:6,fontSize:12,fontWeight:600,background:b.status==="ready"?"rgba(76,175,125,0.08)":"rgba(232,169,78,0.08)",color:b.status==="ready"?"#4CAF7D":"#E8A94E"}}>{b.status==="ready"?t.ready2:t.obra+" "+b.construction_pct+"%"}</span>
-                    {isPreLaunch(b) && <span style={{padding:"4px 10px",borderRadius:6,fontSize:12,fontWeight:600,background:"rgba(232,169,78,0.08)",color:"#E8A94E"}}>🚀 {t.preLaunch}</span>}
+                  <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                    <span style={{padding:"4px 10px",borderRadius:8,fontSize:12,fontWeight:700,background:b.status==="ready"?"rgba(76,175,125,0.1)":"rgba(232,169,78,0.1)",color:b.status==="ready"?"#4CAF7D":"#E8A94E"}}>{b.status==="ready"?t.ready2:t.obra+" "+b.construction_pct+"%"}</span>
+                    {isPreLaunch(b) && <span style={{padding:"4px 10px",borderRadius:8,fontSize:12,fontWeight:700,background:"rgba(232,169,78,0.1)",color:"#E8A94E"}}>🚀 {t.preLaunch}</span>}
                   </div>
                   <div style={{display:"flex",gap:6,alignItems:"center"}}>
                     <span style={{fontSize:13,color:subColor}}>{a}/{units.length} {t.disp}</span>
@@ -2395,9 +2436,9 @@ function App(){
         {cfg.hero_banner && cfg.hero_overlay!=="false" && <div style={{position:"absolute",inset:0,background:isDark?"rgba(0,0,0,0.6)":"rgba(255,255,255,0.4)",pointerEvents:"none"}}/>}
         <div style={{position:"absolute",top:"-50%",left:"-30%",width:"160%",height:"200%",background:"radial-gradient(ellipse at 50% 40%,rgba(200,164,92,0.04) 0%,transparent 50%)",pointerEvents:"none"}}/>
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:"1px",background:"linear-gradient(90deg,transparent,rgba(200,164,92,0.15),transparent)"}}/>
-        <div className="au" style={{display:"inline-flex",alignItems:"center",gap:8,background:"rgba(200,164,92,0.06)",border:"1px solid rgba(200,164,92,0.12)",padding:"8px 20px",borderRadius:50,fontSize:12,fontWeight:600,letterSpacing:3,textTransform:"uppercase",color:G,marginBottom:20,position:"relative"}}><span style={{width:5,height:5,background:"#4CAF7D",borderRadius:"50%",animation:"pulse 2s infinite"}}/>Portal Exclusivo</div>
-        <h1 className="au" style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:"clamp(36px, 7vw, 64px)",fontWeight:500,lineHeight:1.05,marginBottom:12,position:"relative",letterSpacing:"-0.02em",animationDelay:"80ms"}}>Portal do <span style={{color:G,fontWeight:600}}>Corretor</span></h1>
-        <p className="au" style={{fontSize:"clamp(12px, 1.6vw, 17px)",color:subColor,maxWidth:480,margin:"0 auto",lineHeight:1.7,position:"relative",fontWeight:300,animationDelay:"160ms"}}>Empreendimentos, tabelas com correção CUB/SC, simulador e materiais exclusivos.</p>
+        <div className="au" style={{display:"inline-flex",alignItems:"center",gap:8,background:"rgba(200,164,92,0.06)",border:"1px solid rgba(200,164,92,0.12)",padding:"8px 20px",borderRadius:50,fontSize:12,fontWeight:600,letterSpacing:3,textTransform:"uppercase",color:G,marginBottom:20,position:"relative"}}><span style={{width:5,height:5,background:"#4CAF7D",borderRadius:"50%",animation:"pulse 2s infinite"}}/>{lang==="en"?"Exclusive Portal":lang==="es"?"Portal Exclusivo":"Portal Exclusivo"}</div>
+        <h1 className="au" style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:"clamp(36px, 7vw, 64px)",fontWeight:500,lineHeight:1.05,marginBottom:12,position:"relative",letterSpacing:"-0.02em",animationDelay:"80ms",color:textColor}}>Portal do <span style={{color:G,fontWeight:600}}>Corretor</span></h1>
+        <p className="au" style={{fontSize:"clamp(12px, 1.6vw, 17px)",color:subColor,maxWidth:480,margin:"0 auto",lineHeight:1.7,position:"relative",fontWeight:300,animationDelay:"160ms"}}>{lang==="en"?"Properties, CUB/SC-adjusted tables, simulator and exclusive materials.":lang==="es"?"Emprendimientos, tablas con corrección CUB/SC, simulador y materiales exclusivos.":"Empreendimentos, tabelas com correção CUB/SC, simulador e materiais exclusivos."}</p>
         <div className="au" style={{marginTop:18,display:"flex",justifyContent:"center",gap:8,position:"relative",animationDelay:"240ms"}}>
           <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",justifyContent:"center"}}>
             <div style={{display:"flex",gap:2,borderRadius:12,overflow:"hidden",border:"1px solid "+borderColor}}>
