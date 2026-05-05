@@ -40,6 +40,10 @@ input,select,textarea,button{font-family:inherit}
   .bld-grid{grid-template-columns:1fr 1fr 1fr!important}
   .kpi-grid{grid-template-columns:repeat(6,1fr)!important}
 }
+@media(max-width:480px){
+  table th,table td{padding:8px 6px!important;font-size:12px!important}
+  .bh{min-height:36px}
+}
 </style>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -553,17 +557,17 @@ function App(){
           {bld.incorporation && <span style={{padding:"2px 8px",borderRadius:5,fontSize:12,fontWeight:600,background:"rgba(91,143,212,0.1)",color:"#5B8FD4"}}>📋 {bld.incorporation}</span>}
         </div>
 
-        {adm && <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:10}}>
-          <button onClick={function(){setMdl({t:"editBld",bid:bld.id})}} style={mbtn(bld.color)}>✏️ Editar</button>
-          {bld.status==="construction" && <button onClick={function(){setMdl({t:"obra",bid:bld.id})}} style={mbtn("#E8A94E")}>🏗️ Obra</button>}
-          <button onClick={function(){setMdl({t:"notice",bid:bld.id})}} style={mbtn("#8B6FBF")}>📢 Aviso</button>
-          <button onClick={function(){setMdl({t:"addUnit",bid:bld.id})}} style={mbtn("#5BB8B0")}>＋ Unid.</button>
-          <button className="bh" onClick={function(){setMdl({t:"importPdf",bid:bld.id})}} style={mbtn("#5B8FD4")}>📥 Importar PDF</button>
+        {adm && <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+          <button className="bh" onClick={function(){setMdl({t:"editBld",bid:bld.id})}} style={mbtn(bld.color)}>✏️ Editar</button>
+          {bld.status==="construction" && <button className="bh" onClick={function(){setMdl({t:"obra",bid:bld.id})}} style={mbtn("#E8A94E")}>🏗️ Obra</button>}
+          <button className="bh" onClick={function(){setMdl({t:"notice",bid:bld.id})}} style={mbtn("#8B6FBF")}>📢 Aviso</button>
+          <button className="bh" onClick={function(){setMdl({t:"addUnit",bid:bld.id})}} style={mbtn("#5BB8B0")}>＋ Unid.</button>
+          <button className="bh" onClick={function(){setMdl({t:"importPdf",bid:bld.id})}} style={mbtn("#5B8FD4")}>📥 PDF</button>
         </div>}
 
-        <div style={{display:"flex",gap:4,overflowX:"auto",marginBottom:14,paddingBottom:2}}>
+        <div style={{display:"flex",gap:6,overflowX:"auto",marginBottom:16,paddingBottom:4}}>
           {[{id:"table",i:"📊",l:t.table},{id:"photos",i:"📸",l:t.photos},{id:"plants",i:"📐",l:t.plants},{id:"docs",i:"📄",l:t.docs},{id:"notices",i:"📢",l:t.notices}].map(function(tab){
-            return <div key={tab.id} onClick={function(){setDtab(tab.id)}} style={{flexShrink:0,padding:"7px 13px",borderRadius:7,fontSize:13,fontWeight:600,cursor:"pointer",background:dtab===tab.id?bld.color+"20":"#1a1a19",color:dtab===tab.id?bld.color:"#9A9590",border:dtab===tab.id?"1px solid "+bld.color+"40":"1px solid transparent"}}>{tab.i} {tab.l}</div>;
+            return <div key={tab.id} className="bh" onClick={function(){setDtab(tab.id)}} style={{flexShrink:0,padding:"10px 16px",borderRadius:10,fontSize:14,fontWeight:600,cursor:"pointer",background:dtab===tab.id?bld.color+"20":"#141413",color:dtab===tab.id?bld.color:"#9A9590",border:dtab===tab.id?"1px solid "+bld.color+"30":"1px solid rgba(255,255,255,0.04)"}}>{tab.i} {tab.l}</div>;
           })}
         </div>
 
@@ -578,13 +582,12 @@ function App(){
             <div style={{fontSize:12,color:"#9A9590",marginTop:1}}>Base: {fmt(bld.cub_base)}</div>
           </div>
 
-          <div style={{display:"flex",gap:4,marginBottom:10,flexWrap:"wrap",alignItems:"center"}}>
-            <span style={{fontSize:12,color:"#9A9590",fontWeight:600}}>{t.filter}:</span>
+          <div style={{display:"flex",gap:6,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
             {[{v:"all",l:t.all},{v:"available",l:t.available},{v:"reserved",l:t.reserved},{v:"sold",l:t.sold}].map(function(f){
-              return <span key={f.v} onClick={function(){setFilter(f.v)}} style={{padding:"3px 8px",borderRadius:4,fontSize:12,fontWeight:600,cursor:"pointer",background:filter===f.v?bld.color+"20":"#1e1e1d",color:filter===f.v?bld.color:"#9A9590",border:filter===f.v?"1px solid "+bld.color+"35":"1px solid transparent"}}>{f.l}</span>;
+              return <span key={f.v} className="bh" onClick={function(){setFilter(f.v)}} style={{padding:"8px 14px",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",background:filter===f.v?bld.color+"20":"#141413",color:filter===f.v?bld.color:"#9A9590",border:filter===f.v?"1px solid "+bld.color+"35":"1px solid rgba(255,255,255,0.04)"}}>{f.l}</span>;
             })}
-            <span style={{marginLeft:"auto"}}/>
-            <span onClick={function(){setShowUsd(!showUsd)}} style={{padding:"6px 14px",borderRadius:8,fontSize:13,fontWeight:700,cursor:"pointer",background:showUsd?"rgba(76,175,125,0.15)":"rgba(91,143,212,0.1)",color:showUsd?"#4CAF7D":"#5B8FD4",border:showUsd?"1px solid rgba(76,175,125,0.3)":"1px solid rgba(91,143,212,0.3)",display:"inline-flex",alignItems:"center",gap:5}}>{showUsd?"🇧🇷 R$ "+t.showBrl:"🇺🇸 $ "+t.showUsd}</span>
+            <div style={{flex:1,minWidth:20}}/>
+            <span className="bh" onClick={function(){setShowUsd(!showUsd)}} style={{padding:"8px 16px",borderRadius:10,fontSize:14,fontWeight:700,cursor:"pointer",background:showUsd?"rgba(76,175,125,0.12)":"rgba(91,143,212,0.08)",color:showUsd?"#4CAF7D":"#5B8FD4",border:showUsd?"1px solid rgba(76,175,125,0.25)":"1px solid rgba(91,143,212,0.2)",display:"inline-flex",alignItems:"center",gap:5}}>{showUsd?"🇧🇷 BRL":"🇺🇸 USD"}</span>
           </div>
 
           {/* Search */}
@@ -603,12 +606,12 @@ function App(){
                   <td style={Object.assign({},tdS,{fontWeight:700,color:"#4CAF7D",fontSize:16})}>{u.status==="available"?(p>0?fmtV(p):"—"):"—"}</td>
                   {adm && <td style={Object.assign({},tdS,{fontSize:12,color:"#555"})}>{u.status==="available"&&p>0?fmtV(Math.round(p/u.area)):"—"}</td>}
                   <td style={tdS}><div style={{display:"inline-flex",alignItems:"center",gap:5,fontSize:13,fontWeight:600,color:sC[u.status],padding:"4px 10px",background:sC[u.status]+"0a",borderRadius:6}}><span style={{width:6,height:6,borderRadius:"50%",background:sC[u.status]}}/>{sl[u.status]}</div></td>
-                  <td style={tdS}>
-                    <div style={{display:"flex",gap:3}}>
-                      {u.status==="available" && <button className="bh" onClick={function(e){e.stopPropagation();setSimUnit({u:u,b:bld});DB.trackEvent("simulator",{building:bld.name,unit:u.name})}} style={{padding:"5px 10px",borderRadius:8,fontSize:12,fontWeight:700,background:bld.color+"18",color:bld.color,border:"1px solid "+bld.color+"30",cursor:"pointer",display:"inline-flex",alignItems:"center",gap:3}}>🏦 Simular</button>}
-                      {u.status==="available" && <button className="bh" onClick={function(e){e.stopPropagation();shareUnit(u,bld)}} style={Object.assign({},mbtn("#25D366"),{fontSize:12,padding:"3px 6px",display:"flex",alignItems:"center",gap:2})}><WaIcon size={10}/></button>}
-                      {adm && <button className="bh" onClick={function(){setMdl({t:"editUnit",bid:bld.id,u:Object.assign({},u)})}} style={Object.assign({},mbtn(bld.color),{fontSize:12,padding:"3px 6px"})}>✏️</button>}
-                      {adm && <button className="bh" onClick={async function(){await DB.deleteUnit(u.id);await refreshUnits();msg("Removida")}} style={Object.assign({},mbtn("#D45B5B"),{fontSize:12,padding:"3px 6px"})}>🗑️</button>}
+                  <td style={Object.assign({},tdS,{padding:"8px 6px"})}>
+                    <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
+                      {u.status==="available" && <button className="bh" onClick={function(e){e.stopPropagation();setSimUnit({u:u,b:bld});DB.trackEvent("simulator",{building:bld.name,unit:u.name})}} style={{padding:"6px 10px",borderRadius:8,fontSize:12,fontWeight:700,background:bld.color+"18",color:bld.color,border:"1px solid "+bld.color+"30",cursor:"pointer",display:"inline-flex",alignItems:"center",gap:3,whiteSpace:"nowrap"}}>🏦 Simular</button>}
+                      {u.status==="available" && <button className="bh" onClick={function(e){e.stopPropagation();shareUnit(u,bld)}} style={{padding:"6px 8px",borderRadius:8,fontSize:12,fontWeight:600,background:"#25D36612",color:"#25D366",border:"1px solid #25D36625",cursor:"pointer",display:"inline-flex",alignItems:"center"}}><WaIcon size={12}/></button>}
+                      {adm && <button className="bh" onClick={function(){setMdl({t:"editUnit",bid:bld.id,u:Object.assign({},u)})}} style={{padding:"6px 8px",borderRadius:8,fontSize:12,background:bld.color+"12",color:bld.color,border:"1px solid "+bld.color+"25",cursor:"pointer"}}>✏️</button>}
+                      {adm && <button className="bh" onClick={async function(){await DB.deleteUnit(u.id);await refreshUnits();msg("Removida")}} style={{padding:"6px 8px",borderRadius:8,fontSize:12,background:"#D45B5B12",color:"#D45B5B",border:"1px solid #D45B5B25",cursor:"pointer"}}>🗑️</button>}
                     </div>
                   </td>
                 </tr>;
@@ -2367,14 +2370,14 @@ function App(){
 
       {/* MODAL */}
       {mdl && <div onClick={function(){setMdl(null)}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",backdropFilter:"blur(8px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
-        <div onClick={function(e){e.stopPropagation()}} style={{background:"#111110",borderRadius:20,padding:24,width:"100%",maxWidth:400,maxHeight:"85vh",overflow:"auto",border:"1px solid rgba(255,255,255,0.06)"}}>
+        <div onClick={function(e){e.stopPropagation()}} style={{background:"#111110",borderRadius:20,padding:24,width:"100%",maxWidth:440,maxHeight:"85vh",overflow:"auto",border:"1px solid rgba(255,255,255,0.06)"}}>
           <ModalContent/>
         </div>
       </div>}
 
       {/* SIMULATOR */}
       {simUnit && <div onClick={function(){setSimUnit(null)}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",backdropFilter:"blur(8px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
-        <div onClick={function(e){e.stopPropagation()}} style={{background:"#111110",borderRadius:20,padding:24,width:"100%",maxWidth:400,maxHeight:"85vh",overflow:"auto",border:"1px solid rgba(255,255,255,0.06)"}}>
+        <div onClick={function(e){e.stopPropagation()}} style={{background:"#111110",borderRadius:20,padding:24,width:"100%",maxWidth:440,maxHeight:"85vh",overflow:"auto",border:"1px solid rgba(255,255,255,0.06)"}}>
           <SimModal/>
         </div>
       </div>}
