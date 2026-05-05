@@ -427,6 +427,7 @@ function App(){
 
   // Corrected price
   var cp = function(u,b){return b&&b.cub_base?Math.round(u.base_price*(b.cub_current/b.cub_base)):u.base_price};
+  var isPreLaunch = function(b){return b&&b.is_pre_launch===true};
 
   var bld = buildings.find(function(b){return b.id===sel});
   var vis = buildings.filter(function(b){return adm||b.active});
@@ -510,6 +511,7 @@ function App(){
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                   <div style={{display:"flex",alignItems:"center",gap:6}}>
                     <span style={{padding:"4px 10px",borderRadius:6,fontSize:12,fontWeight:600,background:b.status==="ready"?"rgba(76,175,125,0.08)":"rgba(232,169,78,0.08)",color:b.status==="ready"?"#4CAF7D":"#E8A94E"}}>{b.status==="ready"?"Pronto":"Obra "+b.construction_pct+"%"}</span>
+                    {isPreLaunch(b) && <span style={{padding:"4px 10px",borderRadius:6,fontSize:12,fontWeight:600,background:"rgba(232,169,78,0.08)",color:"#E8A94E"}}>🚀 Pré-Lanç.</span>}
                   </div>
                   <div style={{display:"flex",gap:6,alignItems:"center"}}>
                     <span style={{fontSize:13,color:"#7A7570"}}>{a}/{units.length} disp.</span>
@@ -555,6 +557,8 @@ function App(){
           {bld.status==="construction" && <span style={{fontSize:12,fontWeight:700,color:"#E8A94E"}}>{bld.construction_pct}%</span>}
           <span style={{padding:"2px 8px",borderRadius:5,fontSize:12,fontWeight:600,background:bld.color+"12",color:bld.color}}>💰 {bld.commission||5}% {t.commission}</span>
           {bld.incorporation && <span style={{padding:"2px 8px",borderRadius:5,fontSize:12,fontWeight:600,background:"rgba(91,143,212,0.1)",color:"#5B8FD4"}}>📋 {bld.incorporation}</span>}
+          {isPreLaunch(bld) && <span style={{padding:"2px 8px",borderRadius:5,fontSize:12,fontWeight:600,background:"rgba(232,169,78,0.1)",color:"#E8A94E"}}>🚀 Pré-Lançamento</span>}
+          {!isPreLaunch(bld) && <span style={{padding:"2px 8px",borderRadius:5,fontSize:12,fontWeight:600,background:"rgba(139,111,191,0.1)",color:"#8B6FBF"}}>✅ Incorporado</span>}
         </div>
 
         {adm && <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
@@ -583,7 +587,7 @@ function App(){
           </div>
 
           <div style={{display:"flex",gap:6,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
-            {[{v:"all",l:t.all},{v:"available",l:t.available},{v:"reserved",l:t.reserved},{v:"sold",l:t.sold}].map(function(f){
+            {[{v:"all",l:t.all},{v:"available",l:t.available},{v:"reserved",l:t.reserved}].concat(isPreLaunch(bld)?[]:[{v:"sold",l:t.sold}]).map(function(f){
               return <span key={f.v} className="bh" onClick={function(){setFilter(f.v)}} style={{padding:"8px 14px",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",background:filter===f.v?bld.color+"20":"#141413",color:filter===f.v?bld.color:"#9A9590",border:filter===f.v?"1px solid "+bld.color+"35":"1px solid rgba(255,255,255,0.04)"}}>{f.l}</span>;
             })}
             <div style={{flex:1,minWidth:20}}/>
@@ -622,7 +626,7 @@ function App(){
 
           {/* Status Summary */}
           <div style={{display:"flex",gap:8,marginTop:16,flexWrap:"wrap"}}>
-            {["available","reserved","sold"].map(function(s){var count=units.filter(function(u){return u.status===s}).length;var pct=units.length>0?Math.round(count/units.length*100):0;return <div key={s} style={{flex:1,minWidth:80,padding:"12px 14px",background:"#111110",borderRadius:12,border:"1px solid rgba(255,255,255,0.03)"}}>
+            {["available","reserved"].concat(isPreLaunch(bld)?[]:["sold"]).map(function(s){var count=units.filter(function(u){return u.status===s}).length;var pct=units.length>0?Math.round(count/units.length*100):0;return <div key={s} style={{flex:1,minWidth:80,padding:"12px 14px",background:"#111110",borderRadius:12,border:"1px solid rgba(255,255,255,0.03)"}}>
               <div style={{display:"flex",alignItems:"baseline",gap:4}}>
                 <span style={{fontSize:22,fontWeight:600,color:sC[s],fontFamily:"'Cormorant Garamond',Georgia,serif"}}>{count}</span>
                 <span style={{fontSize:12,color:"#555"}}>{pct}%</span>
@@ -926,7 +930,7 @@ function App(){
               <div style={{width:42,height:42,borderRadius:12,background:b.color+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{b.emoji}</div>
               <div style={{flex:1}}>
                 <div style={{fontSize:16,fontWeight:600}}>{b.name}</div>
-                <div style={{fontSize:12,color:"#555"}}>{s.total} un. · {b.commission||5}% · {b.active?"Ativo":"Oculto"}</div>
+                <div style={{fontSize:12,color:"#555"}}>{s.total} un. · {b.commission||5}% · {b.active?"Ativo":"Oculto"} · {isPreLaunch(b)?"🚀 Pré-Lanç.":"✅ Incorp."}</div>
               </div>
               <div style={{textAlign:"right"}}>
                 <div style={{fontSize:15,fontWeight:600,color:G}}>{s.pctSold}%</div>
@@ -945,6 +949,7 @@ function App(){
               {b.status==="construction" && <button className="bh" onClick={function(){setMdl({t:"obra",bid:b.id})}} style={mbtn("#E8A94E")}>🏗️</button>}
               <button className="bh" onClick={function(){setMdl({t:"notice",bid:b.id})}} style={mbtn("#8B6FBF")}>📢</button>
               <button className="bh" onClick={async function(){var nv=b.cub_auto_update===false?true:false;await sb.from("buildings").update({cub_auto_update:nv}).eq("id",b.id);await refreshBuildings();msg(nv?"CUB ativado":"CUB desativado")}} style={mbtn(b.cub_auto_update===false?"#D45B5B":"#4CAF7D")}>{b.cub_auto_update===false?"CUB Off":"CUB On"}</button>
+              <button className="bh" onClick={async function(){var nv=b.is_pre_launch===true?false:true;await sb.from("buildings").update({is_pre_launch:nv}).eq("id",b.id);await refreshBuildings();msg(nv?"Pré-Lançamento":"Incorporado")}} style={mbtn(b.is_pre_launch===true?"#E8A94E":"#8B6FBF")}>{b.is_pre_launch===true?"Pré-Lanç.":"Incorporado"}</button>
               <button className="bh" onClick={async function(){if(confirm('Excluir "'+b.name+'"?')){await DB.deleteBuilding(b.id);refreshBuildings();await refreshUnits();msg("Excluído")}}} style={mbtn("#D45B5B")}>🗑️</button>
             </div>
           </div>;
@@ -1082,7 +1087,7 @@ function App(){
       <L>Preço Base (R$)</L><input style={mI} type="number" value={u.base_price} onChange={function(e){setU(Object.assign({},u,{base_price:+e.target.value}))}}/>
       <L>Área (m²)</L><input style={mI} type="number" value={u.area} onChange={function(e){setU(Object.assign({},u,{area:+e.target.value}))}}/>
       <L>Status</L><select style={mI} value={u.status} onChange={function(e){setU(Object.assign({},u,{status:e.target.value}))}}>
-        <option value="available">Disponível</option><option value="reserved">Reservado</option><option value="sold">Vendido</option>
+        <option value="available">Disponível</option><option value="reserved">Reservado</option>{!isPreLaunch(buildings.find(function(x){return x.id===mdl.bid}))&&<option value="sold">Vendido</option>}
       </select>
       <button style={mP(G)} onClick={async function(){
         var hist=(u.history||[]).concat([{date:new Date().toLocaleDateString("pt-BR"),from:mdl.u.status,to:u.status,price:u.base_price}]);
@@ -2253,7 +2258,7 @@ function App(){
             <select value={u.status} onChange={function(e){var nw=parsed.map(function(x,j){return j===i?Object.assign({},x,{status:e.target.value}):x});setParsed(nw)}} style={{padding:"4px 4px",background:"#1a1a19",border:"1px solid "+stCol+"30",borderRadius:5,color:stCol,fontSize:12,fontWeight:600}}>
               <option value="available">Disp.</option>
               <option value="reserved">Reserv.</option>
-              <option value="sold">Vendido</option>
+              {!isPreLaunch(buildings.find(function(x){return x.id===bid}))&&<option value="sold">Vendido</option>}
             </select>
           </div>;
         })}
@@ -2269,7 +2274,9 @@ function App(){
         for(var i=0;i<toImport.length;i++){
           var u=toImport[i];
           setProgress("Salvando "+(i+1)+" de "+toImport.length+"...");
-          await DB.insertUnit({id:bid+"-"+Date.now()+"-"+i,building_id:bid,name:u.name,area:u.area,base_price:u.price,status:u.status||"available",history:"[]",sort_order:i});
+          var importStatus=u.status||"available";
+          if(isPreLaunch(buildings.find(function(x){return x.id===bid}))&&importStatus==="sold") importStatus="reserved";
+          await DB.insertUnit({id:bid+"-"+Date.now()+"-"+i,building_id:bid,name:u.name,area:u.area,base_price:u.price,status:importStatus,history:"[]",sort_order:i});
         }
         await refreshUnits();setLoading(false);setMdl(null);
         msg(toImport.length+" unidades importadas com sucesso!");
