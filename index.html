@@ -439,7 +439,7 @@ function App(){
   var vis = buildings.filter(function(b){return adm||b.active});
 
   // === NAVIGATION ===
-  var go = function(id){setSel(id);setVw("detail");setDtab("table");setFilter("all");setSearch("");setPhotoUnit("all");setCompare([]);DB.trackEvent("view_building",{building_id:id})};
+  var go = function(id){setSel(id);setVw("detail");var defaultTab=(cfg.restrict_tables==="true"&&!adm&&!broker)?"photos":"table";setDtab(defaultTab);setFilter("all");setSearch("");setPhotoUnit("all");setCompare([]);DB.trackEvent("view_building",{building_id:id})};
 
   // Track page view on load
   useEffect(function(){DB.trackEvent("page_view",{})},[])
@@ -576,13 +576,21 @@ function App(){
         </div>}
 
         <div style={{display:"flex",gap:6,overflowX:"auto",marginBottom:16,paddingBottom:4}}>
-          {[{id:"table",i:"📊",l:t.table},{id:"photos",i:"📸",l:t.photos},{id:"plants",i:"📐",l:t.plants},{id:"docs",i:"📄",l:t.docs},{id:"notices",i:"📢",l:t.notices}].map(function(tab){
+          {[{id:"table",i:cfg.restrict_tables==="true"&&!adm&&!broker?"🔒":"📊",l:t.table},{id:"photos",i:"📸",l:t.photos},{id:"plants",i:"📐",l:t.plants},{id:"docs",i:"📄",l:t.docs},{id:"notices",i:"📢",l:t.notices}].map(function(tab){
             return <div key={tab.id} className="bh" onClick={function(){setDtab(tab.id)}} style={{flexShrink:0,padding:"10px 16px",borderRadius:10,fontSize:14,fontWeight:600,cursor:"pointer",background:dtab===tab.id?bld.color+"20":"#141413",color:dtab===tab.id?bld.color:"#9A9590",border:dtab===tab.id?"1px solid "+bld.color+"30":"1px solid rgba(255,255,255,0.04)"}}>{tab.i} {tab.l}</div>;
           })}
         </div>
 
         {/* ═══ TABLE TAB ═══ */}
         {dtab==="table" && <div>
+          {/* ACCESS GATE */}
+          {cfg.restrict_tables==="true"&&!adm&&!broker ? <div style={{textAlign:"center",padding:"40px 20px"}}>
+            <div style={{fontSize:48,marginBottom:16}}>🔒</div>
+            <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:24,fontWeight:500,color:"#F0EBE3",marginBottom:8}}>Conteúdo Exclusivo</div>
+            <div style={{fontSize:14,color:"#9A9590",lineHeight:1.8,marginBottom:20}}>As tabelas de vendas são exclusivas para corretores parceiros. Cadastre-se para ter acesso completo às tabelas, simulador de financiamento e ferramentas de venda.</div>
+            <button className="bh" onClick={function(){setMdl({t:"login"})}} style={{padding:"14px 32px",borderRadius:12,fontSize:16,fontWeight:600,background:G+"18",color:G,border:"1px solid "+G+"30",cursor:"pointer",marginBottom:10,display:"inline-flex",alignItems:"center",gap:8}}>👤 Entrar como Corretor</button>
+            <div style={{marginTop:8}}><span onClick={function(){setMdl({t:"brokerRegister"})}} style={{fontSize:14,color:"#5B8FD4",cursor:"pointer"}}>Não tem conta? Cadastre-se gratuitamente →</span></div>
+          </div> : <div>
           <div style={{padding:10,background:"rgba(200,164,92,0.05)",borderRadius:8,marginBottom:12}}>
             <div style={{fontSize:12,color:"#9A9590",fontWeight:600,textTransform:"uppercase",letterSpacing:1,marginBottom:3}}>CUB/SC</div>
             <div style={{display:"flex",alignItems:"baseline",gap:6}}>
@@ -646,6 +654,7 @@ function App(){
           <div style={{display:"flex",gap:8,marginTop:14}}>
             <button className="bh" onClick={function(){printBld(bld.id)}} style={{flex:1,padding:"12px",borderRadius:10,fontSize:14,fontWeight:600,background:bld.color+"10",color:bld.color,border:"1px solid "+bld.color+"20",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>🖨️ PDF</button>
             <button className="bh" onClick={function(){exportExcel(bld.id)}} style={{flex:1,padding:"12px",borderRadius:10,fontSize:14,fontWeight:600,background:"rgba(76,175,125,0.06)",color:"#6BAF8D",border:"1px solid rgba(76,175,125,0.12)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>📊 Excel</button>
+          </div>
           </div>
         </div>}
 
@@ -925,6 +934,20 @@ function App(){
           <button className="bh ch" onClick={function(){setMdl({t:"taskManager"})}} style={{padding:16,borderRadius:14,fontSize:15,fontWeight:500,background:"#111110",color:"#E8A94E",border:"1px solid rgba(232,169,78,0.1)",cursor:"pointer",textAlign:"center",position:"relative"}}>📋 Tarefas {tasks.filter(function(t2){return t2.status==="pending"}).length>0?" · "+tasks.filter(function(t2){return t2.status==="pending"}).length:""}</button>
           <button className="bh ch" onClick={function(){setMiniChat({channel:"admin_team",title:"Chat Equipe"})}} style={{padding:16,borderRadius:14,fontSize:15,fontWeight:500,background:"#111110",color:"#4CAF7D",border:"1px solid rgba(76,175,125,0.1)",cursor:"pointer",textAlign:"center"}}>💬 Chat Equipe</button>
         </div>
+
+        {/* Portal Access Toggle */}
+        {can("manage_settings") && <div style={{padding:16,background:"#111110",borderRadius:14,marginBottom:16,border:"1px solid rgba(255,255,255,0.03)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div>
+            <div style={{fontSize:14,fontWeight:600,color:"#F0EBE3",marginBottom:2}}>{cfg.restrict_tables==="true"?"🔒 Tabelas Restritas":"🔓 Tabelas Abertas"}</div>
+            <div style={{fontSize:12,color:"#555"}}>{cfg.restrict_tables==="true"?"Só corretores logados veem as tabelas":"Qualquer visitante vê as tabelas"}</div>
+          </div>
+          <button className="bh" onClick={async function(){
+            var nv=cfg.restrict_tables==="true"?"false":"true";
+            await DB.saveConfig("restrict_tables",nv);
+            setCfg(Object.assign({},cfg,{restrict_tables:nv}));
+            msg(nv==="true"?"Tabelas restritas a corretores":"Tabelas abertas para todos");
+          }} style={{padding:"10px 20px",borderRadius:10,fontSize:14,fontWeight:600,cursor:"pointer",background:cfg.restrict_tables==="true"?"rgba(213,91,91,0.08)":"rgba(76,175,125,0.08)",color:cfg.restrict_tables==="true"?"#D45B5B":"#4CAF7D",border:"1px solid "+(cfg.restrict_tables==="true"?"rgba(213,91,91,0.15)":"rgba(76,175,125,0.15)")}}>{cfg.restrict_tables==="true"?"🔒 Restrito":"🔓 Aberto"}</button>
+        </div>}
 
         {/* ═══ BUILDING MANAGEMENT ═══ */}
         <div style={{fontSize:15,fontWeight:600,color:"#F0EBE3",marginBottom:12}}>Empreendimentos</div>
