@@ -24,12 +24,28 @@ body{background:var(--bg,#0a0a09);font-size:16px;font-family:'DM Sans',system-ui
 input,select,textarea,button{font-family:inherit}
 @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 body.light{background:#F5F2ED!important;color:#1a1a1a!important}
-body.light *{border-color:rgba(0,0,0,0.08)!important}
-body.light div,body.light span,body.light p,body.light label,body.light button,body.light a{color:inherit}
+body.light #root{color:#1a1a1a}
+body.light #root>div{background:#F5F2ED!important;color:#1a1a1a!important}
+body.light div[style*="background: rgb(17, 17, 16)"],body.light div[style*="background: rgb(10, 10, 9)"],body.light div[style*="background: rgb(20, 20, 19)"],body.light div[style*="background: rgb(26, 26, 25)"]{background:#FFFFFF!important;box-shadow:0 1px 8px rgba(0,0,0,0.06)!important}
+body.light div[style*="background: rgb(13, 13, 12)"]{background:#F8F5F0!important}
+body.light span[style*="background: rgb(10, 10, 9)"],body.light span[style*="background: rgb(17, 17, 16)"]{background:#EFEBE4!important}
+body.light div[style*="color: rgb(240, 235, 227)"],body.light span[style*="color: rgb(240, 235, 227)"]{color:#1a1a1a!important}
+body.light div[style*="color: rgb(154, 149, 144)"],body.light span[style*="color: rgb(154, 149, 144)"]{color:#777!important}
+body.light div[style*="color: rgb(85, 85, 85)"],body.light span[style*="color: rgb(85, 85, 85)"]{color:#999!important}
+body.light div[style*="color: rgb(122, 117, 112)"],body.light span[style*="color: rgb(122, 117, 112)"]{color:#888!important}
 body.light input,body.light textarea,body.light select{background:#EFEBE4!important;color:#1a1a1a!important;border-color:rgba(0,0,0,0.12)!important}
-body.light table th{background:#EDE8E0!important;color:#333!important}
-body.light table td{color:#1a1a1a!important}
+body.light table th{background:#EDE8E0!important;color:#555!important;border-color:rgba(200,164,92,0.15)!important}
+body.light table td{color:#1a1a1a!important;border-color:rgba(0,0,0,0.06)!important}
+body.light *{border-color:rgba(0,0,0,0.08)!important}
+body.light img,body.light svg{border-color:transparent!important}
 body.light .bh:hover{opacity:0.85}
+body.light div[style*="box-shadow"]{box-shadow:0 2px 12px rgba(0,0,0,0.06)!important}
+body.light div[style*="backdrop-filter"]{background:rgba(245,242,237,0.95)!important}
+body.light div[style*="linear-gradient(175deg"]{background:linear-gradient(175deg,#F5F2ED 0%,#EDE8E0 40%,#F0EDE6 70%,#F5F2ED 100%)!important}
+body.light div[style*="linear-gradient(135deg, rgb(17"]{background:#F8F5F0!important}
+body.light div[style*="linear-gradient(transparent"]{background:linear-gradient(transparent 30%,rgba(245,242,237,0.9))!important}
+body.light details summary{color:#333!important}
+body.light ::placeholder{color:#aaa!important}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.9)}}
 @keyframes glow{0%,100%{box-shadow:0 0 20px rgba(200,164,92,0.08)}50%{box-shadow:0 0 40px rgba(200,164,92,0.16)}}
@@ -543,7 +559,7 @@ function App(){
             <div key={b.id} onClick={function(){go(b.id)}} className="ch au" style={{background:cardBg,borderRadius:16,overflow:"hidden",border:"1px solid "+borderColor,cursor:"pointer",animationDelay:idx*100+"ms"}}>
               <div style={{height:180,position:"relative",overflow:"hidden"}}>
                 {cover ? <SmartImg src={cover} style={{position:"absolute",inset:0}}/> : <div style={{height:"100%",background:b.gradient,display:"flex",alignItems:"center",justifyContent:"center",fontSize:40}}>{b.emoji}</div>}
-                <div style={{position:"absolute",inset:0,background:"linear-gradient(transparent 30%,rgba(10,10,9,0.9))"}}/>
+                <div style={{position:"absolute",inset:0,background:isDark?"linear-gradient(transparent 30%,rgba(10,10,9,0.9))":"linear-gradient(transparent 30%,rgba(245,242,237,0.9))"}}/>
                 <div style={{position:"absolute",top:12,right:12,padding:"5px 12px",borderRadius:20,fontSize:12,fontWeight:600,background:"rgba(0,0,0,0.5)",color:"#fff",backdropFilter:"blur(8px)",border:"1px solid rgba(255,255,255,0.08)",letterSpacing:.5}}>{b.tag}</div>
                 {!b.active && adm && <div style={{position:"absolute",top:12,left:12,padding:"5px 12px",borderRadius:20,fontSize:12,fontWeight:600,background:"rgba(213,91,91,0.8)",color:"#fff"}}>Oculto</div>}
                 <div style={{position:"absolute",bottom:16,left:18,right:18}}>
@@ -595,7 +611,7 @@ function App(){
               <div style={{flex:1,position:"relative",overflow:"hidden"}}><SmartImg src={cover2}/></div>
             </div>
             : <div style={{height:220,position:"relative",overflow:"hidden"}}><SmartImg src={cover}/></div>}
-            <div style={{position:"absolute",inset:0,background:"linear-gradient(transparent 40%,rgba(10,10,9,0.85))"}}>
+            <div style={{position:"absolute",inset:0,background:isDark?"linear-gradient(transparent 40%,rgba(10,10,9,0.85))":"linear-gradient(transparent 40%,rgba(245,242,237,0.85))"}}>
               <div style={{position:"absolute",bottom:14,left:16}}>
                 <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:24,fontWeight:700,color:"#fff",textShadow:"0 2px 12px rgba(0,0,0,0.8)"}}>{bld.name}</div>
               </div>
@@ -1019,7 +1035,9 @@ function App(){
               {s.rs>0 && <div style={{width:(s.rs/s.total*100)+"%",background:"#E8A94E"}}/>}
               {s.sd>0 && <div style={{width:(s.sd/s.total*100)+"%",background:"#D45B5B"}}/>}
             </div>}
-            <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+            <div style={{display:"flex",gap:4,flexWrap:"wrap",alignItems:"center"}}>
+              <button className="bh" onClick={async function(){if(i===0)return;var prev=bldStats[i-1].b;await sb.from("buildings").update({sort_order:i-1}).eq("id",b.id);await sb.from("buildings").update({sort_order:i}).eq("id",prev.id);await refreshBuildings();msg("Movido ↑")}} style={Object.assign({},mbtn("#5B8FD4"),{opacity:i===0?0.3:1,padding:"7px 10px"})}>↑</button>
+              <button className="bh" onClick={async function(){if(i===bldStats.length-1)return;var next=bldStats[i+1].b;await sb.from("buildings").update({sort_order:i+1}).eq("id",b.id);await sb.from("buildings").update({sort_order:i}).eq("id",next.id);await refreshBuildings();msg("Movido ↓")}} style={Object.assign({},mbtn("#5B8FD4"),{opacity:i===bldStats.length-1?0.3:1,padding:"7px 10px"})}>↓</button>
               <button className="bh" onClick={async function(){await sb.from("buildings").update({active:!b.active}).eq("id",b.id);await refreshBuildings();msg(b.active?"Oculto":"Ativado")}} style={mbtn(b.active?"#E8A94E":"#4CAF7D")}>{b.active?"Ocultar":"Ativar"}</button>
               <button className="bh" onClick={function(){setMdl({t:"editBld",bid:b.id})}} style={mbtn(b.color)}>✏️</button>
               {b.status==="construction" && <button className="bh" onClick={function(){setMdl({t:"obra",bid:b.id})}} style={mbtn("#E8A94E")}>🏗️</button>}
@@ -2366,15 +2384,15 @@ function App(){
   }
 
   // ═══ RENDER ═══
-  var bgColor = cfg.bg_color || "#0a0a09";
+  var bgColor2 = cfg.bg_color || bgColor;
 
   return(
     <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",background:bgColor,color:textColor,minHeight:"100vh",maxWidth:1024,margin:"0 auto",position:"relative",paddingBottom:80}}>
       <style>{"@keyframes p{0%,100%{opacity:1}50%{opacity:.3}}"}</style>
 
       {/* HERO */}
-      <div style={{padding:"60px 24px 36px",textAlign:"center",background:cfg.hero_banner?"url("+cfg.hero_banner+") center/cover":"linear-gradient(175deg,#0a0a09 0%,#16140f 40%,#0d0c08 70%,#0a0a09 100%)",position:"relative",overflow:"hidden"}}>
-        {cfg.hero_banner && cfg.hero_overlay!=="false" && <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.6)",pointerEvents:"none"}}/>}
+      <div style={{padding:"60px 24px 36px",textAlign:"center",background:cfg.hero_banner?"url("+cfg.hero_banner+") center/cover":isDark?"linear-gradient(175deg,#0a0a09 0%,#16140f 40%,#0d0c08 70%,#0a0a09 100%)":"linear-gradient(175deg,#F5F2ED 0%,#EDE8E0 40%,#F0EDE6 70%,#F5F2ED 100%)",position:"relative",overflow:"hidden"}}>
+        {cfg.hero_banner && cfg.hero_overlay!=="false" && <div style={{position:"absolute",inset:0,background:isDark?"rgba(0,0,0,0.6)":"rgba(255,255,255,0.4)",pointerEvents:"none"}}/>}
         <div style={{position:"absolute",top:"-50%",left:"-30%",width:"160%",height:"200%",background:"radial-gradient(ellipse at 50% 40%,rgba(200,164,92,0.04) 0%,transparent 50%)",pointerEvents:"none"}}/>
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:"1px",background:"linear-gradient(90deg,transparent,rgba(200,164,92,0.15),transparent)"}}/>
         <div className="au" style={{display:"inline-flex",alignItems:"center",gap:8,background:"rgba(200,164,92,0.06)",border:"1px solid rgba(200,164,92,0.12)",padding:"8px 20px",borderRadius:50,fontSize:12,fontWeight:600,letterSpacing:3,textTransform:"uppercase",color:G,marginBottom:20,position:"relative"}}><span style={{width:5,height:5,background:"#4CAF7D",borderRadius:"50%",animation:"pulse 2s infinite"}}/>Portal Exclusivo</div>
