@@ -2514,6 +2514,10 @@ function App(){
     // WhatsApp text
     var waText="🏢 *"+b.name+"*\n📍 Unidade *"+u.name+"* — "+u.area+"m²\n\n💰 *"+fmt(price)+"*\n"+(clientName?"👤 "+clientName+"\n":"")+"\n💳 Entrada: "+fmt(down)+" ("+((down/price)*100).toFixed(1)+"%)"+(bemVal>0?"\n🚗 "+bemDesc+": "+fmt(bemVal):"")+"\n🏦 Saldo: "+fmt(saldo)+"\n📅 *"+months+"x de "+fmt(pmt)+"*"+(numBaloes>0?"\n🎈 Balão "+balaoFreq+": "+numBaloes+"x "+fmt(balaoValor):"")+"\n\n📊 Total: "+fmt(totalPago)+(rate>0?"\n📈 Taxa: "+rate+"% a.m.":"")+"\n📐 Correção: "+indice+"\n\n📞 "+CT.phone+"\n✉️ "+CT.email;
 
+    var numFont="'DM Sans',Helvetica,Arial,sans-serif";
+    var nextField=function(e,nextId){if(e.key==="Enter"){e.preventDefault();var el=document.getElementById(nextId);if(el)el.focus()}};
+    var maxParcelas=Math.max.apply(null,parcOpts.concat([120]));
+
     return(
       <div>
         {/* Header */}
@@ -2531,52 +2535,58 @@ function App(){
             </div>
             <div style={{textAlign:"right"}}>
               <div style={{fontSize:12,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Área</div>
-              <div style={{fontSize:18,fontWeight:600}}>{u.area}m²</div>
+              <div style={{fontSize:18,fontWeight:600,fontFamily:numFont}}>{u.area}m²</div>
             </div>
           </div>
           <div style={{height:1,background:b.color+"20",margin:"8px 0"}}/>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
             <div>
               <div style={{fontSize:12,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Valor</div>
-              <div style={{fontSize:28,fontWeight:700,color:"#4CAF7D",fontFamily:"'Cormorant Garamond',Georgia,serif"}}>{fmt(price)}</div>
+              <div style={{fontSize:28,fontWeight:700,color:"#4CAF7D",fontFamily:numFont}}>{fmt(price)}</div>
             </div>
-            <div style={{fontSize:13,color:"#555"}}>R$ {fmt(Math.round(price/u.area))}/m²</div>
+            <div style={{fontSize:14,color:"#555",fontFamily:numFont}}>R$ {fmt(Math.round(price/u.area))}/m²</div>
           </div>
         </div>
 
-        {/* Client Name */}
-        <L>Nome do Cliente (opcional)</L>
-        <input style={mI} value={clientName} onChange={function(e){setClientName(e.target.value)}} placeholder="Para personalizar a proposta"/>
+        {/* Client Name - FIRST FIELD */}
+        <L>👤 Nome do Cliente</L>
+        <input id="sim_client" style={mI} value={clientName} onChange={function(e){setClientName(e.target.value)}} onKeyDown={function(e){nextField(e,"sim_entrada")}} placeholder="Nome do cliente" autoFocus/>
 
         {/* Entrada */}
         <div style={{fontSize:14,fontWeight:600,color:G,marginBottom:6,display:"flex",alignItems:"center",gap:6}}>💰 Entrada</div>
         <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:4}}>
-          <input style={Object.assign({},mI,{flex:1,marginBottom:0})} type="number" value={down} onChange={function(e){setDown(+e.target.value)}}/>
-          <div style={{padding:"10px 14px",background:G+"15",borderRadius:10,fontSize:16,fontWeight:700,color:G,minWidth:50,textAlign:"center"}}>{price>0?((down/price)*100).toFixed(0):"0"}%</div>
+          <input id="sim_entrada" style={Object.assign({},mI,{flex:1,marginBottom:0,fontFamily:numFont})} type="number" value={down} onChange={function(e){setDown(+e.target.value)}} onKeyDown={function(e){nextField(e,"sim_bem_val")}}/>
+          <div style={{padding:"10px 14px",background:G+"15",borderRadius:10,fontSize:16,fontWeight:700,color:G,minWidth:50,textAlign:"center",fontFamily:numFont}}>{price>0?((down/price)*100).toFixed(0):"0"}%</div>
         </div>
         <div style={{display:"flex",gap:4,marginBottom:10}}>
-          {[20,25,30,40,50].map(function(p){return <span key={p} className="bh" onClick={function(){setDown(Math.round(price*p/100))}} style={{padding:"5px 10px",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",background:Math.round((down/price)*100)===p?G+"20":"#111110",color:Math.round((down/price)*100)===p?G:"#555"}}>{p}%</span>})}
+          {[10,20,25,30,40,50].map(function(p){return <span key={p} className="bh" onClick={function(){setDown(Math.round(price*p/100))}} style={{padding:"5px 10px",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",background:Math.round((down/price)*100)===p?G+"20":"#111110",color:Math.round((down/price)*100)===p?G:"#555",fontFamily:numFont}}>{p}%</span>})}
         </div>
 
         {/* Bem */}
         <details style={{marginBottom:10}}>
           <summary style={{fontSize:14,fontWeight:600,color:G,cursor:"pointer",marginBottom:6}}>🚗 Entrada com Bem (opcional)</summary>
-          <input style={mI} type="number" value={bemVal||""} onChange={function(e){setBemVal(+e.target.value)}} placeholder="Valor do bem"/>
-          <input style={mI} value={bemDesc} onChange={function(e){setBemDesc(e.target.value)}} placeholder="Ex: Carro, Terreno, Imóvel"/>
+          <input id="sim_bem_val" style={Object.assign({},mI,{fontFamily:numFont})} type="number" value={bemVal||""} onChange={function(e){setBemVal(+e.target.value)}} onKeyDown={function(e){nextField(e,"sim_bem_desc")}} placeholder="Valor do bem"/>
+          <input id="sim_bem_desc" style={mI} value={bemDesc} onChange={function(e){setBemDesc(e.target.value)}} onKeyDown={function(e){nextField(e,"sim_parcelas_livre")}} placeholder="Ex: Carro, Terreno, Imóvel"/>
         </details>
 
         {/* Parcelas */}
         <div style={{fontSize:14,fontWeight:600,color:G,marginBottom:8}}>📅 Parcelas</div>
-        <div style={{display:"flex",gap:5,marginBottom:10,flexWrap:"wrap"}}>
-          {parcOpts.map(function(m){return <span key={m} className="bh" onClick={function(){setMonths(m)}} style={{padding:"8px 14px",borderRadius:10,fontSize:14,fontWeight:600,cursor:"pointer",background:months===m?b.color+"20":"#111110",color:months===m?b.color:"#555",border:months===m?"1px solid "+b.color+"30":"1px solid rgba(255,255,255,0.03)"}}>{m}x</span>})}
+        <div style={{display:"flex",gap:5,marginBottom:8,flexWrap:"wrap",alignItems:"center"}}>
+          <span className="bh" onClick={function(){setMonths(0)}} style={{padding:"8px 14px",borderRadius:10,fontSize:14,fontWeight:600,cursor:"pointer",background:months===0?"#D45B5B20":"#111110",color:months===0?"#D45B5B":"#555",border:months===0?"1px solid #D45B5B30":"1px solid rgba(255,255,255,0.03)",fontFamily:numFont}}>0x</span>
+          {parcOpts.map(function(m){return <span key={m} className="bh" onClick={function(){setMonths(m)}} style={{padding:"8px 14px",borderRadius:10,fontSize:14,fontWeight:600,cursor:"pointer",background:months===m?b.color+"20":"#111110",color:months===m?b.color:"#555",border:months===m?"1px solid "+b.color+"30":"1px solid rgba(255,255,255,0.03)",fontFamily:numFont}}>{m}x</span>})}
         </div>
+        <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:10}}>
+          <input id="sim_parcelas_livre" style={Object.assign({},mI,{flex:1,marginBottom:0,fontFamily:numFont})} type="number" min="0" max={maxParcelas} value={months} onChange={function(e){var v=Math.min(+e.target.value,maxParcelas);setMonths(Math.max(0,v))}} onKeyDown={function(e){nextField(e,"sim_taxa")}} placeholder="Nº de parcelas"/>
+          <span style={{fontSize:12,color:"#555",whiteSpace:"nowrap"}}>máx {maxParcelas}x</span>
+        </div>
+        {months===0&&<div style={{padding:"10px 14px",background:"rgba(213,91,91,0.06)",borderRadius:10,fontSize:13,color:"#D45B5B",marginBottom:10,border:"1px solid rgba(213,91,91,0.1)"}}>⚠️ Sem parcelas mensais — cliente pagará apenas entrada + balão</div>}
 
-        {rate>0||true?<div style={{marginBottom:10}}><L>Taxa Mensal (%)</L><input style={mI} type="number" step="0.01" value={rate} onChange={function(e){setRate(+e.target.value)}}/></div>:null}
+        {<div style={{marginBottom:10}}><L>Taxa Mensal (%)</L><input id="sim_taxa" style={Object.assign({},mI,{fontFamily:numFont})} type="number" step="0.01" value={rate} onChange={function(e){setRate(+e.target.value)}} onKeyDown={function(e){if(e.key==="Enter")e.preventDefault()}}/></div>}
 
         {/* Balão */}
         <details style={{marginBottom:12}}>
           <summary style={{fontSize:14,fontWeight:600,color:G,cursor:"pointer",marginBottom:6}}>🎈 Parcelas Balão (opcional)</summary>
-          <div style={{display:"flex",gap:5,marginBottom:8}}>
+          <div style={{display:"flex",gap:5,marginBottom:8,flexWrap:"wrap"}}>
             {[{v:"none",l:"Nenhum"},{v:"trimestral",l:"Trimestral"},{v:"semestral",l:"Semestral"},{v:"anual",l:"Anual"}].map(function(o){
               return <span key={o.v} className="bh" onClick={function(){setBalaoFreq(o.v)}} style={{padding:"7px 14px",borderRadius:8,fontSize:14,fontWeight:600,cursor:"pointer",background:balaoFreq===o.v?b.color+"20":"#111110",color:balaoFreq===o.v?b.color:"#555"}}>{o.l}</span>
             })}
@@ -2586,25 +2596,27 @@ function App(){
               <span className="bh" onClick={function(){setBalaoMode("pct")}} style={{padding:"5px 12px",borderRadius:6,fontSize:13,cursor:"pointer",background:balaoMode==="pct"?b.color+"20":"#111110",color:balaoMode==="pct"?b.color:"#555"}}>% do saldo</span>
               <span className="bh" onClick={function(){setBalaoMode("fixo")}} style={{padding:"5px 12px",borderRadius:6,fontSize:13,cursor:"pointer",background:balaoMode==="fixo"?b.color+"20":"#111110",color:balaoMode==="fixo"?b.color:"#555"}}>Valor fixo</span>
             </div>
-            {balaoMode==="pct"?<input style={mI} type="number" step="0.5" value={balaoPct} onChange={function(e){setBalaoPct(+e.target.value)}}/>:<input style={mI} type="number" value={balaoFixo} onChange={function(e){setBalaoFixo(+e.target.value)}}/>}
-            <div style={{fontSize:13,color:"#555"}}>{numBaloes}x de {fmt(balaoValor)} = {fmt(totalBaloes)}</div>
+            {balaoMode==="pct"?<input style={Object.assign({},mI,{fontFamily:numFont})} type="number" step="0.5" value={balaoPct} onChange={function(e){setBalaoPct(+e.target.value)}}/>:<input style={Object.assign({},mI,{fontFamily:numFont})} type="number" value={balaoFixo} onChange={function(e){setBalaoFixo(+e.target.value)}}/>}
+            <div style={{fontSize:13,color:"#555",fontFamily:numFont}}>{numBaloes}x de {fmt(balaoValor)} = {fmt(totalBaloes)}</div>
           </div>}
         </details>
 
         {/* ═══ RESUMO ═══ */}
         <div style={{background:"linear-gradient(135deg,#111110,#0d0d0c)",borderRadius:16,padding:18,marginTop:8,border:"1px solid rgba(255,255,255,0.04)"}}>
           <div style={{fontSize:12,textTransform:"uppercase",letterSpacing:2,color:"#555",marginBottom:14,textAlign:"center"}}>Resumo da Proposta</div>
+          {clientName&&<div style={{textAlign:"center",fontSize:15,fontWeight:600,color:"#F0EBE3",marginBottom:12}}>👤 {clientName}</div>}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-            <div><div style={{fontSize:12,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Entrada</div><div style={{fontSize:18,fontWeight:600,color:G,fontFamily:"'Cormorant Garamond',Georgia,serif"}}>{fmt(down)}</div></div>
-            {bemVal>0 && <div><div style={{fontSize:12,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Bem ({bemDesc||"Outro"})</div><div style={{fontSize:18,fontWeight:600,color:"#E8A94E",fontFamily:"'Cormorant Garamond',Georgia,serif"}}>{fmt(bemVal)}</div></div>}
-            <div><div style={{fontSize:12,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Saldo</div><div style={{fontSize:18,fontWeight:600,color:"#7A9EC2",fontFamily:"'Cormorant Garamond',Georgia,serif"}}>{fmt(saldo)}</div></div>
-            <div style={{gridColumn:numBaloes>0?"1":"1/-1"}}><div style={{fontSize:12,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Mensal ({months}x)</div><div style={{fontSize:28,fontWeight:600,color:"#4CAF7D",fontFamily:"'Cormorant Garamond',Georgia,serif"}}>{fmt(pmt)}</div></div>
-            {numBaloes>0 && <div><div style={{fontSize:12,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Balão ({numBaloes}x)</div><div style={{fontSize:18,fontWeight:600,color:"#C47070",fontFamily:"'Cormorant Garamond',Georgia,serif"}}>{fmt(balaoValor)}</div></div>}
+            <div><div style={{fontSize:12,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Entrada</div><div style={{fontSize:18,fontWeight:600,color:G,fontFamily:numFont}}>{fmt(down)}</div></div>
+            {bemVal>0 && <div><div style={{fontSize:12,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Bem ({bemDesc||"Outro"})</div><div style={{fontSize:18,fontWeight:600,color:"#E8A94E",fontFamily:numFont}}>{fmt(bemVal)}</div></div>}
+            <div><div style={{fontSize:12,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Saldo</div><div style={{fontSize:18,fontWeight:600,color:"#7A9EC2",fontFamily:numFont}}>{fmt(saldo)}</div></div>
+            {months>0&&<div style={{gridColumn:numBaloes>0?"1":"1/-1"}}><div style={{fontSize:12,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Mensal ({months}x)</div><div style={{fontSize:28,fontWeight:600,color:"#4CAF7D",fontFamily:numFont}}>{fmt(pmt)}</div></div>}
+            {months===0&&<div style={{gridColumn:"1/-1"}}><div style={{fontSize:12,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Parcelas</div><div style={{fontSize:18,fontWeight:600,color:"#D45B5B",fontFamily:numFont}}>Sem parcelas mensais</div></div>}
+            {numBaloes>0 && <div><div style={{fontSize:12,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Balão ({numBaloes}x)</div><div style={{fontSize:18,fontWeight:600,color:"#C47070",fontFamily:numFont}}>{fmt(balaoValor)}</div></div>}
           </div>
           <div style={{height:1,background:"rgba(255,255,255,0.04)",margin:"12px 0"}}/>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
             <span style={{fontSize:12,color:"#555",textTransform:"uppercase",letterSpacing:1}}>Total Geral</span>
-            <span style={{fontSize:20,fontWeight:600,color:"#F0EBE3"}}>{fmt(totalPago)}</span>
+            <span style={{fontSize:22,fontWeight:600,color:"#F0EBE3",fontFamily:numFont}}>{fmt(totalPago)}</span>
           </div>
           <div style={{fontSize:12,color:"#555",marginTop:6,textAlign:"center"}}>{rate>0?"Taxa: "+rate+"% a.m. · ":"Sem juros · "}Correção: {indice}</div>
         </div>
