@@ -2775,7 +2775,14 @@ function App(){
 }
 
 var root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(React.createElement(React.StrictMode, null, React.createElement(App)));
+try {
+  root.render(React.createElement(React.StrictMode, null, React.createElement(App)));
+} catch(e) {
+  document.getElementById('root').innerHTML = '<div style="padding:40px;color:#D45B5B;font-family:monospace"><h2>Error:</h2><pre>'+e.message+'</pre><pre>'+e.stack+'</pre></div>';
+}
+window.onerror = function(msg,url,line,col,err){
+  document.getElementById('root').innerHTML = '<div style="padding:40px;color:#D45B5B;font-family:monospace;background:#111;min-height:100vh"><h2>JS Error:</h2><p>'+msg+'</p><p>Line: '+line+' Col: '+col+'</p><pre>'+(err?err.stack:'')+'</pre></div>';
+};
 </script>
 </body>
 </html>
