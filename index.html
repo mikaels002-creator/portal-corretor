@@ -374,14 +374,30 @@ var WA = {
   },
   distribuirLead:async function(){
     var atendentes=await WA.getAtendentes();
-    var ativos=atendentes.filter(function(a){return a.ativo});
+    var ativos=atendentes.filter(function(a){return a.ativo}).sort(function(a,b){return a.ordem-b.ordem});
     if(ativos.length===0)return null;
-    var cfg=await sb.from("config_whatsapp").select("valor").eq("chave","ultimo_atendente_distribuido").single();
-    var ultimoId=cfg.data?cfg.data.valor:null;
-    var idx=0;
-    if(ultimoId){var i=ativos.findIndex(function(a){return a.id===ultimoId});idx=(i+1)%ativos.length}
-    var proximo=ativos[idx];
-    await WA.saveConfig("ultimo_atendente_distribuido",proximo.id);
+    // Get config
+    var cfgAll=await sb.from("config_whatsapp").select("*");
+    var cfg={};(cfgAll.data||[]).forEach(function(c){cfg[c.chave]=c.valor});
+    var ultimoId=cfg.ultimo_atendente_distribuido||null;
+    var contadorAtual=cfg.distribuicao_contador||0;
+    // Find current attendant
+    var currentIdx=0;
+    if(ultimoId){var i=ativos.findIndex(function(a){return a.id===ultimoId});if(i>=0)currentIdx=i}
+    // Get quota for current attendant
+    var quotaAtual=cfg["quota_"+ativos[currentIdx].id]||1;
+    var proximo;
+    if(contadorAtual<quotaAtual){
+      // Still within quota, keep same attendant
+      proximo=ativos[currentIdx];
+      await WA.saveConfig("distribuicao_contador",contadorAtual+1);
+    }else{
+      // Quota reached, move to next
+      var nextIdx=(currentIdx+1)%ativos.length;
+      proximo=ativos[nextIdx];
+      await WA.saveConfig("ultimo_atendente_distribuido",proximo.id);
+      await WA.saveConfig("distribuicao_contador",1);
+    }
     return proximo.id;
   }
 };
@@ -2282,6 +2298,9 @@ function App(){
     var _showNew=useState(false);var showNew=_showNew[0];var setShowNew=_showNew[1];
     var _prevCount=useState(0);var prevCount=_prevCount[0];var setPrevCount=_prevCount[1];
     var chatRef=useRef(null);
+    // Local toast (does NOT trigger App re-render)
+    var _waToast=useState(null);var waToast=_waToast[0];var setWaToast=_waToast[1];
+    var wmsg=function(m){setWaToast(m);setTimeout(function(){setWaToast(null)},2500)};
 
     var WA_GREEN="#25D366";
     var etapas=[{k:"novo",l:"Novo",c:"#5B8FD4",e:"🆕"},{k:"em_contato",l:"Em Contato",c:"#E8A94E",e:"💬"},{k:"qualificado",l:"Qualificado",c:G,e:"⭐"},{k:"proposta",l:"Proposta",c:"#8B6FBF",e:"📋"},{k:"fechado",l:"Fechado",c:"#4CAF7D",e:"✅"},{k:"perdido",l:"Perdido",c:"#D45B5B",e:"❌"}];
@@ -2335,8 +2354,8 @@ function App(){
       var myAtt=waAtt.find(function(a){return a.admin_user_id===currentUser.id});
       var attId=myAtt?myAtt.id:waAtt[0]?waAtt[0].id:null;
       var r=await WA.sendMessage(waSel.id,waInput,attId);
-      if(r.ok){setWaInput("");var m=await WA.getMessages(waSel.id);setWaMsgs(m);msg("✅ Mensagem enviada!")}
-      else{msg("❌ "+r.error)}
+      if(r.ok){setWaInput("");var m=await WA.getMessages(waSel.id);setWaMsgs(m);wmsg("✅ Mensagem enviada!")}
+      else{wmsg("❌ "+r.error)}
       setWaSending(false);
     };
 
@@ -2344,7 +2363,7 @@ function App(){
       if(!newPhone.trim())return;
       var attId=await WA.distribuirLead();
       var lead=await WA.createLead(newPhone,newName||newPhone,attId,"manual");
-      if(lead){setNewPhone("");setNewName("");setShowNew(false);await loadData();msg("✅ Lead criado!")}
+      if(lead){setNewPhone("");setNewName("");setShowNew(false);await loadData();wmsg("✅ Lead criado!")}
     };
 
     var filteredLeads=waLeads.filter(function(l){
@@ -2419,7 +2438,7 @@ function App(){
               </div>
             </div>
             <div style={{display:"flex",gap:6,alignItems:"center"}}>
-              <select value={waSel.etapa_funil} onChange={async function(e){await WA.updateLeadEtapa(waSel.id,e.target.value);setWaSel(Object.assign({},waSel,{etapa_funil:e.target.value}));await loadData();msg("Etapa atualizada!")}} style={{padding:"5px 8px",borderRadius:8,fontSize:12,background:cardBg,color:textColor,border:"1px solid "+borderColor,cursor:"pointer"}}>
+              <select value={waSel.etapa_funil} onChange={async function(e){await WA.updateLeadEtapa(waSel.id,e.target.value);setWaSel(Object.assign({},waSel,{etapa_funil:e.target.value}));await loadData();wmsg("Etapa atualizada!")}} style={{padding:"5px 8px",borderRadius:8,fontSize:12,background:cardBg,color:textColor,border:"1px solid "+borderColor,cursor:"pointer"}}>
                 {etapas.map(function(et){return <option key={et.k} value={et.k}>{et.e} {et.l}</option>})}
               </select>
               <button className="bh" onClick={function(){setWaSel(null)}} style={{width:32,height:32,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,background:"transparent",color:subColor,border:"none",cursor:"pointer"}}>✕</button>
@@ -2489,7 +2508,7 @@ function App(){
                       <span style={{fontSize:10,color:subColor}}>{getAttName(lead.atendente_id)}</span>
                       <span style={{fontSize:10,color:subColor}}>{dias}d · {lead.origem}</span>
                     </div>
-                    <select value={lead.etapa_funil} onChange={async function(e){e.stopPropagation();await WA.updateLeadEtapa(lead.id,e.target.value);await loadData();msg("Movido!")}} onClick={function(e){e.stopPropagation()}} style={{width:"100%",marginTop:6,padding:"4px 6px",borderRadius:6,fontSize:11,background:cardBg,color:textColor,border:"1px solid "+borderColor,cursor:"pointer"}}>
+                    <select value={lead.etapa_funil} onChange={async function(e){e.stopPropagation();await WA.updateLeadEtapa(lead.id,e.target.value);await loadData();wmsg("Movido!")}} onClick={function(e){e.stopPropagation()}} style={{width:"100%",marginTop:6,padding:"4px 6px",borderRadius:6,fontSize:11,background:cardBg,color:textColor,border:"1px solid "+borderColor,cursor:"pointer"}}>
                       {etapas.map(function(e2){return <option key={e2.k} value={e2.k}>{e2.e} {e2.l}</option>})}
                     </select>
                   </div>
@@ -2509,20 +2528,20 @@ function App(){
     var saveAtendente=async function(att){
       if(att.id){
         await sb.from("atendentes_whatsapp").update({nome:att.nome,ordem:att.ordem,ativo:att.ativo,assinatura_personalizada:att.assinatura_personalizada,atualizado_em:new Date().toISOString()}).eq("id",att.id);
-        msg("✅ Atendente atualizado!");
+        wmsg("✅ Atendente atualizado!");
       }else{
         await sb.from("atendentes_whatsapp").insert({nome:att.nome,ordem:att.ordem||waAtt.length+1,ativo:true});
-        msg("✅ Atendente criado!");
+        wmsg("✅ Atendente criado!");
       }
       setEditAtt(null);setNewAtt({nome:"",ordem:0});await loadData();
     };
 
     var deleteAtendente=async function(id){
       var leadsCount=waLeads.filter(function(l){return l.atendente_id===id}).length;
-      if(leadsCount>0){msg("❌ Atendente tem "+leadsCount+" leads. Reatribua antes de excluir.");return}
+      if(leadsCount>0){wmsg("❌ Atendente tem "+leadsCount+" leads. Reatribua antes de excluir.");return}
       if(!confirm("Excluir este atendente?"))return;
       await sb.from("atendentes_whatsapp").delete().eq("id",id);
-      msg("🗑️ Atendente excluído!");await loadData();
+      wmsg("🗑️ Atendente excluído!");await loadData();
     };
 
     var _selLeads=useState([]);var selLeads=_selLeads[0];var setSelLeads=_selLeads[1];
@@ -2532,7 +2551,7 @@ function App(){
       for(var i=0;i<selLeads.length;i++){
         await sb.from("leads_whatsapp").update({atendente_id:toId,atualizado_em:new Date().toISOString()}).eq("id",selLeads[i]);
       }
-      msg("✅ "+selLeads.length+" lead(s) transferido(s)!");
+      wmsg("✅ "+selLeads.length+" lead(s) transferido(s)!");
       setSelLeads([]);setReassign(null);await loadData();
     };
 
@@ -2597,7 +2616,7 @@ function App(){
             {/* Actions */}
             <div style={{display:"flex",gap:4,flexShrink:0}}>
               <button className="bh" onClick={function(){setEditAtt(Object.assign({},a))}} title="Editar" style={{width:32,height:32,borderRadius:8,background:"rgba(91,143,212,0.1)",color:"#5B8FD4",border:"none",cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>✏️</button>
-              <button className="bh" onClick={async function(e){e.stopPropagation();await sb.from("atendentes_whatsapp").update({ativo:!a.ativo}).eq("id",a.id);await loadData();msg(a.ativo?"🔒 Bloqueado":"🔓 Desbloqueado")}} title={a.ativo?"Bloquear":"Desbloquear"} style={{width:32,height:32,borderRadius:8,background:a.ativo?"rgba(213,91,91,0.1)":"rgba(76,175,125,0.1)",color:a.ativo?"#D45B5B":"#4CAF7D",border:"none",cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>{a.ativo?"🔒":"🔓"}</button>
+              <button className="bh" onClick={async function(e){e.stopPropagation();await sb.from("atendentes_whatsapp").update({ativo:!a.ativo}).eq("id",a.id);await loadData();wmsg(a.ativo?"🔒 Bloqueado":"🔓 Desbloqueado")}} title={a.ativo?"Bloquear":"Desbloquear"} style={{width:32,height:32,borderRadius:8,background:a.ativo?"rgba(213,91,91,0.1)":"rgba(76,175,125,0.1)",color:a.ativo?"#D45B5B":"#4CAF7D",border:"none",cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>{a.ativo?"🔒":"🔓"}</button>
               <button className="bh" onClick={function(e){e.stopPropagation();setReassign(reassign===a.id?null:a.id)}} title="Reatribuir leads" style={{width:32,height:32,borderRadius:8,background:reassign===a.id?"rgba(232,169,78,0.2)":"rgba(232,169,78,0.1)",color:"#E8A94E",border:"none",cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>🔄</button>
               {leadCount===0&&<button className="bh" onClick={function(e){e.stopPropagation();deleteAtendente(a.id)}} title="Excluir" style={{width:32,height:32,borderRadius:8,background:"rgba(213,91,91,0.1)",color:"#D45B5B",border:"none",cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>🗑️</button>}
             </div>
@@ -2642,17 +2661,29 @@ function App(){
         {/* ═══ DISTRIBUIÇÃO ═══ */}
         <div style={{fontSize:16,fontWeight:700,color:textColor,marginTop:20,marginBottom:12}}>🔄 Distribuição de Leads</div>
         <div style={{padding:16,borderRadius:12,background:cardBg,border:"1px solid "+borderColor,marginBottom:10}}>
-          <div style={{fontWeight:600,fontSize:14,color:textColor,marginBottom:6}}>Modo: Round-robin</div>
-          <div style={{fontSize:13,color:subColor,marginBottom:10}}>Leads novos são distribuídos automaticamente na ordem definida acima.</div>
-          <div style={{display:"flex",alignItems:"center",gap:6,padding:"10px 14px",background:isDark?"#1a1a19":"#EFEBE4",borderRadius:10}}>
-            {waAtt.filter(function(a){return a.ativo}).sort(function(a,b){return a.ordem-b.ordem}).map(function(a,i,arr){
-              return <span key={a.id} style={{display:"flex",alignItems:"center",gap:6}}>
-                <span style={{padding:"4px 10px",borderRadius:6,background:WA_GREEN+"15",color:WA_GREEN,fontWeight:600,fontSize:13}}>{a.nome}</span>
-                {i<arr.length-1&&<span style={{color:subColor}}>→</span>}
-              </span>
-            })}
+          <div style={{fontWeight:600,fontSize:14,color:textColor,marginBottom:4}}>Modo: Round-robin com cota por atendente</div>
+          <div style={{fontSize:12,color:subColor,marginBottom:12}}>Defina quantos leads novos cada atendente recebe antes de passar para o próximo</div>
+          {waAtt.filter(function(a){return a.ativo}).sort(function(a,b){return a.ordem-b.ordem}).map(function(a){
+            var quota=waCfg["quota_"+a.id]||1;
+            var currentLeads=waLeads.filter(function(l){return l.atendente_id===a.id}).length;
+            return <div key={a.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:10,background:isDark?"#1a1a19":"#EFEBE4",marginBottom:6}}>
+              <div style={{width:32,height:32,borderRadius:"50%",background:WA_GREEN+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,color:WA_GREEN,flexShrink:0}}>{a.nome[0]}</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:14,fontWeight:600,color:textColor}}>{a.nome}</div>
+                <div style={{fontSize:11,color:subColor}}>{currentLeads} leads atualmente</div>
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
+                <button className="bh" onClick={async function(){var v=Math.max(1,quota-1);await WA.saveConfig("quota_"+a.id,v);setWaCfg(Object.assign({},waCfg,{["quota_"+a.id]:v}))}} style={{width:28,height:28,borderRadius:6,background:"rgba(213,91,91,0.1)",color:"#D45B5B",border:"none",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>−</button>
+                <div style={{width:36,textAlign:"center",fontSize:18,fontWeight:700,color:WA_GREEN,fontFamily:"'DM Sans',sans-serif"}}>{quota}</div>
+                <button className="bh" onClick={async function(){var v=quota+1;await WA.saveConfig("quota_"+a.id,v);setWaCfg(Object.assign({},waCfg,{["quota_"+a.id]:v}))}} style={{width:28,height:28,borderRadius:6,background:"rgba(76,175,125,0.1)",color:"#4CAF7D",border:"none",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
+                <span style={{fontSize:11,color:subColor,width:60}}>por rodada</span>
+              </div>
+            </div>
+          })}
+          <div style={{marginTop:10,padding:"10px 14px",background:isDark?"#1a1a19":"#EFEBE4",borderRadius:10}}>
+            <div style={{fontSize:12,color:subColor}}>Ordem: {waAtt.filter(function(a){return a.ativo}).sort(function(a,b){return a.ordem-b.ordem}).map(function(a){var q=waCfg["quota_"+a.id]||1;return a.nome+" ("+q+"x)"}).join(" → ")}</div>
+            <div style={{fontSize:11,color:subColor,marginTop:4}}>Ex: Se Micael=3, Monique=2, Felipe=1 → os 3 primeiros leads vão para Micael, os 2 seguintes para Monique, o próximo para Felipe, e repete.</div>
           </div>
-          <div style={{fontSize:12,color:subColor,marginTop:8}}>Leads por atendente: {waAtt.filter(function(a){return a.ativo}).map(function(a){return a.nome+": "+waLeads.filter(function(l){return l.atendente_id===a.id}).length}).join(" · ")}</div>
         </div>
 
         {/* ═══ ASSINATURA ═══ */}
@@ -2663,7 +2694,7 @@ function App(){
               <div style={{fontWeight:600,fontSize:14,color:textColor}}>Assinatura automática</div>
               <div style={{fontSize:12,color:subColor}}>Adiciona o nome do atendente antes de cada mensagem</div>
             </div>
-            <button className="bh" onClick={async function(){var v=waCfg.assinatura_ativa==="true"||waCfg.assinatura_ativa===true?"false":"true";await WA.saveConfig("assinatura_ativa",v);setWaCfg(Object.assign({},waCfg,{assinatura_ativa:v}));msg(v==="true"?"✅ Ativada":"❌ Desativada")}} style={{padding:"8px 16px",borderRadius:10,fontSize:13,fontWeight:600,cursor:"pointer",background:waCfg.assinatura_ativa==="true"||waCfg.assinatura_ativa===true?"rgba(76,175,125,0.1)":"rgba(213,91,91,0.1)",color:waCfg.assinatura_ativa==="true"||waCfg.assinatura_ativa===true?"#4CAF7D":"#D45B5B",border:"none"}}>{waCfg.assinatura_ativa==="true"||waCfg.assinatura_ativa===true?"✅ Ativa":"❌ Inativa"}</button>
+            <button className="bh" onClick={async function(){var v=waCfg.assinatura_ativa==="true"||waCfg.assinatura_ativa===true?"false":"true";await WA.saveConfig("assinatura_ativa",v);setWaCfg(Object.assign({},waCfg,{assinatura_ativa:v}));wmsg(v==="true"?"✅ Ativada":"❌ Desativada")}} style={{padding:"8px 16px",borderRadius:10,fontSize:13,fontWeight:600,cursor:"pointer",background:waCfg.assinatura_ativa==="true"||waCfg.assinatura_ativa===true?"rgba(76,175,125,0.1)":"rgba(213,91,91,0.1)",color:waCfg.assinatura_ativa==="true"||waCfg.assinatura_ativa===true?"#4CAF7D":"#D45B5B",border:"none"}}>{waCfg.assinatura_ativa==="true"||waCfg.assinatura_ativa===true?"✅ Ativa":"❌ Inativa"}</button>
           </div>
           <div style={{padding:"8px 12px",borderRadius:8,background:isDark?"#1a1a19":"#EFEBE4",fontSize:13,color:subColor}}>Preview: <b style={{color:WA_GREEN}}>*Monique:*</b> Olá, tudo bem?</div>
         </div>
@@ -2701,6 +2732,8 @@ function App(){
       {waTab==="inbox"&&renderInbox()}
       {waTab==="funil"&&renderFunil()}
       {waTab==="config"&&isSuperAdmin&&renderConfig()}
+      {/* Local toast */}
+      {waToast&&<div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",padding:"10px 24px",borderRadius:12,background:WA_GREEN,color:"#fff",fontSize:14,fontWeight:600,zIndex:9999,boxShadow:"0 4px 20px rgba(0,0,0,0.3)",animation:"fadeUp 0.2s"}}>{waToast}</div>}
     </div>
   }
 
@@ -3333,7 +3366,7 @@ function App(){
 
 var root = ReactDOM.createRoot(document.getElementById('root'));
 try {
-  root.render(React.createElement(React.StrictMode, null, React.createElement(App)));
+  root.render(React.createElement(App));
 } catch(e) {
   console.error("Init error:", e);
 }
