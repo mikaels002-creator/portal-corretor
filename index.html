@@ -134,7 +134,7 @@ var defined13 = "defined13";
 var defined14 = "defined14";
 var defined15 = "defined15";
 
-const { useState, useEffect, useCallback, useMemo } = React;
+const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
 // ═══════════════════════════════════════
 // SUPABASE CLIENT
@@ -2263,7 +2263,7 @@ function App(){
 
   // ═══ IMPORT PDF ═══
   // ═══════════════════════════════════════
-  // WHATSAPP INBOX
+  // WHATSAPP INBOX — v2 Premium
   // ═══════════════════════════════════════
   function WAInboxM(){
     var _tab=useState("inbox");var waTab=_tab[0];var setWaTab=_tab[1];
@@ -2278,38 +2278,53 @@ function App(){
     var _newPhone=useState("");var newPhone=_newPhone[0];var setNewPhone=_newPhone[1];
     var _newName=useState("");var newName=_newName[0];var setNewName=_newName[1];
     var _counts=useState({});var unreadCounts=_counts[0];var setUnreadCounts=_counts[1];
+    var _search=useState("");var waSearch=_search[0];var setWaSearch=_search[1];
+    var _showNew=useState(false);var showNew=_showNew[0];var setShowNew=_showNew[1];
+    var _prevCount=useState(0);var prevCount=_prevCount[0];var setPrevCount=_prevCount[1];
+    var chatRef=useRef(null);
 
-    var etapas=[{k:"novo",l:"Novo",c:"#5B8FD4"},{k:"em_contato",l:"Em Contato",c:"#E8A94E"},{k:"qualificado",l:"Qualificado",c:G},{k:"proposta",l:"Proposta",c:"#8B6FBF"},{k:"fechado",l:"Fechado",c:"#4CAF7D"},{k:"perdido",l:"Perdido",c:"#D45B5B"}];
+    var WA_GREEN="#25D366";
+    var etapas=[{k:"novo",l:"Novo",c:"#5B8FD4",e:"🆕"},{k:"em_contato",l:"Em Contato",c:"#E8A94E",e:"💬"},{k:"qualificado",l:"Qualificado",c:G,e:"⭐"},{k:"proposta",l:"Proposta",c:"#8B6FBF",e:"📋"},{k:"fechado",l:"Fechado",c:"#4CAF7D",e:"✅"},{k:"perdido",l:"Perdido",c:"#D45B5B",e:"❌"}];
     var etapaColor=function(e){var f=etapas.find(function(x){return x.k===e});return f?f.c:"#555"};
     var etapaLabel=function(e){var f=etapas.find(function(x){return x.k===e});return f?f.l:e};
+    var getAttName=function(id){var a=waAtt.find(function(x){return x.id===id});return a?a.nome:"—"};
+    var fmtTime=function(d){if(!d)return"";var dt=new Date(d);var now=new Date();var diff=now-dt;if(diff<86400000)return dt.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});if(diff<604800000){var dias=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];return dias[dt.getDay()]}return dt.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"})};
+    var fmtFull=function(d){if(!d)return"";return new Date(d).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})};
+
+    // Play notification sound
+    var playNotif=function(){try{var a=new AudioContext();var o=a.createOscillator();var g=a.createGain();o.connect(g);g.connect(a.destination);o.frequency.value=800;g.gain.value=0.1;o.start();o.stop(a.currentTime+0.15)}catch(e){}};
 
     var loadData=async function(){
       var a=await WA.getAtendentes();setWaAtt(a);
       var l=await WA.getLeads();setWaLeads(l);
       var c=await WA.getConfig();setWaCfg(c);
-      // Get unread counts
-      var counts={};
-      for(var i=0;i<l.length;i++){var cnt=await WA.getUnreadCount(l[i].id);if(cnt>0)counts[l[i].id]=cnt}
+      var counts={};var total=0;
+      for(var i=0;i<l.length;i++){var cnt=await WA.getUnreadCount(l[i].id);if(cnt>0){counts[l[i].id]=cnt;total+=cnt}}
       setUnreadCounts(counts);
+      if(total>prevCount&&prevCount>0)playNotif();
+      setPrevCount(total);
     };
     useEffect(function(){loadData()},[]);
 
-    // Poll for new messages
     useEffect(function(){
       if(waTab!=="inbox")return;
       var iv=setInterval(async function(){
         var l=await WA.getLeads();setWaLeads(l);
         if(waSel){var m=await WA.getMessages(waSel.id);setWaMsgs(m)}
-        var counts={};
-        for(var i=0;i<l.length;i++){var cnt=await WA.getUnreadCount(l[i].id);if(cnt>0)counts[l[i].id]=cnt}
+        var counts={};var total=0;
+        for(var i=0;i<l.length;i++){var cnt=await WA.getUnreadCount(l[i].id);if(cnt>0){counts[l[i].id]=cnt;total+=cnt}}
         setUnreadCounts(counts);
+        if(total>prevCount)playNotif();
+        setPrevCount(total);
       },5000);
       return function(){clearInterval(iv)};
-    },[waTab,waSel]);
+    },[waTab,waSel,prevCount]);
+
+    // Scroll chat to bottom
+    useEffect(function(){if(chatRef.current)chatRef.current.scrollTop=chatRef.current.scrollHeight},[waMsgs]);
 
     var selectLead=async function(lead){
-      setWaSel(lead);
-      var m=await WA.getMessages(lead.id);setWaMsgs(m);
+      setWaSel(lead);var m=await WA.getMessages(lead.id);setWaMsgs(m);
       await WA.markRead(lead.id);
       var c=Object.assign({},unreadCounts);delete c[lead.id];setUnreadCounts(c);
     };
@@ -2320,7 +2335,7 @@ function App(){
       var myAtt=waAtt.find(function(a){return a.admin_user_id===currentUser.id});
       var attId=myAtt?myAtt.id:waAtt[0]?waAtt[0].id:null;
       var r=await WA.sendMessage(waSel.id,waInput,attId);
-      if(r.ok){setWaInput("");var m=await WA.getMessages(waSel.id);setWaMsgs(m);msg("✅ Enviada!")}
+      if(r.ok){setWaInput("");var m=await WA.getMessages(waSel.id);setWaMsgs(m);msg("✅ Mensagem enviada!")}
       else{msg("❌ "+r.error)}
       setWaSending(false);
     };
@@ -2329,116 +2344,154 @@ function App(){
       if(!newPhone.trim())return;
       var attId=await WA.distribuirLead();
       var lead=await WA.createLead(newPhone,newName||newPhone,attId,"manual");
-      if(lead){setNewPhone("");setNewName("");await loadData();msg("✅ Lead criado!")}
+      if(lead){setNewPhone("");setNewName("");setShowNew(false);await loadData();msg("✅ Lead criado!")}
     };
 
     var filteredLeads=waLeads.filter(function(l){
+      if(waSearch){var s=waSearch.toLowerCase();if((l.nome||"").toLowerCase().indexOf(s)===-1&&(l.telefone||"").indexOf(s)===-1)return false}
       if(waFilter==="all")return true;
       if(waFilter==="unread")return unreadCounts[l.id]>0;
       return l.etapa_funil===waFilter;
     });
 
-    var getAttName=function(id){var a=waAtt.find(function(x){return x.id===id});return a?a.nome:"—"};
+    var totalUnread=Object.values(unreadCounts).reduce(function(a,b){return a+b},0);
 
-    // ═══ INBOX TAB ═══
+    // ═══ INBOX ═══
     var renderInbox=function(){
-      return <div style={{display:"flex",height:"70vh",gap:0}}>
-        {/* LEFT: Lead list */}
-        <div style={{width:waSel?"35%":"100%",borderRight:waSel?"1px solid rgba(255,255,255,0.04)":"none",display:"flex",flexDirection:"column"}}>
+      return <div style={{display:"flex",height:"72vh",borderRadius:12,overflow:"hidden",border:"1px solid "+borderColor}}>
+        {/* LEFT PANEL */}
+        <div style={{width:waSel?"320px":"100%",minWidth:waSel?320:0,borderRight:waSel?"1px solid "+borderColor:"none",display:"flex",flexDirection:"column",background:cardBg}}>
+          {/* Search + New */}
+          <div style={{padding:"10px 12px",borderBottom:"1px solid "+borderColor}}>
+            <div style={{display:"flex",gap:6}}>
+              <input style={{flex:1,padding:"8px 12px",borderRadius:10,border:"1px solid "+borderColor,background:isDark?"#1a1a19":"#EFEBE4",color:textColor,fontSize:13,outline:"none"}} value={waSearch} onChange={function(e){setWaSearch(e.target.value)}} placeholder="🔍 Buscar lead..."/>
+              <button className="bh" onClick={function(){setShowNew(!showNew)}} style={{padding:"8px 12px",borderRadius:10,background:WA_GREEN,color:"#fff",border:"none",cursor:"pointer",fontSize:16,fontWeight:700}}>+</button>
+            </div>
+            {showNew&&<div style={{marginTop:8,padding:10,borderRadius:10,background:isDark?"#1a1a19":"#EFEBE4",border:"1px solid "+borderColor}}>
+              <input style={{width:"100%",padding:"7px 10px",borderRadius:8,border:"1px solid "+borderColor,background:cardBg,color:textColor,fontSize:13,outline:"none",marginBottom:6}} value={newPhone} onChange={function(e){setNewPhone(e.target.value)}} placeholder="Telefone (ex: 47992134870)"/>
+              <input style={{width:"100%",padding:"7px 10px",borderRadius:8,border:"1px solid "+borderColor,background:cardBg,color:textColor,fontSize:13,outline:"none",marginBottom:6}} value={newName} onChange={function(e){setNewName(e.target.value)}} onKeyDown={function(e){if(e.key==="Enter")createNewLead()}} placeholder="Nome do contato"/>
+              <button className="bh" onClick={createNewLead} style={{width:"100%",padding:"8px",borderRadius:8,background:WA_GREEN,color:"#fff",border:"none",cursor:"pointer",fontSize:13,fontWeight:600}}>Criar Lead</button>
+            </div>}
+          </div>
           {/* Filters */}
-          <div style={{padding:10,display:"flex",gap:4,flexWrap:"wrap",borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
-            {[{k:"all",l:"Todos"},{k:"unread",l:"📩 Não lidos"}].concat(etapas.slice(0,4)).map(function(f){
-              return <span key={f.k} className="bh" onClick={function(){setWaFilter(f.k)}} style={{padding:"4px 10px",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",background:waFilter===f.k?(f.c||"#25D366")+"20":"transparent",color:waFilter===f.k?(f.c||"#25D366"):subColor}}>{f.l}</span>
+          <div style={{padding:"8px 12px",display:"flex",gap:4,overflowX:"auto",borderBottom:"1px solid "+borderColor}}>
+            {[{k:"all",l:"Todos"},{k:"unread",l:"📩 "+totalUnread}].concat(etapas.slice(0,4)).map(function(f){
+              return <span key={f.k} className="bh" onClick={function(){setWaFilter(f.k)}} style={{padding:"4px 10px",borderRadius:8,fontSize:11,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap",background:waFilter===f.k?(f.c||WA_GREEN)+"20":"transparent",color:waFilter===f.k?(f.c||WA_GREEN):subColor}}>{f.l}</span>
             })}
           </div>
           {/* Lead list */}
           <div style={{flex:1,overflow:"auto"}}>
-            {filteredLeads.length===0&&<div style={{padding:30,textAlign:"center",color:subColor}}>Nenhuma conversa</div>}
+            {filteredLeads.length===0&&<div style={{padding:40,textAlign:"center",color:subColor,fontSize:14}}>Nenhuma conversa encontrada</div>}
             {filteredLeads.map(function(lead){
               var isActive=waSel&&waSel.id===lead.id;
               var unread=unreadCounts[lead.id]||0;
-              return <div key={lead.id} className="bh" onClick={function(){selectLead(lead)}} style={{padding:"12px 14px",cursor:"pointer",background:isActive?G+"10":"transparent",borderBottom:"1px solid rgba(255,255,255,0.02)",borderLeft:isActive?"3px solid "+G:"3px solid transparent"}}>
+              return <div key={lead.id} className="bh" onClick={function(){selectLead(lead)}} style={{padding:"12px 14px",cursor:"pointer",background:isActive?WA_GREEN+"08":"transparent",borderBottom:"1px solid "+(isDark?"rgba(255,255,255,0.02)":"rgba(0,0,0,0.04)"),borderLeft:isActive?"3px solid "+WA_GREEN:"3px solid transparent",transition:"all 0.15s"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div style={{fontWeight:600,fontSize:14,color:textColor}}>{lead.nome||lead.telefone}</div>
-                  {unread>0&&<span style={{background:"#D45B5B",color:"#fff",borderRadius:10,padding:"2px 7px",fontSize:11,fontWeight:700,minWidth:20,textAlign:"center"}}>{unread}</span>}
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <div style={{width:36,height:36,borderRadius:"50%",background:WA_GREEN+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,fontWeight:700,color:WA_GREEN,flexShrink:0}}>{(lead.nome||"?")[0].toUpperCase()}</div>
+                    <div>
+                      <div style={{fontWeight:600,fontSize:14,color:textColor}}>{lead.nome||lead.telefone}</div>
+                      <div style={{fontSize:12,color:subColor}}>{lead.telefone}</div>
+                    </div>
+                  </div>
+                  <div style={{textAlign:"right",flexShrink:0}}>
+                    {unread>0&&<span style={{display:"inline-block",background:"#D45B5B",color:"#fff",borderRadius:10,padding:"2px 7px",fontSize:11,fontWeight:700,minWidth:20,textAlign:"center",marginBottom:2}}>{unread}</span>}
+                    <div style={{fontSize:10,color:subColor}}>{fmtTime(lead.ultima_mensagem_em)}</div>
+                  </div>
                 </div>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:4}}>
-                  <span style={{fontSize:12,color:subColor}}>{lead.telefone}</span>
-                  <span style={{fontSize:11,padding:"2px 6px",borderRadius:4,background:etapaColor(lead.etapa_funil)+"15",color:etapaColor(lead.etapa_funil),fontWeight:600}}>{etapaLabel(lead.etapa_funil)}</span>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:4,marginLeft:44}}>
+                  <span style={{fontSize:11,color:subColor}}>{getAttName(lead.atendente_id)}</span>
+                  <span style={{fontSize:10,padding:"2px 6px",borderRadius:4,background:etapaColor(lead.etapa_funil)+"12",color:etapaColor(lead.etapa_funil),fontWeight:700}}>{etapaLabel(lead.etapa_funil)}</span>
                 </div>
-                <div style={{fontSize:11,color:subColor,marginTop:2}}>{getAttName(lead.atendente_id)} · {lead.origem}</div>
               </div>
             })}
           </div>
-          {/* New lead */}
-          <div style={{padding:10,borderTop:"1px solid rgba(255,255,255,0.04)"}}>
-            <div style={{display:"flex",gap:4}}>
-              <input style={Object.assign({},mI,{flex:1,fontSize:13,padding:"8px 10px",marginBottom:0})} value={newPhone} onChange={function(e){setNewPhone(e.target.value)}} placeholder="Telefone"/>
-              <input style={Object.assign({},mI,{flex:1,fontSize:13,padding:"8px 10px",marginBottom:0})} value={newName} onChange={function(e){setNewName(e.target.value)}} placeholder="Nome"/>
-              <button className="bh" onClick={createNewLead} style={{padding:"8px 12px",borderRadius:8,background:"#25D366",color:"#fff",border:"none",cursor:"pointer",fontSize:13,fontWeight:600}}>+</button>
-            </div>
-          </div>
         </div>
         {/* RIGHT: Chat */}
-        {waSel && <div style={{flex:1,display:"flex",flexDirection:"column"}}>
-          {/* Header */}
-          <div style={{padding:"12px 16px",borderBottom:"1px solid rgba(255,255,255,0.04)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <div>
-              <div style={{fontWeight:600,fontSize:16,color:textColor}}>{waSel.nome||waSel.telefone}</div>
-              <div style={{fontSize:13,color:subColor}}>{waSel.telefone} · {getAttName(waSel.atendente_id)}</div>
+        {waSel && <div style={{flex:1,display:"flex",flexDirection:"column",background:isDark?"#0d0d0c":"#F0EDE6"}}>
+          {/* Chat Header */}
+          <div style={{padding:"12px 16px",background:cardBg,borderBottom:"1px solid "+borderColor,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <div style={{width:40,height:40,borderRadius:"50%",background:WA_GREEN+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:700,color:WA_GREEN}}>{(waSel.nome||"?")[0].toUpperCase()}</div>
+              <div>
+                <div style={{fontWeight:600,fontSize:16,color:textColor}}>{waSel.nome||waSel.telefone}</div>
+                <div style={{fontSize:12,color:subColor}}>{waSel.telefone} · {getAttName(waSel.atendente_id)} · {waSel.origem}</div>
+              </div>
             </div>
             <div style={{display:"flex",gap:6,alignItems:"center"}}>
-              <select value={waSel.etapa_funil} onChange={async function(e){await WA.updateLeadEtapa(waSel.id,e.target.value);var updated=Object.assign({},waSel,{etapa_funil:e.target.value});setWaSel(updated);await loadData();msg("Etapa atualizada!")}} style={{padding:"6px 10px",borderRadius:8,fontSize:13,background:cardBg,color:textColor,border:"1px solid "+borderColor}}>
-                {etapas.map(function(et){return <option key={et.k} value={et.k}>{et.l}</option>})}
+              <select value={waSel.etapa_funil} onChange={async function(e){await WA.updateLeadEtapa(waSel.id,e.target.value);setWaSel(Object.assign({},waSel,{etapa_funil:e.target.value}));await loadData();msg("Etapa atualizada!")}} style={{padding:"5px 8px",borderRadius:8,fontSize:12,background:cardBg,color:textColor,border:"1px solid "+borderColor,cursor:"pointer"}}>
+                {etapas.map(function(et){return <option key={et.k} value={et.k}>{et.e} {et.l}</option>})}
               </select>
-              <button className="bh" onClick={function(){setWaSel(null)}} style={{padding:"6px 10px",borderRadius:8,fontSize:18,background:"transparent",color:subColor,border:"none",cursor:"pointer"}}>✕</button>
+              <button className="bh" onClick={function(){setWaSel(null)}} style={{width:32,height:32,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,background:"transparent",color:subColor,border:"none",cursor:"pointer"}}>✕</button>
             </div>
           </div>
           {/* Messages */}
-          <div style={{flex:1,overflow:"auto",padding:16,display:"flex",flexDirection:"column",gap:6}} ref={function(el){if(el)el.scrollTop=el.scrollHeight}}>
-            {waMsgs.length===0&&<div style={{textAlign:"center",color:subColor,padding:40}}>Nenhuma mensagem ainda</div>}
-            {waMsgs.map(function(m){
+          <div ref={chatRef} style={{flex:1,overflow:"auto",padding:"16px 20px",display:"flex",flexDirection:"column",gap:4}}>
+            {waMsgs.length===0&&<div style={{textAlign:"center",color:subColor,padding:60,fontSize:14}}>💬 Nenhuma mensagem ainda<br/><span style={{fontSize:12}}>Envie a primeira mensagem para iniciar a conversa</span></div>}
+            {waMsgs.map(function(m,idx){
               var isMine=m.direcao==="saida";
-              return <div key={m.id} style={{alignSelf:isMine?"flex-end":"flex-start",maxWidth:"75%"}}>
-                <div style={{padding:"10px 14px",borderRadius:isMine?"16px 16px 4px 16px":"16px 16px 16px 4px",background:isMine?"#25D366":"#1a1a19",color:isMine?"#fff":textColor,fontSize:14,lineHeight:1.5}}>
-                  {m.conteudo}
-                </div>
-                <div style={{fontSize:11,color:subColor,marginTop:2,textAlign:isMine?"right":"left"}}>
-                  {new Date(m.criado_em).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}
-                  {isMine&&" ✓"}
+              var prevMsg=idx>0?waMsgs[idx-1]:null;
+              var showDate=!prevMsg||new Date(m.criado_em).toDateString()!==new Date(prevMsg.criado_em).toDateString();
+              return <div key={m.id}>
+                {showDate&&<div style={{textAlign:"center",margin:"12px 0 8px"}}><span style={{fontSize:11,color:subColor,background:cardBg,padding:"4px 14px",borderRadius:20}}>{new Date(m.criado_em).toLocaleDateString("pt-BR",{day:"2-digit",month:"long"})}</span></div>}
+                <div style={{display:"flex",justifyContent:isMine?"flex-end":"flex-start",marginBottom:2}}>
+                  <div style={{maxWidth:"70%",position:"relative"}}>
+                    <div style={{padding:"8px 12px 6px",borderRadius:isMine?"12px 4px 12px 12px":"4px 12px 12px 12px",background:isMine?"#005C4B":cardBg,color:isMine?"#fff":textColor,fontSize:14,lineHeight:1.5,boxShadow:"0 1px 2px rgba(0,0,0,0.08)",border:isMine?"none":"1px solid "+borderColor}}>
+                      {m.tipo==="imagem"&&m.media_url&&<img src={m.media_url} style={{maxWidth:"100%",borderRadius:8,marginBottom:4}}/>}
+                      {m.tipo==="audio"&&<span style={{color:isMine?"#ccc":"#888"}}>🎵 Áudio</span>}
+                      <div style={{whiteSpace:"pre-wrap",wordBreak:"break-word"}}>{m.conteudo}</div>
+                      <div style={{fontSize:10,color:isMine?"rgba(255,255,255,0.5)":"rgba(128,128,128,0.8)",textAlign:"right",marginTop:2}}>
+                        {new Date(m.criado_em).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}
+                        {isMine&&<span style={{marginLeft:4}}>{m.status==="read"?"✓✓":"✓"}</span>}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             })}
           </div>
           {/* Input */}
-          <div style={{padding:12,borderTop:"1px solid rgba(255,255,255,0.04)",display:"flex",gap:8}}>
-            <input style={Object.assign({},mI,{flex:1,marginBottom:0,fontSize:14})} value={waInput} onChange={function(e){setWaInput(e.target.value)}} onKeyDown={function(e){if(e.key==="Enter")sendMsg()}} placeholder="Digite sua mensagem..."/>
-            <button className="bh" onClick={sendMsg} disabled={waSending} style={{padding:"10px 18px",borderRadius:10,background:"#25D366",color:"#fff",border:"none",cursor:"pointer",fontSize:15,fontWeight:600,opacity:waSending?0.5:1}}>{waSending?"...":"📤"}</button>
+          <div style={{padding:"10px 14px",background:cardBg,borderTop:"1px solid "+borderColor,display:"flex",gap:8,alignItems:"center"}}>
+            <input style={{flex:1,padding:"10px 14px",borderRadius:20,border:"1px solid "+borderColor,background:isDark?"#1a1a19":"#EFEBE4",color:textColor,fontSize:14,outline:"none"}} value={waInput} onChange={function(e){setWaInput(e.target.value)}} onKeyDown={function(e){if(e.key==="Enter"&&!e.shiftKey)sendMsg()}} placeholder="Digite uma mensagem..."/>
+            <button className="bh" onClick={sendMsg} disabled={waSending} style={{width:40,height:40,borderRadius:"50%",background:WA_GREEN,color:"#fff",border:"none",cursor:"pointer",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",opacity:waSending?0.5:1,flexShrink:0}}>{waSending?"⏳":"➤"}</button>
           </div>
+        </div>}
+        {!waSel&&waLeads.length>0&&<div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",color:subColor,gap:8}}>
+          <div style={{fontSize:48}}>💬</div>
+          <div style={{fontSize:16,fontWeight:500}}>Selecione uma conversa</div>
+          <div style={{fontSize:13}}>Clique em um lead à esquerda para abrir o chat</div>
         </div>}
       </div>
     };
 
-    // ═══ FUNIL TAB ═══
+    // ═══ FUNIL ═══
     var renderFunil=function(){
       return <div style={{overflow:"auto"}}>
-        <div style={{display:"flex",gap:12,minWidth:etapas.length*180,padding:"10px 0"}}>
+        <div style={{display:"flex",gap:10,minWidth:etapas.length*170,padding:"4px 0"}}>
           {etapas.map(function(et){
             var items=waLeads.filter(function(l){return l.etapa_funil===et.k});
-            return <div key={et.k} style={{flex:1,minWidth:160}}>
-              <div style={{padding:"8px 12px",borderRadius:"10px 10px 0 0",background:et.c+"20",color:et.c,fontWeight:700,fontSize:13,textAlign:"center",borderBottom:"2px solid "+et.c}}>{et.l} ({items.length})</div>
-              <div style={{minHeight:100,background:cardBg,borderRadius:"0 0 10px 10px",padding:6}}>
+            return <div key={et.k} style={{flex:1,minWidth:155}}>
+              <div style={{padding:"10px 12px",borderRadius:"12px 12px 0 0",background:et.c+"18",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"2px solid "+et.c}}>
+                <span style={{fontWeight:700,fontSize:13,color:et.c}}>{et.e} {et.l}</span>
+                <span style={{fontSize:12,color:et.c,fontWeight:700,background:et.c+"15",padding:"2px 8px",borderRadius:10}}>{items.length}</span>
+              </div>
+              <div style={{minHeight:120,background:cardBg,borderRadius:"0 0 12px 12px",padding:6,border:"1px solid "+borderColor,borderTop:"none"}}>
+                {items.length===0&&<div style={{padding:20,textAlign:"center",fontSize:12,color:subColor}}>Vazio</div>}
                 {items.map(function(lead){
                   var dias=Math.floor((Date.now()-new Date(lead.atualizado_em).getTime())/86400000);
-                  return <div key={lead.id} style={{padding:10,borderRadius:8,background:isDark?"#1a1a19":"#F5F1EB",marginBottom:6,border:"1px solid "+borderColor}}>
-                    <div style={{fontWeight:600,fontSize:13,color:textColor}}>{lead.nome||lead.telefone}</div>
-                    <div style={{fontSize:12,color:subColor}}>{lead.telefone}</div>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:6}}>
-                      <span style={{fontSize:11,color:subColor}}>{getAttName(lead.atendente_id)} · {dias}d</span>
-                      <select value={lead.etapa_funil} onChange={async function(e){await WA.updateLeadEtapa(lead.id,e.target.value);await loadData()}} style={{padding:"3px 6px",borderRadius:6,fontSize:11,background:cardBg,color:textColor,border:"1px solid "+borderColor}}>
-                        {etapas.map(function(e2){return <option key={e2.k} value={e2.k}>{e2.l}</option>})}
-                      </select>
+                  return <div key={lead.id} className="bh" style={{padding:10,borderRadius:10,background:isDark?"#1a1a19":"#F8F5F0",marginBottom:6,border:"1px solid "+borderColor,cursor:"pointer"}} onClick={function(){setWaTab("inbox");selectLead(lead)}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
+                      <div style={{width:24,height:24,borderRadius:"50%",background:WA_GREEN+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:WA_GREEN}}>{(lead.nome||"?")[0].toUpperCase()}</div>
+                      <div style={{fontWeight:600,fontSize:13,color:textColor,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{lead.nome||lead.telefone}</div>
                     </div>
+                    <div style={{fontSize:11,color:subColor,marginBottom:4}}>{lead.telefone}</div>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <span style={{fontSize:10,color:subColor}}>{getAttName(lead.atendente_id)}</span>
+                      <span style={{fontSize:10,color:subColor}}>{dias}d · {lead.origem}</span>
+                    </div>
+                    <select value={lead.etapa_funil} onChange={async function(e){e.stopPropagation();await WA.updateLeadEtapa(lead.id,e.target.value);await loadData();msg("Movido!")}} onClick={function(e){e.stopPropagation()}} style={{width:"100%",marginTop:6,padding:"4px 6px",borderRadius:6,fontSize:11,background:cardBg,color:textColor,border:"1px solid "+borderColor,cursor:"pointer"}}>
+                      {etapas.map(function(e2){return <option key={e2.k} value={e2.k}>{e2.e} {e2.l}</option>})}
+                    </select>
                   </div>
                 })}
               </div>
@@ -2448,60 +2501,70 @@ function App(){
       </div>
     };
 
-    // ═══ CONFIG TAB ═══
+    // ═══ CONFIG ═══
     var renderConfig=function(){
       return <div>
-        <div style={{fontSize:16,fontWeight:600,color:textColor,marginBottom:12}}>👥 Atendentes</div>
-        {waAtt.map(function(a){
-          return <div key={a.id} style={{display:"flex",alignItems:"center",gap:12,padding:12,borderRadius:10,background:cardBg,marginBottom:8,border:"1px solid "+borderColor}}>
-            <div style={{width:36,height:36,borderRadius:"50%",background:"#25D366"+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:700,color:"#25D366"}}>{a.nome[0]}</div>
-            <div style={{flex:1}}>
-              <div style={{fontWeight:600,color:textColor}}>{a.nome}</div>
-              <div style={{fontSize:12,color:subColor}}>Ordem: {a.ordem}</div>
+        {/* Atendentes */}
+        <div style={{fontSize:15,fontWeight:700,color:textColor,marginBottom:10,display:"flex",alignItems:"center",gap:6}}>👥 Atendentes</div>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:20}}>
+          {waAtt.map(function(a){
+            return <div key={a.id} style={{flex:1,minWidth:140,padding:14,borderRadius:12,background:cardBg,border:"1px solid "+borderColor,textAlign:"center"}}>
+              <div style={{width:48,height:48,borderRadius:"50%",background:WA_GREEN+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,fontWeight:700,color:WA_GREEN,margin:"0 auto 8px"}}>{a.nome[0]}</div>
+              <div style={{fontWeight:600,fontSize:15,color:textColor}}>{a.nome}</div>
+              <div style={{fontSize:12,color:subColor,marginTop:2}}>Ordem: {a.ordem}</div>
+              <span style={{display:"inline-block",marginTop:6,padding:"3px 10px",borderRadius:6,fontSize:11,fontWeight:700,background:a.ativo?"rgba(76,175,125,0.1)":"rgba(213,91,91,0.1)",color:a.ativo?"#4CAF7D":"#D45B5B"}}>{a.ativo?"Ativo":"Inativo"}</span>
             </div>
-            <span style={{padding:"4px 10px",borderRadius:6,fontSize:12,fontWeight:600,background:a.ativo?"rgba(76,175,125,0.1)":"rgba(213,91,91,0.1)",color:a.ativo?"#4CAF7D":"#D45B5B"}}>{a.ativo?"Ativo":"Inativo"}</span>
-          </div>
-        })}
+          })}
+        </div>
 
-        <div style={{fontSize:16,fontWeight:600,color:textColor,marginTop:20,marginBottom:12}}>⚙️ Configurações</div>
-        <div style={{padding:14,borderRadius:10,background:cardBg,border:"1px solid "+borderColor}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+        {/* Settings */}
+        <div style={{fontSize:15,fontWeight:700,color:textColor,marginBottom:10}}>⚙️ Configurações</div>
+        <div style={{padding:16,borderRadius:12,background:cardBg,border:"1px solid "+borderColor,marginBottom:10}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <div>
-              <div style={{fontWeight:600,color:textColor}}>Assinatura automática</div>
-              <div style={{fontSize:12,color:subColor}}>Adiciona *Nome:* antes das mensagens</div>
+              <div style={{fontWeight:600,fontSize:14,color:textColor}}>Assinatura automática</div>
+              <div style={{fontSize:12,color:subColor,marginTop:2}}>Adiciona <b>*Nome:*</b> antes das mensagens enviadas</div>
+              <div style={{fontSize:12,color:WA_GREEN,marginTop:4,padding:"4px 8px",background:WA_GREEN+"08",borderRadius:6,display:"inline-block"}}>Ex: <b>*Monique:*</b> Olá, tudo bem?</div>
             </div>
-            <button className="bh" onClick={async function(){var v=waCfg.assinatura_ativa==="true"||waCfg.assinatura_ativa===true?"false":"true";await WA.saveConfig("assinatura_ativa",v);setWaCfg(Object.assign({},waCfg,{assinatura_ativa:v}));msg(v==="true"?"Assinatura ativada":"Assinatura desativada")}} style={{padding:"6px 14px",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",background:waCfg.assinatura_ativa==="true"||waCfg.assinatura_ativa===true?"rgba(76,175,125,0.1)":"rgba(213,91,91,0.1)",color:waCfg.assinatura_ativa==="true"||waCfg.assinatura_ativa===true?"#4CAF7D":"#D45B5B",border:"none"}}>{waCfg.assinatura_ativa==="true"||waCfg.assinatura_ativa===true?"✅ Ativo":"❌ Inativo"}</button>
+            <button className="bh" onClick={async function(){var v=waCfg.assinatura_ativa==="true"||waCfg.assinatura_ativa===true?"false":"true";await WA.saveConfig("assinatura_ativa",v);setWaCfg(Object.assign({},waCfg,{assinatura_ativa:v}));msg(v==="true"?"✅ Ativada":"❌ Desativada")}} style={{padding:"8px 16px",borderRadius:10,fontSize:13,fontWeight:600,cursor:"pointer",background:waCfg.assinatura_ativa==="true"||waCfg.assinatura_ativa===true?"rgba(76,175,125,0.1)":"rgba(213,91,91,0.1)",color:waCfg.assinatura_ativa==="true"||waCfg.assinatura_ativa===true?"#4CAF7D":"#D45B5B",border:"none"}}>{waCfg.assinatura_ativa==="true"||waCfg.assinatura_ativa===true?"✅ Ativa":"❌ Inativa"}</button>
           </div>
-          <div style={{padding:10,borderRadius:8,background:isDark?"#1a1a19":"#EFEBE4",fontSize:13,color:subColor}}>Preview: <b style={{color:"#25D366"}}>*Monique:*</b> Olá, tudo bem?</div>
         </div>
 
-        <div style={{padding:14,borderRadius:10,background:cardBg,border:"1px solid "+borderColor,marginTop:10}}>
-          <div style={{fontWeight:600,color:textColor,marginBottom:6}}>Distribuição de leads</div>
-          <div style={{fontSize:13,color:subColor}}>Modo: <b style={{color:"#25D366"}}>Round-robin</b> — Leads novos são distribuídos na ordem: {waAtt.filter(function(a){return a.ativo}).map(function(a){return a.nome}).join(" → ")}</div>
+        <div style={{padding:16,borderRadius:12,background:cardBg,border:"1px solid "+borderColor,marginBottom:10}}>
+          <div style={{fontWeight:600,fontSize:14,color:textColor,marginBottom:4}}>🔄 Distribuição de Leads</div>
+          <div style={{fontSize:13,color:subColor}}>Modo: <b style={{color:WA_GREEN}}>Round-robin</b></div>
+          <div style={{fontSize:12,color:subColor,marginTop:4}}>Ordem: {waAtt.filter(function(a){return a.ativo}).map(function(a,i){return(i>0?" → ":"")+a.nome}).join("")}</div>
         </div>
 
-        <div style={{padding:14,borderRadius:10,background:cardBg,border:"1px solid "+borderColor,marginTop:10}}>
-          <div style={{fontWeight:600,color:textColor,marginBottom:6}}>Conexão WhatsApp Cloud API</div>
-          <div style={{fontSize:13,color:subColor}}>Phone ID: {WA.PHONE_ID}</div>
-          <div style={{fontSize:13,color:subColor}}>Status: <span style={{color:"#4CAF7D"}}>✅ Configurado</span></div>
+        <div style={{padding:16,borderRadius:12,background:cardBg,border:"1px solid "+borderColor}}>
+          <div style={{fontWeight:600,fontSize:14,color:textColor,marginBottom:4}}>📡 WhatsApp Cloud API</div>
+          <div style={{fontSize:12,color:subColor}}>Phone ID: <span style={{fontFamily:"monospace"}}>{WA.PHONE_ID}</span></div>
+          <div style={{fontSize:12,color:"#4CAF7D",marginTop:4}}>✅ Webhook configurado · Edge Functions ativas</div>
         </div>
       </div>
     };
 
     return <div>
-      <div style={mT}>💬 WhatsApp</div>
+      {/* Header */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <div style={{width:42,height:42,borderRadius:12,background:WA_GREEN+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>💬</div>
+          <div>
+            <div style={{fontSize:20,fontWeight:700,color:textColor}}>WhatsApp</div>
+            <div style={{fontSize:12,color:subColor}}>{waLeads.length} leads · {totalUnread>0?totalUnread+" não lidos":"tudo lido"}</div>
+          </div>
+        </div>
+        <button className="bh" onClick={function(){setMdl(null)}} style={{width:36,height:36,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,background:"transparent",color:subColor,border:"1px solid "+borderColor,cursor:"pointer"}}>✕</button>
+      </div>
       {/* Tabs */}
-      <div style={{display:"flex",gap:6,marginBottom:16}}>
-        {[{k:"inbox",l:"📥 Inbox",c:"#25D366"},{k:"funil",l:"📊 Funil",c:"#E8A94E"},{k:"config",l:"⚙️ Config",c:"#5B8FD4"}].map(function(tb){
-          return <span key={tb.k} className="bh" onClick={function(){setWaTab(tb.k)}} style={{padding:"8px 16px",borderRadius:10,fontSize:14,fontWeight:600,cursor:"pointer",background:waTab===tb.k?tb.c+"20":"transparent",color:waTab===tb.k?tb.c:subColor,border:waTab===tb.k?"1px solid "+tb.c+"30":"1px solid "+borderColor}}>{tb.l}</span>
+      <div style={{display:"flex",gap:6,marginBottom:14}}>
+        {[{k:"inbox",l:"📥 Inbox",c:WA_GREEN},{k:"funil",l:"📊 Funil",c:"#E8A94E"},{k:"config",l:"⚙️ Config",c:"#5B8FD4"}].map(function(tb){
+          return <span key={tb.k} className="bh" onClick={function(){setWaTab(tb.k)}} style={{padding:"8px 18px",borderRadius:10,fontSize:14,fontWeight:600,cursor:"pointer",background:waTab===tb.k?tb.c+"15":"transparent",color:waTab===tb.k?tb.c:subColor,border:waTab===tb.k?"1px solid "+tb.c+"25":"1px solid "+borderColor,transition:"all 0.15s"}}>{tb.l}{tb.k==="inbox"&&totalUnread>0?" ("+totalUnread+")":""}</span>
         })}
-        <span style={{flex:1}}/>
-        <span style={{fontSize:13,color:subColor,alignSelf:"center"}}>{waLeads.length} leads</span>
       </div>
       {waTab==="inbox"&&renderInbox()}
       {waTab==="funil"&&renderFunil()}
       {waTab==="config"&&renderConfig()}
-      <button style={mC} onClick={function(){setMdl(null)}}>Fechar</button>
     </div>
   }
 
