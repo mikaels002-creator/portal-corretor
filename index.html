@@ -2569,20 +2569,27 @@ function App(){
         </div>}
 
         {/* Attendant list */}
-        {waAtt.map(function(a){
+        {waAtt.sort(function(a,b){return a.ordem-b.ordem}).map(function(a,idx){
           var leadCount=waLeads.filter(function(l){return l.atendente_id===a.id}).length;
-          return <div key={a.id} style={{display:"flex",alignItems:"center",gap:12,padding:14,borderRadius:12,background:cardBg,marginBottom:8,border:"1px solid "+(a.ativo?borderColor:"rgba(213,91,91,0.15)"),opacity:a.ativo?1:0.6}}>
+          return <div key={a.id} style={{display:"flex",alignItems:"center",gap:10,padding:14,borderRadius:12,background:cardBg,marginBottom:8,border:"1px solid "+(a.ativo?borderColor:"rgba(213,91,91,0.15)"),opacity:a.ativo?1:0.6}}>
+            {/* Reorder */}
+            <div style={{display:"flex",flexDirection:"column",gap:2,flexShrink:0}}>
+              <button className="bh" onClick={async function(){if(idx===0)return;var prev=waAtt.sort(function(x,y){return x.ordem-y.ordem})[idx-1];await sb.from("atendentes_whatsapp").update({ordem:prev.ordem}).eq("id",a.id);await sb.from("atendentes_whatsapp").update({ordem:a.ordem}).eq("id",prev.id);await loadData()}} style={{width:24,height:20,borderRadius:4,background:idx>0?"rgba(91,143,212,0.1)":"transparent",color:idx>0?"#5B8FD4":"transparent",border:"none",cursor:idx>0?"pointer":"default",fontSize:12,display:"flex",alignItems:"center",justifyContent:"center"}}>▲</button>
+              <button className="bh" onClick={async function(){var sorted=waAtt.sort(function(x,y){return x.ordem-y.ordem});if(idx>=sorted.length-1)return;var next=sorted[idx+1];await sb.from("atendentes_whatsapp").update({ordem:next.ordem}).eq("id",a.id);await sb.from("atendentes_whatsapp").update({ordem:a.ordem}).eq("id",next.id);await loadData()}} style={{width:24,height:20,borderRadius:4,background:idx<waAtt.length-1?"rgba(91,143,212,0.1)":"transparent",color:idx<waAtt.length-1?"#5B8FD4":"transparent",border:"none",cursor:idx<waAtt.length-1?"pointer":"default",fontSize:12,display:"flex",alignItems:"center",justifyContent:"center"}}>▼</button>
+            </div>
+            {/* Avatar */}
             <div style={{width:44,height:44,borderRadius:"50%",background:a.ativo?WA_GREEN+"15":"rgba(213,91,91,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,fontWeight:700,color:a.ativo?WA_GREEN:"#D45B5B",flexShrink:0}}>{a.nome[0]}</div>
+            {/* Info */}
             <div style={{flex:1}}>
               <div style={{fontWeight:600,fontSize:15,color:textColor}}>{a.nome} {!a.ativo&&<span style={{fontSize:11,color:"#D45B5B"}}>(bloqueado)</span>}</div>
-              <div style={{fontSize:12,color:subColor}}>Ordem: {a.ordem} · {leadCount} leads · {a.ativo?"Ativo":"Inativo"}</div>
-              {a.assinatura_personalizada&&<div style={{fontSize:11,color:WA_GREEN}}>Assinatura: {a.assinatura_personalizada}</div>}
+              <div style={{fontSize:12,color:subColor}}>#{a.ordem} · {leadCount} leads · {a.ativo?"Ativo":"Inativo"}</div>
             </div>
+            {/* Actions */}
             <div style={{display:"flex",gap:4,flexShrink:0}}>
               <button className="bh" onClick={function(){setEditAtt(Object.assign({},a))}} title="Editar" style={{width:32,height:32,borderRadius:8,background:"rgba(91,143,212,0.1)",color:"#5B8FD4",border:"none",cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>✏️</button>
-              <button className="bh" onClick={async function(){await sb.from("atendentes_whatsapp").update({ativo:!a.ativo}).eq("id",a.id);await loadData();msg(a.ativo?"🔒 Bloqueado":"🔓 Desbloqueado")}} title={a.ativo?"Bloquear":"Desbloquear"} style={{width:32,height:32,borderRadius:8,background:a.ativo?"rgba(213,91,91,0.1)":"rgba(76,175,125,0.1)",color:a.ativo?"#D45B5B":"#4CAF7D",border:"none",cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>{a.ativo?"🔒":"🔓"}</button>
-              <button className="bh" onClick={function(){setReassign(a.id)}} title="Reatribuir leads" style={{width:32,height:32,borderRadius:8,background:"rgba(232,169,78,0.1)",color:"#E8A94E",border:"none",cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>🔄</button>
-              {leadCount===0&&<button className="bh" onClick={function(){deleteAtendente(a.id)}} title="Excluir" style={{width:32,height:32,borderRadius:8,background:"rgba(213,91,91,0.1)",color:"#D45B5B",border:"none",cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>🗑️</button>}
+              <button className="bh" onClick={async function(e){e.stopPropagation();await sb.from("atendentes_whatsapp").update({ativo:!a.ativo}).eq("id",a.id);await loadData();msg(a.ativo?"🔒 Bloqueado":"🔓 Desbloqueado")}} title={a.ativo?"Bloquear":"Desbloquear"} style={{width:32,height:32,borderRadius:8,background:a.ativo?"rgba(213,91,91,0.1)":"rgba(76,175,125,0.1)",color:a.ativo?"#D45B5B":"#4CAF7D",border:"none",cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>{a.ativo?"🔒":"🔓"}</button>
+              <button className="bh" onClick={function(e){e.stopPropagation();setReassign(reassign===a.id?null:a.id)}} title="Reatribuir leads" style={{width:32,height:32,borderRadius:8,background:reassign===a.id?"rgba(232,169,78,0.2)":"rgba(232,169,78,0.1)",color:"#E8A94E",border:"none",cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>🔄</button>
+              {leadCount===0&&<button className="bh" onClick={function(e){e.stopPropagation();deleteAtendente(a.id)}} title="Excluir" style={{width:32,height:32,borderRadius:8,background:"rgba(213,91,91,0.1)",color:"#D45B5B",border:"none",cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>🗑️</button>}
             </div>
           </div>
         })}
@@ -2970,9 +2977,16 @@ function App(){
       </div>
 
       {/* MODAL */}
-      {mdl && <div onClick={function(){setMdl(null)}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",backdropFilter:"blur(8px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
-        <div onClick={function(e){e.stopPropagation()}} style={{background:cardBg,borderRadius:20,padding:24,width:"100%",maxWidth:mdl.t==="waInbox"?900:440,maxHeight:"90vh",overflow:"auto",border:"1px solid "+borderColor}}>
+      {mdl && mdl.t!=="waInbox" && <div onClick={function(){setMdl(null)}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",backdropFilter:"blur(8px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+        <div onClick={function(e){e.stopPropagation()}} style={{background:cardBg,borderRadius:20,padding:24,width:"100%",maxWidth:440,maxHeight:"90vh",overflow:"auto",border:"1px solid "+borderColor}}>
           <ModalContent/>
+        </div>
+      </div>}
+
+      {/* WHATSAPP MODAL (separate to prevent state loss) */}
+      {mdl && mdl.t==="waInbox" && <div onClick={function(e){e.target===e.currentTarget&&setMdl(null)}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",backdropFilter:"blur(8px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+        <div onClick={function(e){e.stopPropagation()}} style={{background:cardBg,borderRadius:20,padding:24,width:"100%",maxWidth:900,maxHeight:"90vh",overflow:"auto",border:"1px solid "+borderColor}}>
+          <WAInboxM/>
         </div>
       </div>}
 
