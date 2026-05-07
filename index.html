@@ -750,10 +750,13 @@ function App(){
       sb.from("promocoes").select("*").eq("building_id",bld.id).eq("ativo",true).order("criado_em",{ascending:false}).then(function(r){setPromos(r.data||[])});
     },[bld.id]);
     var savePromo=async function(){
-      if(!pForm.titulo.trim())return;
-      await sb.from("promocoes").insert({building_id:bld.id,unit_id:pForm.unit_id||null,titulo:pForm.titulo,descricao:pForm.descricao,preco_promocional:pForm.preco_promocional?+pForm.preco_promocional:null,condicao_pagamento:pForm.condicao_pagamento,validade:pForm.validade||null,destaque:pForm.destaque!==false,ativo:true});
-      var r=await sb.from("promocoes").select("*").eq("building_id",bld.id).eq("ativo",true).order("criado_em",{ascending:false});
-      setPromos(r.data||[]);setPForm({titulo:"",descricao:"",unit_id:"",preco_promocional:"",condicao_pagamento:"",validade:"",destaque:true});setShowPromoForm(false);refreshPromos();msg("✅ Oferta criada!");
+      if(!pForm.titulo.trim()){msg("Preencha o título");return}
+      try{
+        var res=await sb.from("promocoes").insert({building_id:bld.id,unit_id:pForm.unit_id||null,titulo:pForm.titulo,descricao:pForm.descricao,preco_promocional:pForm.preco_promocional?+pForm.preco_promocional:null,condicao_pagamento:pForm.condicao_pagamento,validade:pForm.validade||null,destaque:pForm.destaque!==false,ativo:true});
+        if(res.error){msg("❌ Erro: "+res.error.message);console.error("Promo insert error:",res.error);return}
+        var r=await sb.from("promocoes").select("*").eq("building_id",bld.id).eq("ativo",true).order("criado_em",{ascending:false});
+        setPromos(r.data||[]);setPForm({titulo:"",descricao:"",unit_id:"",preco_promocional:"",condicao_pagamento:"",validade:"",destaque:true});setShowPromoForm(false);refreshPromos();msg("✅ Oferta criada!");
+      }catch(e){msg("❌ "+e.message);console.error(e)}
     };
 
     return(
