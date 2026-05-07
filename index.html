@@ -2564,6 +2564,127 @@ function App(){
     var wmsg=function(m){setWaToast(m);setTimeout(function(){setWaToast(null)},2500)};
 
     var WA_GREEN="#25D366";
+    // ═══ CONTATOS ═══
+    var _contatos=useState([]);var contatos=_contatos[0];var setContatos=_contatos[1];
+    var _cSearch=useState("");var cSearch=_cSearch[0];var setCSearch=_cSearch[1];
+    var _cFilter=useState("all");var cFilter=_cFilter[0];var setCFilter=_cFilter[1];
+    var _cForm=useState(null);var cForm=_cForm[0];var setCForm=_cForm[1];
+    var _cSelected=useState([]);var cSelected=_cSelected[0];var setCSelected=_cSelected[1];
+    var _cMassMsg=useState("");var cMassMsg=_cMassMsg[0];var setCMassMsg=_cMassMsg[1];
+    var _cSending=useState(false);var cSending=_cSending[0];var setCSending=_cSending[1];
+
+    var loadContatos=async function(){try{var r=await sb.from("contatos_whatsapp").select("*").eq("ativo",true).order("nome");setContatos(r.data||[])}catch(e){}};
+    useEffect(function(){if(waTab==="contatos")loadContatos()},[waTab]);
+
+    var saveContato=async function(){
+      if(!cForm||!cForm.nome||!cForm.telefone){wmsg("Preencha nome e telefone");return}
+      try{
+        if(cForm.id){await sb.from("contatos_whatsapp").update({nome:cForm.nome,telefone:cForm.telefone,email:cForm.email||null,tipo:cForm.tipo,empresa:cForm.empresa||null,creci:cForm.creci||null,observacoes:cForm.observacoes||null}).eq("id",cForm.id)}
+        else{await sb.from("contatos_whatsapp").insert({nome:cForm.nome,telefone:cForm.telefone,email:cForm.email||null,tipo:cForm.tipo||"corretor",empresa:cForm.empresa||null,creci:cForm.creci||null,observacoes:cForm.observacoes||null,origem:"manual"})}
+        setCForm(null);await loadContatos();wmsg(cForm.id?"✅ Atualizado":"✅ Contato criado!");
+      }catch(e){wmsg("❌ "+e.message)}
+    };
+
+    var enviarMassa=async function(){
+      if(cSelected.length===0||!cMassMsg.trim()){wmsg("Selecione contatos e escreva a mensagem");return}
+      setCSending(true);var ok=0;var err=0;
+      for(var i=0;i<cSelected.length;i++){
+        var c2=contatos.find(function(x){return x.id===cSelected[i]});if(!c2)continue;
+        var phone=c2.telefone.replace(/\D/g,"");if(!phone.startsWith("55"))phone="55"+phone;
+        try{
+          var resp=await fetch("https://zztqlktqevfdxjyzvand.supabase.co/functions/v1/enviar-whatsapp",{
+            method:"POST",headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({telefone_direto:phone,conteudo:cMassMsg})
+          });
+          var data=await resp.json();if(data.error)err++;else ok++;
+        }catch(e){err++}
+      }
+      setCSending(false);setCSelected([]);setCMassMsg("");
+      wmsg("✅ "+ok+" enviada(s)"+(err>0?", "+err+" erro(s)":""));
+    };
+
+    var filteredContatos=contatos.filter(function(c2){
+      if(cSearch){var s=cSearch.toLowerCase();if((c2.nome||"").toLowerCase().indexOf(s)===-1&&(c2.telefone||"").indexOf(s)===-1&&(c2.email||"").toLowerCase().indexOf(s)===-1)return false}
+      if(cFilter!=="all")return c2.tipo===cFilter;
+      return true;
+    });
+
+    var toggleC=function(id){if(cSelected.indexOf(id)!==-1)setCSelected(cSelected.filter(function(x){return x!==id}));else setCSelected(cSelected.concat([id]))};
+
+    var renderContatos=function(){
+      return <div>
+        {/* Header + Add */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+          <div style={{fontSize:15,fontWeight:700,color:textColor}}>📇 Agenda de Contatos <span style={{fontSize:13,fontWeight:400,color:subColor}}>({contatos.length})</span></div>
+          <button className="bh" onClick={function(){setCForm({nome:"",telefone:"",email:"",tipo:"corretor",empresa:"",creci:"",observacoes:""})}} style={{padding:"6px 14px",borderRadius:8,background:"#8B6FBF10",color:"#8B6FBF",border:"1px solid #8B6FBF25",cursor:"pointer",fontSize:13,fontWeight:600}}>+ Novo Contato</button>
+        </div>
+
+        {/* Search + Filters */}
+        <div style={{display:"flex",gap:6,marginBottom:10}}>
+          <input style={{flex:1,padding:"8px 12px",borderRadius:10,border:"1px solid "+borderColor,background:isDark?"#1a1a19":"#EFEBE4",color:textColor,fontSize:13,outline:"none"}} value={cSearch} onChange={function(e){setCSearch(e.target.value)}} placeholder="🔍 Buscar nome, telefone ou email..."/>
+          {[{k:"all",l:"Todos"},{k:"corretor",l:"🏢 Corretores"},{k:"cliente",l:"👤 Clientes"}].map(function(f){
+            return <span key={f.k} className="bh" onClick={function(){setCFilter(f.k)}} style={{padding:"6px 12px",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap",background:cFilter===f.k?"#8B6FBF15":"transparent",color:cFilter===f.k?"#8B6FBF":subColor}}>{f.l}</span>
+          })}
+        </div>
+
+        {/* Form */}
+        {cForm&&<div style={{padding:14,borderRadius:12,background:cardBg,border:"1px solid rgba(139,111,191,0.15)",marginBottom:14}}>
+          <div style={{fontSize:14,fontWeight:600,color:"#8B6FBF",marginBottom:10}}>{cForm.id?"✏️ Editar":"➕ Novo"} Contato</div>
+          <div style={{display:"flex",gap:8,marginBottom:6}}>
+            <input style={Object.assign({},mI,{flex:1,fontSize:13})} value={cForm.nome} onChange={function(e){setCForm(Object.assign({},cForm,{nome:e.target.value}))}} placeholder="Nome"/>
+            <input style={Object.assign({},mI,{flex:1,fontSize:13})} value={cForm.telefone} onChange={function(e){setCForm(Object.assign({},cForm,{telefone:e.target.value}))}} placeholder="Telefone"/>
+          </div>
+          <div style={{display:"flex",gap:8,marginBottom:6}}>
+            <input style={Object.assign({},mI,{flex:1,fontSize:13})} value={cForm.email||""} onChange={function(e){setCForm(Object.assign({},cForm,{email:e.target.value}))}} placeholder="Email"/>
+            <select style={Object.assign({},mI,{flex:1,fontSize:13})} value={cForm.tipo} onChange={function(e){setCForm(Object.assign({},cForm,{tipo:e.target.value}))}}>
+              <option value="corretor">🏢 Corretor</option>
+              <option value="cliente">👤 Cliente</option>
+            </select>
+          </div>
+          {cForm.tipo==="corretor"&&<div style={{display:"flex",gap:8,marginBottom:6}}>
+            <input style={Object.assign({},mI,{flex:1,fontSize:13})} value={cForm.empresa||""} onChange={function(e){setCForm(Object.assign({},cForm,{empresa:e.target.value}))}} placeholder="Imobiliária"/>
+            <input style={Object.assign({},mI,{flex:1,fontSize:13})} value={cForm.creci||""} onChange={function(e){setCForm(Object.assign({},cForm,{creci:e.target.value}))}} placeholder="CRECI"/>
+          </div>}
+          <input style={Object.assign({},mI,{fontSize:13})} value={cForm.observacoes||""} onChange={function(e){setCForm(Object.assign({},cForm,{observacoes:e.target.value}))}} placeholder="Observações"/>
+          <div style={{display:"flex",gap:6}}>
+            <button className="bh" onClick={saveContato} style={{padding:"8px 20px",borderRadius:8,background:"#8B6FBF",color:"#fff",border:"none",cursor:"pointer",fontSize:13,fontWeight:600}}>💾 Salvar</button>
+            <button className="bh" onClick={function(){setCForm(null)}} style={{padding:"8px 20px",borderRadius:8,background:"transparent",color:subColor,border:"1px solid "+borderColor,cursor:"pointer",fontSize:13}}>Cancelar</button>
+          </div>
+        </div>}
+
+        {/* Mass Message Area */}
+        {cSelected.length>0&&<div style={{padding:14,borderRadius:12,background:"rgba(37,211,102,0.04)",border:"1px solid rgba(37,211,102,0.15)",marginBottom:14}}>
+          <div style={{fontSize:14,fontWeight:600,color:WA_GREEN,marginBottom:8}}>📤 Envio em massa — {cSelected.length} selecionado(s)</div>
+          <textarea style={Object.assign({},mI,{fontSize:13,minHeight:60})} value={cMassMsg} onChange={function(e){setCMassMsg(e.target.value)}} placeholder="Escreva a mensagem que será enviada para todos os selecionados..."/>
+          <div style={{display:"flex",gap:6,alignItems:"center"}}>
+            <button className="bh" onClick={enviarMassa} disabled={cSending} style={{padding:"8px 20px",borderRadius:8,background:WA_GREEN,color:"#fff",border:"none",cursor:"pointer",fontSize:13,fontWeight:600,opacity:cSending?0.5:1}}>{cSending?"⏳ Enviando...":"📤 Enviar para "+cSelected.length+" contato(s)"}</button>
+            <button className="bh" onClick={function(){setCSelected(filteredContatos.map(function(c2){return c2.id}))}} style={{padding:"6px 12px",borderRadius:8,fontSize:12,background:"rgba(37,211,102,0.1)",color:WA_GREEN,border:"none",cursor:"pointer"}}>Selecionar todos</button>
+            <button className="bh" onClick={function(){setCSelected([])}} style={{padding:"6px 12px",borderRadius:8,fontSize:12,background:"transparent",color:subColor,border:"1px solid "+borderColor,cursor:"pointer"}}>Limpar</button>
+          </div>
+        </div>}
+
+        {/* Contact List */}
+        <div style={{maxHeight:"50vh",overflow:"auto"}}>
+          {filteredContatos.length===0&&<div style={{padding:30,textAlign:"center",color:subColor}}>Nenhum contato encontrado</div>}
+          {filteredContatos.map(function(c2){
+            var sel=cSelected.indexOf(c2.id)!==-1;
+            return <div key={c2.id} className="bh" onClick={function(){toggleC(c2.id)}} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:10,cursor:"pointer",marginBottom:4,background:sel?"rgba(37,211,102,0.06)":"transparent",border:"1px solid "+(sel?"rgba(37,211,102,0.15)":"transparent")}}>
+              <input type="checkbox" checked={sel} onChange={function(){}} style={{cursor:"pointer",flexShrink:0}}/>
+              <div style={{width:36,height:36,borderRadius:"50%",background:c2.tipo==="corretor"?"#8B6FBF15":"#5B8FD415",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,color:c2.tipo==="corretor"?"#8B6FBF":"#5B8FD4",flexShrink:0}}>{(c2.nome||"?")[0].toUpperCase()}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontWeight:600,fontSize:14,color:textColor}}>{c2.nome} <span style={{fontSize:10,padding:"2px 6px",borderRadius:4,background:c2.tipo==="corretor"?"#8B6FBF12":"#5B8FD412",color:c2.tipo==="corretor"?"#8B6FBF":"#5B8FD4"}}>{c2.tipo==="corretor"?"🏢 Corretor":"👤 Cliente"}</span></div>
+                <div style={{fontSize:12,color:subColor}}>{c2.telefone}{c2.email?" · "+c2.email:""}{c2.empresa?" · "+c2.empresa:""}</div>
+              </div>
+              <div style={{display:"flex",gap:4,flexShrink:0}} onClick={function(e){e.stopPropagation()}}>
+                <button className="bh" onClick={function(){setCForm(Object.assign({},c2))}} style={{width:28,height:28,borderRadius:6,background:"rgba(91,143,212,0.1)",color:"#5B8FD4",border:"none",cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",justifyContent:"center"}}>✏️</button>
+                {isSA&&<button className="bh" onClick={async function(){if(!confirm("Excluir "+c2.nome+"?"))return;await sb.from("contatos_whatsapp").update({ativo:false}).eq("id",c2.id);await loadContatos();wmsg("Removido")}} style={{width:28,height:28,borderRadius:6,background:"rgba(213,91,91,0.1)",color:"#D45B5B",border:"none",cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",justifyContent:"center"}}>🗑️</button>}
+              </div>
+            </div>
+          })}
+        </div>
+      </div>
+    };
+
     var isSA=currentUser&&currentUser.role==="super_admin";
     var etapas=[{k:"novo",l:"Novo",c:"#5B8FD4",e:"🆕"},{k:"em_contato",l:"Em Contato",c:"#E8A94E",e:"💬"},{k:"qualificado",l:"Qualificado",c:G,e:"⭐"},{k:"proposta",l:"Proposta",c:"#8B6FBF",e:"📋"},{k:"fechado",l:"Fechado",c:"#4CAF7D",e:"✅"},{k:"perdido",l:"Perdido",c:"#D45B5B",e:"❌"}];
     var etapaColor=function(e){var f=etapas.find(function(x){return x.k===e});return f?f.c:"#555"};
@@ -3001,12 +3122,13 @@ function App(){
       </div>
       {/* Tabs */}
       <div style={{display:"flex",gap:6,marginBottom:14}}>
-        {[{k:"inbox",l:"📥 Inbox",c:WA_GREEN},{k:"funil",l:"📊 Funil",c:"#E8A94E"}].concat(isSA?[{k:"config",l:"⚙️ Config",c:"#5B8FD4"}]:[]).map(function(tb){
+        {[{k:"inbox",l:"📥 Inbox",c:WA_GREEN},{k:"funil",l:"📊 Funil",c:"#E8A94E"},{k:"contatos",l:"📇 Contatos",c:"#8B6FBF"}].concat(isSA?[{k:"config",l:"⚙️ Config",c:"#5B8FD4"}]:[]).map(function(tb){
           return <span key={tb.k} className="bh" onClick={function(){setWaTab(tb.k)}} style={{padding:"8px 18px",borderRadius:10,fontSize:14,fontWeight:600,cursor:"pointer",background:waTab===tb.k?tb.c+"15":"transparent",color:waTab===tb.k?tb.c:subColor,border:waTab===tb.k?"1px solid "+tb.c+"25":"1px solid "+borderColor,transition:"all 0.15s"}}>{tb.l}{tb.k==="inbox"&&totalUnread>0?" ("+totalUnread+")":""}</span>
         })}
       </div>
       {waTab==="inbox"&&renderInbox()}
       {waTab==="funil"&&renderFunil()}
+      {waTab==="contatos"&&renderContatos()}
       {waTab==="config"&&isSA&&renderConfig()}
       {/* Local toast */}
       {waToast&&<div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",padding:"10px 24px",borderRadius:12,background:WA_GREEN,color:"#fff",fontSize:14,fontWeight:600,zIndex:9999,boxShadow:"0 4px 20px rgba(0,0,0,0.3)",animation:"fadeUp 0.2s"}}>{waToast}</div>}
