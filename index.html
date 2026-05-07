@@ -2579,8 +2579,8 @@ function App(){
     var saveContato=async function(){
       if(!cForm||!cForm.nome||!cForm.telefone){wmsg("Preencha nome e telefone");return}
       try{
-        if(cForm.id){await sb.from("contatos_whatsapp").update({nome:cForm.nome,telefone:cForm.telefone,email:cForm.email||null,tipo:cForm.tipo,empresa:cForm.empresa||null,creci:cForm.creci||null,observacoes:cForm.observacoes||null}).eq("id",cForm.id)}
-        else{await sb.from("contatos_whatsapp").insert({nome:cForm.nome,telefone:cForm.telefone,email:cForm.email||null,tipo:cForm.tipo||"corretor",empresa:cForm.empresa||null,creci:cForm.creci||null,observacoes:cForm.observacoes||null,origem:"manual"})}
+        if(cForm.id){await sb.from("contatos_whatsapp").update({nome:cForm.nome,telefone:cForm.telefone,email:cForm.email||null,tipo:cForm.tipo,empresa:cForm.empresa||null,creci:cForm.creci||null,observacoes:cForm.observacoes||null,atendente_responsavel:cForm.atendente_responsavel||null,canal:cForm.canal||"direto"}).eq("id",cForm.id)}
+        else{await sb.from("contatos_whatsapp").insert({nome:cForm.nome,telefone:cForm.telefone,email:cForm.email||null,tipo:cForm.tipo||"corretor",empresa:cForm.empresa||null,creci:cForm.creci||null,observacoes:cForm.observacoes||null,atendente_responsavel:cForm.atendente_responsavel||null,canal:cForm.canal||"direto",origem:"manual"})}
         setCForm(null);await loadContatos();wmsg(cForm.id?"✅ Atualizado":"✅ Contato criado!");
       }catch(e){wmsg("❌ "+e.message)}
     };
@@ -2616,16 +2616,25 @@ function App(){
         {/* Header + Add */}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
           <div style={{fontSize:15,fontWeight:700,color:textColor}}>📇 Agenda de Contatos <span style={{fontSize:13,fontWeight:400,color:subColor}}>({contatos.length})</span></div>
-          <button className="bh" onClick={function(){setCForm({nome:"",telefone:"",email:"",tipo:"corretor",empresa:"",creci:"",observacoes:""})}} style={{padding:"6px 14px",borderRadius:8,background:"#8B6FBF10",color:"#8B6FBF",border:"1px solid #8B6FBF25",cursor:"pointer",fontSize:13,fontWeight:600}}>+ Novo Contato</button>
+          <button className="bh" onClick={function(){setCForm({nome:"",telefone:"",email:"",tipo:"corretor",empresa:"",creci:"",observacoes:"",atendente_responsavel:"",canal:"direto"})}} style={{padding:"6px 14px",borderRadius:8,background:"#8B6FBF10",color:"#8B6FBF",border:"1px solid #8B6FBF25",cursor:"pointer",fontSize:13,fontWeight:600}}>+ Novo Contato</button>
         </div>
 
         {/* Search + Filters */}
-        <div style={{display:"flex",gap:6,marginBottom:10}}>
+        <div style={{display:"flex",gap:6,marginBottom:8}}>
           <input style={{flex:1,padding:"8px 12px",borderRadius:10,border:"1px solid "+borderColor,background:isDark?"#1a1a19":"#EFEBE4",color:textColor,fontSize:13,outline:"none"}} value={cSearch} onChange={function(e){setCSearch(e.target.value)}} placeholder="🔍 Buscar nome, telefone ou email..."/>
           {[{k:"all",l:"Todos"},{k:"corretor",l:"🏢 Corretores"},{k:"cliente",l:"👤 Clientes"}].map(function(f){
-            return <span key={f.k} className="bh" onClick={function(){setCFilter(f.k)}} style={{padding:"6px 12px",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap",background:cFilter===f.k?"#8B6FBF15":"transparent",color:cFilter===f.k?"#8B6FBF":subColor}}>{f.l}</span>
+            return <span key={f.k} className="bh" onClick={function(){setCFilter(f.k)}} style={{padding:"6px 12px",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap",background:cFilter===f.k?"#8B6FBF15":"transparent",color:cFilter===f.k?"#8B6FBF":subColor}}>{f.l} ({f.k==="all"?contatos.length:contatos.filter(function(x){return x.tipo===f.k}).length})</span>
           })}
         </div>
+
+        {/* Stats per atendente */}
+        {isSA&&<div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
+          {waAtt.filter(function(a){return a.ativo}).map(function(a){
+            var cnt=contatos.filter(function(c2){return c2.atendente_responsavel===a.id}).length;
+            return <span key={a.id} className="bh" onClick={function(){setCSearch(a.nome)}} style={{padding:"4px 10px",borderRadius:8,fontSize:11,cursor:"pointer",background:WA_GREEN+"08",color:WA_GREEN,border:"1px solid "+WA_GREEN+"15"}}>{a.nome}: <b>{cnt}</b></span>
+          })}
+          <span style={{padding:"4px 10px",borderRadius:8,fontSize:11,background:"rgba(255,255,255,0.03)",color:subColor}}>Direto: <b>{contatos.filter(function(c2){return !c2.atendente_responsavel}).length}</b></span>
+        </div>}
 
         {/* Form */}
         {cForm&&<div style={{padding:14,borderRadius:12,background:cardBg,border:"1px solid rgba(139,111,191,0.15)",marginBottom:14}}>
@@ -2645,6 +2654,28 @@ function App(){
             <input style={Object.assign({},mI,{flex:1,fontSize:13})} value={cForm.empresa||""} onChange={function(e){setCForm(Object.assign({},cForm,{empresa:e.target.value}))}} placeholder="Imobiliária"/>
             <input style={Object.assign({},mI,{flex:1,fontSize:13})} value={cForm.creci||""} onChange={function(e){setCForm(Object.assign({},cForm,{creci:e.target.value}))}} placeholder="CRECI"/>
           </div>}
+          <div style={{display:"flex",gap:8,marginBottom:6}}>
+            <div style={{flex:1}}>
+              <div style={{fontSize:11,color:subColor,marginBottom:3}}>Atendente responsável</div>
+              <select style={Object.assign({},mI,{fontSize:13})} value={cForm.atendente_responsavel||""} onChange={function(e){setCForm(Object.assign({},cForm,{atendente_responsavel:e.target.value||null}))}}>
+                <option value="">Nenhum (direto)</option>
+                {waAtt.map(function(a){return <option key={a.id} value={a.id}>{a.nome}</option>})}
+              </select>
+            </div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:11,color:subColor,marginBottom:3}}>Como chegou</div>
+              <select style={Object.assign({},mI,{fontSize:13})} value={cForm.canal||"direto"} onChange={function(e){setCForm(Object.assign({},cForm,{canal:e.target.value}))}}>
+                <option value="direto">📍 Direto</option>
+                <option value="atendente">📞 Via Atendente</option>
+                <option value="indicacao">🤝 Indicação</option>
+                <option value="instagram">📸 Instagram</option>
+                <option value="facebook">📘 Facebook</option>
+                <option value="portal">🌐 Portal</option>
+                <option value="evento">🎪 Evento</option>
+                <option value="outro">📋 Outro</option>
+              </select>
+            </div>
+          </div>
           <input style={Object.assign({},mI,{fontSize:13})} value={cForm.observacoes||""} onChange={function(e){setCForm(Object.assign({},cForm,{observacoes:e.target.value}))}} placeholder="Observações"/>
           <div style={{display:"flex",gap:6}}>
             <button className="bh" onClick={saveContato} style={{padding:"8px 20px",borderRadius:8,background:"#8B6FBF",color:"#fff",border:"none",cursor:"pointer",fontSize:13,fontWeight:600}}>💾 Salvar</button>
@@ -2674,6 +2705,10 @@ function App(){
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontWeight:600,fontSize:14,color:textColor}}>{c2.nome} <span style={{fontSize:10,padding:"2px 6px",borderRadius:4,background:c2.tipo==="corretor"?"#8B6FBF12":"#5B8FD412",color:c2.tipo==="corretor"?"#8B6FBF":"#5B8FD4"}}>{c2.tipo==="corretor"?"🏢 Corretor":"👤 Cliente"}</span></div>
                 <div style={{fontSize:12,color:subColor}}>{c2.telefone}{c2.email?" · "+c2.email:""}{c2.empresa?" · "+c2.empresa:""}</div>
+                <div style={{fontSize:11,color:subColor,marginTop:2}}>
+                  {c2.atendente_responsavel?<span style={{color:WA_GREEN}}>📞 {getAttName(c2.atendente_responsavel)}</span>:<span>📍 Direto</span>}
+                  {c2.canal&&c2.canal!=="direto"&&<span> · {c2.canal==="atendente"?"📞 Via Atendente":c2.canal==="indicacao"?"🤝 Indicação":c2.canal==="instagram"?"📸 Instagram":c2.canal==="facebook"?"📘 Facebook":c2.canal==="portal"?"🌐 Portal":c2.canal==="evento"?"🎪 Evento":"📋 "+c2.canal}</span>}
+                </div>
               </div>
               <div style={{display:"flex",gap:4,flexShrink:0}} onClick={function(e){e.stopPropagation()}}>
                 <button className="bh" onClick={function(){setCForm(Object.assign({},c2))}} style={{width:28,height:28,borderRadius:6,background:"rgba(91,143,212,0.1)",color:"#5B8FD4",border:"none",cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",justifyContent:"center"}}>✏️</button>
