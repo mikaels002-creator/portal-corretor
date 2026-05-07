@@ -498,7 +498,7 @@ function App(){
   var contactName = broker?broker.nome:"";
   var contactLine = broker?"Corretor: "+broker.nome+(broker.creci?" · CRECI "+broker.creci:"")+"<br>"+contactEmail+" · "+contactPhone+"<br><br>MK Realty & D&SS Incorporação":"MK Realty & D&SS Incorporação<br>"+CT.email+" · "+CT.phone;
   var contactWa = broker?"\n\n👤 Corretor: "+broker.nome+(broker.creci?" · CRECI "+broker.creci:"")+"\n📞 "+contactPhone+"\n✉️ "+contactEmail:"\n\n📞 "+CT.phone+"\n✉️ "+CT.email;
-  var getUsdRate = function(){var c=parseFloat(cfg.usd_custom);return(c&&c>0)?c:(parseFloat(cfg.usd_rate)||5.80)};
+  var getUsdRate = function(){var base=parseFloat(cfg.usd_rate)||5.80;var adj=parseFloat(cfg.usd_ajuste)||0;return base+adj};
   var fmtV = function(v){return showUsd?fmtUsd(Math.round(v/getUsdRate())):fmt(v)};
 
   var msg = function(m){setToast(m);setTimeout(function(){setToast(null)},2500)};
@@ -1608,9 +1608,14 @@ function App(){
       </div>
       <div style={{marginTop:10,padding:"10px 0",borderTop:"1px solid rgba(255,255,255,0.05)"}}>
         <div style={{fontSize:13,fontWeight:600,color:G,marginBottom:8}}>💵 Cotação do Dólar</div>
-        <L>Mercado (automático)</L>
+        <L>Cotação oficial (automática)</L>
         <div style={{padding:"10px",background:"#333",borderRadius:7,fontSize:16,fontWeight:700,textAlign:"center",color:"#4CAF7D",marginBottom:6}}>R$ {parseFloat(c.usd_rate||0).toFixed(4)}</div>
-        <L>Sua cotação (conversão)</L><input style={mI} value={c.usd_custom||""} onChange={function(e){setC(Object.assign({},c,{usd_custom:e.target.value}))}} placeholder="Vazio = mercado"/>
+        <L>Ajuste (+/- R$)</L>
+        <input style={mI} type="text" inputMode="decimal" value={c.usd_ajuste||""} onChange={function(e){var v=e.target.value.replace(/[^0-9.,\-+]/g,"");setC(Object.assign({},c,{usd_ajuste:v}))}} placeholder="Ex: +0.10 ou -0.05 (vazio = sem ajuste)"/>
+        <div style={{padding:"10px",background:parseFloat(c.usd_ajuste||0)>0?"rgba(76,175,125,0.08)":parseFloat(c.usd_ajuste||0)<0?"rgba(213,91,91,0.08)":"rgba(255,255,255,0.03)",borderRadius:7,fontSize:14,textAlign:"center",color:textColor,border:"1px solid "+borderColor}}>
+          Cotação usada: <strong style={{color:G,fontSize:18}}>R$ {(parseFloat(c.usd_rate||0)+parseFloat(c.usd_ajuste||0)).toFixed(2)}</strong>
+          {parseFloat(c.usd_ajuste||0)!==0&&<span style={{fontSize:12,color:parseFloat(c.usd_ajuste||0)>0?"#4CAF7D":"#D45B5B",marginLeft:6}}>({parseFloat(c.usd_ajuste||0)>0?"+":""}R$ {parseFloat(c.usd_ajuste||0).toFixed(2)})</span>}
+        </div>
       </div>
       <div style={{marginTop:10,padding:"10px 0",borderTop:"1px solid rgba(255,255,255,0.05)"}}>
         <div style={{fontSize:13,fontWeight:600,color:G,marginBottom:8}}>📊 Indicadores</div>
