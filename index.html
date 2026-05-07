@@ -357,30 +357,14 @@ var WA = {
   getConfig:async function(){var r=await sb.from("config_whatsapp").select("*");var cfg={};(r.data||[]).forEach(function(c){cfg[c.chave]=c.valor});return cfg},
   saveConfig:async function(k,v){await sb.from("config_whatsapp").upsert({chave:k,valor:v,atualizado_em:new Date().toISOString()},{onConflict:"chave"})},
   sendMessage:async function(leadId,conteudo,atendenteId){
-    var lead=await sb.from("leads_whatsapp").select("*").eq("id",leadId).single();
-    if(!lead.data)return{error:"Lead não encontrado"};
-    var phone=lead.data.telefone.replace(/\D/g,"");
-    if(!phone.startsWith("55"))phone="55"+phone;
-    // Get atendente name for signature
-    var assinatura="";
-    var cfgR=await sb.from("config_whatsapp").select("valor").eq("chave","assinatura_ativa").single();
-    if(cfgR.data&&cfgR.data.valor===true||cfgR.data.valor==="true"){
-      var att=await sb.from("atendentes_whatsapp").select("nome").eq("id",atendenteId).single();
-      if(att.data)assinatura="*"+att.data.nome+":* ";
-    }
-    var msgText=assinatura+conteudo;
-    // Call Cloud API
     try{
-      var resp=await fetch(WA.API+"/"+WA.PHONE_ID+"/messages",{
+      var resp=await fetch("https://zztqlktqevfdxjyzvand.supabase.co/functions/v1/enviar-whatsapp",{
         method:"POST",
-        headers:{"Authorization":"Bearer "+WA.TOKEN,"Content-Type":"application/json"},
-        body:JSON.stringify({messaging_product:"whatsapp",to:phone,type:"text",text:{body:msgText}})
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({lead_id:leadId,conteudo:conteudo,atendente_id:atendenteId})
       });
       var data=await resp.json();
-      if(data.error)return{error:data.error.message};
-      // Save to DB
-      await sb.from("mensagens_whatsapp").insert({lead_id:leadId,atendente_id:atendenteId,direcao:"saida",conteudo:conteudo,tipo:"texto",wa_message_id:data.messages&&data.messages[0]?data.messages[0].id:"",status:"enviada"});
-      await sb.from("leads_whatsapp").update({ultima_mensagem_em:new Date().toISOString()}).eq("id",leadId);
+      if(data.error)return{error:data.error};
       return{ok:true};
     }catch(e){return{error:e.message}}
   },
