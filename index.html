@@ -742,6 +742,20 @@ function App(){
     var filtered = filter==="all"?units:units.filter(function(u){return u.status===filter});
     if(search){var sl2=search.toLowerCase();filtered=filtered.filter(function(u){return u.name.toLowerCase().indexOf(sl2)!==-1})}
 
+    // Promos state
+    var _promos=useState([]);var promos=_promos[0];var setPromos=_promos[1];
+    var _showPromoForm=useState(false);var showPromoForm=_showPromoForm[0];var setShowPromoForm=_showPromoForm[1];
+    var _pForm=useState({titulo:"",descricao:"",unit_id:"",preco_promocional:"",condicao_pagamento:"",validade:"",destaque:true});var pForm=_pForm[0];var setPForm=_pForm[1];
+    useEffect(function(){
+      sb.from("promocoes").select("*").eq("building_id",bld.id).eq("ativo",true).order("criado_em",{ascending:false}).then(function(r){setPromos(r.data||[])});
+    },[bld.id]);
+    var savePromo=async function(){
+      if(!pForm.titulo.trim())return;
+      await sb.from("promocoes").insert({building_id:bld.id,unit_id:pForm.unit_id||null,titulo:pForm.titulo,descricao:pForm.descricao,preco_promocional:pForm.preco_promocional?+pForm.preco_promocional:null,condicao_pagamento:pForm.condicao_pagamento,validade:pForm.validade||null,destaque:pForm.destaque!==false,ativo:true});
+      var r=await sb.from("promocoes").select("*").eq("building_id",bld.id).eq("ativo",true).order("criado_em",{ascending:false});
+      setPromos(r.data||[]);setPForm({titulo:"",descricao:"",unit_id:"",preco_promocional:"",condicao_pagamento:"",validade:"",destaque:true});setShowPromoForm(false);refreshPromos();msg("✅ Oferta criada!");
+    };
+
     return(
       <div style={{padding:"20px clamp(16px, 4vw, 48px)"}}>
         <button onClick={function(){setVw("home")}} style={{background:"none",border:"none",color:G,fontSize:14,fontWeight:600,cursor:"pointer",padding:"4px 0",marginBottom:8}}>← {t.back}</button>
@@ -1100,31 +1114,17 @@ function App(){
 
         {/* ═══ PROMOS TAB ═══ */}
         {dtab==="promos" && <div>
-          {(function(){
-            var _promos=useState([]);var promos=_promos[0];var setPromos=_promos[1];
-            var _showForm=useState(false);var showForm=_showForm[0];var setShowForm=_showForm[1];
-            var _pForm=useState({titulo:"",descricao:"",unit_id:"",preco_promocional:"",condicao_pagamento:"",validade:"",destaque:true});var pForm=_pForm[0];var setPForm=_pForm[1];
-            useEffect(function(){sb.from("promocoes").select("*").eq("building_id",bld.id).eq("ativo",true).order("criado_em",{ascending:false}).then(function(r){setPromos(r.data||[])})},[]);
-            var bldUnits=getUnits(bld.id);
-            var savePromo=async function(){
-              if(!pForm.titulo.trim())return;
-              await sb.from("promocoes").insert({building_id:bld.id,unit_id:pForm.unit_id||null,titulo:pForm.titulo,descricao:pForm.descricao,preco_promocional:pForm.preco_promocional?+pForm.preco_promocional:null,condicao_pagamento:pForm.condicao_pagamento,validade:pForm.validade||null,destaque:pForm.destaque!==false,ativo:true});
-              var r=await sb.from("promocoes").select("*").eq("building_id",bld.id).eq("ativo",true).order("criado_em",{ascending:false});
-              setPromos(r.data||[]);setPForm({titulo:"",descricao:"",unit_id:"",preco_promocional:"",condicao_pagamento:"",validade:"",destaque:true});setShowForm(false);refreshPromos();msg("✅ Oferta criada!");
-            };
-            return <div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
                 <div style={{fontSize:14,fontWeight:600,color:textColor}}>🏷️ {lang==="en"?"Special Offers":"Ofertas Especiais"}</div>
-                {adm&&<button className="bh" onClick={function(){setShowForm(!showForm)}} style={{padding:"6px 14px",borderRadius:8,background:"#E8A94E"+"10",color:"#E8A94E",border:"1px solid #E8A94E25",cursor:"pointer",fontSize:13,fontWeight:600}}>+ {lang==="en"?"New Offer":"Nova Oferta"}</button>}
+                {adm&&<button className="bh" onClick={function(){setShowPromoForm(!showPromoForm)}} style={{padding:"6px 14px",borderRadius:8,background:"#E8A94E10",color:"#E8A94E",border:"1px solid #E8A94E25",cursor:"pointer",fontSize:13,fontWeight:600}}>+ {lang==="en"?"New Offer":"Nova Oferta"}</button>}
               </div>
-              {/* Create form (admin) */}
-              {showForm&&adm&&<div style={{padding:14,borderRadius:12,background:cardBg,border:"1px solid rgba(232,169,78,0.15)",marginBottom:14}}>
-                <div style={{fontSize:14,fontWeight:600,color:"#E8A94E",marginBottom:10}}>✨ {lang==="en"?"Create Offer":"Criar Oferta"}</div>
+              {showPromoForm&&adm&&<div style={{padding:14,borderRadius:12,background:cardBg,border:"1px solid rgba(232,169,78,0.15)",marginBottom:14}}>
+                <div style={{fontSize:14,fontWeight:600,color:"#E8A94E",marginBottom:10}}>✨ Criar Oferta</div>
                 <select style={Object.assign({},mI,{fontSize:13})} value={pForm.unit_id} onChange={function(e){setPForm(Object.assign({},pForm,{unit_id:e.target.value}))}}>
-                  <option value="">{lang==="en"?"All units":"Todas as unidades"}</option>
-                  {bldUnits.filter(function(u){return u.status==="available"}).map(function(u){return <option key={u.id} value={u.id}>{u.name} — {u.area}m²</option>})}
+                  <option value="">Todas as unidades</option>
+                  {units.filter(function(u){return u.status==="available"}).map(function(u){return <option key={u.id} value={u.id}>{u.name} — {u.area}m²</option>})}
                 </select>
-                <input style={Object.assign({},mI,{fontSize:13})} value={pForm.titulo} onChange={function(e){setPForm(Object.assign({},pForm,{titulo:e.target.value}))}} placeholder="Título da oferta (ex: Black Friday Unidade 301)"/>
+                <input style={Object.assign({},mI,{fontSize:13})} value={pForm.titulo} onChange={function(e){setPForm(Object.assign({},pForm,{titulo:e.target.value}))}} placeholder="Título (ex: Black Friday Unidade 301)"/>
                 <textarea style={Object.assign({},mI,{fontSize:13,minHeight:60})} value={pForm.descricao} onChange={function(e){setPForm(Object.assign({},pForm,{descricao:e.target.value}))}} placeholder="Descrição da condição especial"/>
                 <div style={{display:"flex",gap:8}}>
                   <input type="number" style={Object.assign({},mI,{fontSize:13,flex:1})} value={pForm.preco_promocional} onChange={function(e){setPForm(Object.assign({},pForm,{preco_promocional:e.target.value}))}} placeholder="Preço promocional (R$)"/>
@@ -1137,41 +1137,39 @@ function App(){
                 </label>
                 <div style={{display:"flex",gap:6}}>
                   <button className="bh" onClick={savePromo} style={{padding:"8px 20px",borderRadius:8,background:"#E8A94E",color:"#0a0a09",border:"none",cursor:"pointer",fontSize:13,fontWeight:600}}>💾 Salvar</button>
-                  <button className="bh" onClick={function(){setShowForm(false)}} style={{padding:"8px 20px",borderRadius:8,background:"transparent",color:subColor,border:"1px solid "+borderColor,cursor:"pointer",fontSize:13}}>Cancelar</button>
+                  <button className="bh" onClick={function(){setShowPromoForm(false)}} style={{padding:"8px 20px",borderRadius:8,background:"transparent",color:subColor,border:"1px solid "+borderColor,cursor:"pointer",fontSize:13}}>Cancelar</button>
                 </div>
               </div>}
-              {/* Promo cards */}
-              {promos.length===0&&<div style={{padding:30,textAlign:"center",color:subColor}}>{lang==="en"?"No active offers":"Nenhuma oferta ativa"}</div>}
+              {promos.length===0&&<div style={{padding:30,textAlign:"center",color:subColor}}>Nenhuma oferta ativa</div>}
               {promos.map(function(p){
-                var unit=p.unit_id?bldUnits.find(function(u){return u.id===p.unit_id}):null;
+                var unit=p.unit_id?units.find(function(u){return u.id===p.unit_id}):null;
                 var expired=p.validade&&new Date(p.validade)<new Date();
                 return <div key={p.id} style={{padding:16,borderRadius:14,background:"linear-gradient(135deg,"+bld.color+"08,#E8A94E06)",border:"1px solid #E8A94E20",marginBottom:10,opacity:expired?0.5:1}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                     <div>
-                      {unit&&<span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:6,background:bld.color+"15",color:bld.color,marginBottom:4,display:"inline-block"}}>{unit.name} — {unit.area}m²</span>}
+                      {p.destaque&&<span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:4,background:"#E8A94E",color:"#0a0a09",marginRight:6}}>BANNER</span>}
+                      {unit&&<span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:6,background:bld.color+"15",color:bld.color,display:"inline-block",marginBottom:4}}>{unit.name} — {unit.area}m²</span>}
                       <div style={{fontSize:18,fontWeight:700,color:"#E8A94E",marginTop:4}}>{p.titulo}</div>
                     </div>
                     {p.preco_promocional&&<div style={{textAlign:"right"}}>
-                      <div style={{fontSize:11,color:subColor,textDecoration:"line-through"}}>{unit?fmt(cp(unit,bld)):""}</div>
+                      {unit&&<div style={{fontSize:11,color:subColor,textDecoration:"line-through"}}>{fmt(cp(unit,bld))}</div>}
                       <div style={{fontSize:22,fontWeight:700,color:"#4CAF7D"}}>{fmt(p.preco_promocional)}</div>
                     </div>}
                   </div>
                   {p.descricao&&<div style={{fontSize:13,color:subColor,marginTop:8,lineHeight:1.6}}>{p.descricao}</div>}
                   {p.condicao_pagamento&&<div style={{marginTop:6,padding:"6px 10px",borderRadius:8,background:"rgba(76,175,125,0.06)",fontSize:13,color:"#4CAF7D",fontWeight:600}}>💰 {p.condicao_pagamento}</div>}
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:8}}>
-                    {p.validade&&<span style={{fontSize:12,color:expired?"#D45B5B":subColor}}>{expired?"⏰ Expirada":"⏰ Até "+new Date(p.validade).toLocaleDateString("pt-BR")}</span>}
+                    {p.validade?<span style={{fontSize:12,color:expired?"#D45B5B":subColor}}>{expired?"⏰ Expirada":"⏰ Até "+new Date(p.validade).toLocaleDateString("pt-BR")}</span>:<span/>}
                     <div style={{display:"flex",gap:4}}>
                       <button className="bh" onClick={function(){
                         var text="🏷️ *OFERTA ESPECIAL*\n\n🏢 *"+bld.name+"*\n"+(unit?"📍 "+unit.name+" — "+unit.area+"m²\n":"")+"\n✨ "+p.titulo+"\n"+(p.descricao?p.descricao+"\n":"")+(p.preco_promocional?"\n💰 *"+fmt(p.preco_promocional)+"*\n":"")+(p.condicao_pagamento?"💳 "+p.condicao_pagamento+"\n":"")+(p.validade?"\n⏰ Válido até "+new Date(p.validade).toLocaleDateString("pt-BR"):"");
                         if(navigator.share){navigator.share({title:p.titulo,text:text})}else{navigator.clipboard.writeText(text);msg("📋 Copiado!")}
-                      }} style={{padding:"5px 12px",borderRadius:6,fontSize:12,background:bld.color+"10",color:bld.color,border:"none",cursor:"pointer"}}>📤 Compartilhar</button>
-                      {adm&&<button className="bh" onClick={async function(){await sb.from("promocoes").update({ativo:false}).eq("id",p.id);var r=await sb.from("promocoes").select("*").eq("building_id",bld.id).eq("ativo",true);setPromos(r.data||[]);refreshPromos();msg("Oferta removida")}} style={{padding:"5px 12px",borderRadius:6,fontSize:12,background:"rgba(213,91,91,0.1)",color:"#D45B5B",border:"none",cursor:"pointer"}}>🗑️</button>}
+                      }} style={{padding:"5px 12px",borderRadius:6,fontSize:12,background:bld.color+"10",color:bld.color,border:"none",cursor:"pointer"}}>📤</button>
+                      {adm&&<button className="bh" onClick={async function(){await sb.from("promocoes").update({ativo:false}).eq("id",p.id);var r=await sb.from("promocoes").select("*").eq("building_id",bld.id).eq("ativo",true);setPromos(r.data||[]);refreshPromos();msg("Removida")}} style={{padding:"5px 12px",borderRadius:6,fontSize:12,background:"rgba(213,91,91,0.1)",color:"#D45B5B",border:"none",cursor:"pointer"}}>🗑️</button>}
                     </div>
                   </div>
                 </div>
               })}
-            </div>
-          })()}
         </div>}
       </div>
     );
