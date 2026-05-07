@@ -1296,7 +1296,7 @@ function App(){
           {can("manage_users") && <button className="bh ch" onClick={function(){setMdl({t:"manageUsers"})}} style={{padding:16,borderRadius:14,fontSize:15,fontWeight:500,background:cardBg,color:"#8B6FBF",border:"1px solid rgba(139,111,191,0.1)",cursor:"pointer",textAlign:"center"}}>🛡️ Equipe · {adminUsers.length}</button>}
           {can("manage_sales") && <button className="bh ch" onClick={function(){setMdl({t:"adminSales"})}} style={{padding:16,borderRadius:14,fontSize:15,fontWeight:500,background:cardBg,color:"#E8A94E",border:"1px solid rgba(232,169,78,0.1)",cursor:"pointer",textAlign:"center"}}>📋 Vendas</button>}
           <button className="bh ch" onClick={function(){setMdl({t:"aiAgent"})}} style={{padding:16,borderRadius:14,fontSize:15,fontWeight:500,background:"linear-gradient(135deg,#111110,#15131d)",color:"#8B6FBF",border:"1px solid rgba(139,111,191,0.15)",cursor:"pointer",textAlign:"center"}}>🤖 Agente IA</button>
-          <button className="bh ch" onClick={function(){setMdl({t:"waInbox"})}} style={{padding:16,borderRadius:14,fontSize:15,fontWeight:500,background:"linear-gradient(135deg,#111110,#0d1a13)",color:"#25D366",border:"1px solid rgba(37,211,102,0.15)",cursor:"pointer",textAlign:"center"}}>💬 WhatsApp</button>
+          <button className="bh ch" onClick={function(){setMdl({t:"waInbox"})}} style={{padding:16,borderRadius:14,fontSize:15,fontWeight:500,background:"linear-gradient(135deg,#111110,#0d1a13)",color:"#25D366",border:"1px solid rgba(37,211,102,0.15)",cursor:"pointer",textAlign:"center"}}>💼 CRM</button>
           <button className="bh ch" onClick={function(){setMdl({t:"taskManager"})}} style={{padding:16,borderRadius:14,fontSize:15,fontWeight:500,background:cardBg,color:"#E8A94E",border:"1px solid rgba(232,169,78,0.1)",cursor:"pointer",textAlign:"center",position:"relative"}}>📋 Tarefas {tasks.filter(function(t2){return t2.status==="pending"}).length>0?" · "+tasks.filter(function(t2){return t2.status==="pending"}).length:""}</button>
           <button className="bh ch" onClick={function(){setMiniChat({channel:"admin_team",title:"Chat Equipe"})}} style={{padding:16,borderRadius:14,fontSize:15,fontWeight:500,background:cardBg,color:"#4CAF7D",border:"1px solid rgba(76,175,125,0.1)",cursor:"pointer",textAlign:"center"}}>💬 Chat Equipe</button>
         </div>
@@ -1603,7 +1603,7 @@ function App(){
         })}
       </div>
       <div style={{marginTop:10,padding:"10px 0",borderTop:"1px solid rgba(255,255,255,0.05)"}}>
-        <div style={{fontSize:13,fontWeight:600,color:"#25D366",marginBottom:8,display:"flex",alignItems:"center",gap:6}}><WaIcon size={14}/> WhatsApp</div>
+        <div style={{fontSize:13,fontWeight:600,color:"#25D366",marginBottom:8,display:"flex",alignItems:"center",gap:6}}><WaIcon size={14}/> CRM</div>
         <L>Número do WhatsApp</L><input style={mI} value={c.wa_number||""} onChange={function(e){setC(Object.assign({},c,{wa_number:e.target.value}))}} placeholder="5547992134870"/>
       </div>
       <div style={{marginTop:10,padding:"10px 0",borderTop:"1px solid rgba(255,255,255,0.05)"}}>
@@ -2477,7 +2477,7 @@ function App(){
 
       {/* Tabs */}
       <div style={{display:"flex",gap:4,marginBottom:14,flexWrap:"wrap"}}>
-        {[{id:"dash",l:"📊 Painel"},{id:"health",l:"🏥 Checkup"},{id:"ai",l:"🤖 Consultar IA"},{id:"history",l:"📋 Relatórios"}].concat(currentUser&&currentUser.role==="super_admin"?[{id:"whatsapp",l:"💬 WhatsApp"}]:[]).map(function(t2){
+        {[{id:"dash",l:"📊 Painel"},{id:"health",l:"🏥 Checkup"},{id:"ai",l:"🤖 Consultar IA"},{id:"history",l:"📋 Relatórios"}].concat(currentUser&&currentUser.role==="super_admin"?[{id:"whatsapp",l:"💼 CRM"}]:[]).map(function(t2){
           return <span key={t2.id} className="bh" onClick={function(){setTab(t2.id);if(t2.id==="health"&&!health)runHealthCheck()}} style={{padding:"7px 12px",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",background:tab===t2.id?"#5B8FD4"+"18":"#111110",color:tab===t2.id?"#5B8FD4":"#555"}}>{t2.l}</span>;
         })}
       </div>
@@ -2585,7 +2585,7 @@ function App(){
         })}
       </div>}
 
-      {/* WhatsApp Analytics (super_admin only) */}
+      {/* CRM Analytics (super_admin only) */}
       {tab==="whatsapp"&&currentUser&&currentUser.role==="super_admin"&&<div>
         {!waData&&!waLoading&&<div style={{textAlign:"center",padding:30}}>
           <div style={{fontSize:40,marginBottom:12}}>📊</div>
@@ -2649,6 +2649,16 @@ function App(){
     useEffect(function(){sb.from("mensagens_prontas").select("*").eq("ativo",true).order("ordem").then(function(r){setQuickMsgs(r.data||[])})},[])
 
     var WA_GREEN="#25D366";
+    var isSA=currentUser&&currentUser.role==="super_admin";
+    // SLA Timer
+    var getSLA=function(lead){
+      if(!lead.criado_em)return null;
+      if(lead.primeiro_contato_em)return{done:true,mins:Math.round((new Date(lead.primeiro_contato_em)-new Date(lead.criado_em))/60000)};
+      var mins=Math.round((Date.now()-new Date(lead.criado_em))/60000);
+      return{done:false,mins:mins,color:mins<=2?"#4CAF7D":mins<=5?"#E8A94E":"#D45B5B"};
+    };
+    // Score colors
+    var scoreColor=function(s){return s==="A"?"#4CAF7D":s==="B"?"#5B8FD4":s==="C"?"#E8A94E":"#D45B5B"};
     // ═══ CONTATOS ═══
     var _contatos=useState([]);var contatos=_contatos[0];var setContatos=_contatos[1];
     var _cSearch=useState("");var cSearch=_cSearch[0];var setCSearch=_cSearch[1];
@@ -2805,7 +2815,7 @@ function App(){
       </div>
     };
 
-    var isSA=currentUser&&currentUser.role==="super_admin";
+    
     var etapas=[{k:"novo",l:"Novo",c:"#5B8FD4",e:"🆕"},{k:"em_contato",l:"Em Contato",c:"#E8A94E",e:"💬"},{k:"qualificado",l:"Qualificado",c:G,e:"⭐"},{k:"proposta",l:"Proposta",c:"#8B6FBF",e:"📋"},{k:"fechado",l:"Fechado",c:"#4CAF7D",e:"✅"},{k:"perdido",l:"Perdido",c:"#D45B5B",e:"❌"}];
     var etapaColor=function(e){var f=etapas.find(function(x){return x.k===e});return f?f.c:"#555"};
     var etapaLabel=function(e){var f=etapas.find(function(x){return x.k===e});return f?f.l:e};
@@ -2861,14 +2871,50 @@ function App(){
       var c=Object.assign({},unreadCounts);delete c[lead.id];setUnreadCounts(c);
     };
 
+    var _showLead360=useState(false);var showLead360=_showLead360[0];var setShowLead360=_showLead360[1];
+    var _showPerdaModal=useState(false);var showPerdaModal=_showPerdaModal[0];var setShowPerdaModal=_showPerdaModal[1];
+    var motivosPerda=["Preço acima do orçamento","Financiamento não aprovado","Escolheu concorrente","Desistiu da compra","Localização","Prazo da obra","Sem resposta há 30+ dias","Outro"];
+
+    var changeEtapa=async function(leadId,novaEtapa){
+      if(novaEtapa==="perdido"){setShowPerdaModal(true);return}
+      await WA.updateLeadEtapa(leadId,novaEtapa);
+      setWaSel(Object.assign({},waSel,{etapa_funil:novaEtapa}));
+      await loadData();wmsg("Etapa: "+etapaLabel(novaEtapa));
+    };
+
+    var confirmarPerda=async function(motivo){
+      await sb.from("leads_whatsapp").update({etapa_funil:"perdido",motivo_perda:motivo,atualizado_em:new Date().toISOString()}).eq("id",waSel.id);
+      setWaSel(Object.assign({},waSel,{etapa_funil:"perdido",motivo_perda:motivo}));
+      setShowPerdaModal(false);await loadData();wmsg("Lead perdido: "+motivo);
+    };
+
+    var updateScore=async function(leadId,score){
+      await sb.from("leads_whatsapp").update({score:score}).eq("id",leadId);
+      if(waSel&&waSel.id===leadId)setWaSel(Object.assign({},waSel,{score:score}));
+      await loadData();wmsg("Score: "+score);
+    };
+
+    // Track first contact
     var sendMsg=async function(){
       if(!waInput.trim()||!waSel||waSending)return;
       setWaSending(true);
       var myAtt=waAtt.find(function(a){return a.admin_user_id===currentUser.id});
       var attId=myAtt?myAtt.id:waAtt[0]?waAtt[0].id:null;
       var r=await WA.sendMessage(waSel.id,waInput,attId);
-      if(r.ok){setWaInput("");var m=await WA.getMessages(waSel.id);setWaMsgs(m);wmsg("✅ Mensagem enviada!")}
-      else{wmsg("❌ "+r.error)}
+      if(r.ok){
+        setWaInput("");var m=await WA.getMessages(waSel.id);setWaMsgs(m);
+        // Mark primeiro contato if first outbound
+        if(!waSel.primeiro_contato_em){
+          await sb.from("leads_whatsapp").update({primeiro_contato_em:new Date().toISOString()}).eq("id",waSel.id);
+          setWaSel(Object.assign({},waSel,{primeiro_contato_em:new Date().toISOString()}));
+        }
+        // Auto move from novo → em_contato
+        if(waSel.etapa_funil==="novo"){
+          await WA.updateLeadEtapa(waSel.id,"em_contato");
+          setWaSel(Object.assign({},waSel,{etapa_funil:"em_contato",primeiro_contato_em:new Date().toISOString()}));
+        }
+        wmsg("✅ Enviada!");
+      } else{wmsg("❌ "+r.error)}
       setWaSending(false);
     };
 
@@ -2933,7 +2979,11 @@ function App(){
                 </div>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:4,marginLeft:44}}>
                   <span style={{fontSize:11,color:subColor}}>{getAttName(lead.atendente_id)}</span>
-                  <span style={{fontSize:10,padding:"2px 6px",borderRadius:4,background:etapaColor(lead.etapa_funil)+"12",color:etapaColor(lead.etapa_funil),fontWeight:700}}>{etapaLabel(lead.etapa_funil)}</span>
+                  <div style={{display:"flex",gap:3,alignItems:"center"}}>
+                    {lead.score&&lead.score!=="D"&&<span style={{fontSize:9,fontWeight:800,padding:"1px 5px",borderRadius:4,background:scoreColor(lead.score)+"15",color:scoreColor(lead.score)}}>{lead.score}</span>}
+                    {(function(){var sla=getSLA(lead);if(!sla)return null;if(sla.done)return <span style={{fontSize:9,color:"#4CAF7D"}}>✓{sla.mins}m</span>;if(lead.etapa_funil==="novo")return <span style={{fontSize:9,fontWeight:700,color:sla.color,animation:sla.mins>5?"pulse 1.5s infinite":"none"}}>⏱{sla.mins}m</span>;return null})()}
+                    <span style={{fontSize:10,padding:"2px 6px",borderRadius:4,background:etapaColor(lead.etapa_funil)+"12",color:etapaColor(lead.etapa_funil),fontWeight:700}}>{etapaLabel(lead.etapa_funil)}</span>
+                  </div>
                 </div>
               </div>
             })}
@@ -2942,24 +2992,69 @@ function App(){
         {/* RIGHT: Chat */}
         {waSel && <div style={{flex:1,display:"flex",flexDirection:"column",background:isDark?"#0d0d0c":"#F0EDE6"}}>
           {/* Chat Header */}
-          <div style={{padding:"12px 16px",background:cardBg,borderBottom:"1px solid "+borderColor,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <div style={{display:"flex",alignItems:"center",gap:10}}>
-              <div style={{width:40,height:40,borderRadius:"50%",background:WA_GREEN+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:700,color:WA_GREEN}}>{(waSel.nome||"?")[0].toUpperCase()}</div>
-              <div>
-                <div style={{fontWeight:600,fontSize:16,color:textColor}}>{waSel.nome||waSel.telefone}</div>
-                <div style={{fontSize:12,color:subColor}}>{waSel.telefone} · {getAttName(waSel.atendente_id)} · {waSel.origem}</div>
+          <div style={{padding:"12px 16px",background:cardBg,borderBottom:"1px solid "+borderColor}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <div style={{width:40,height:40,borderRadius:"50%",background:WA_GREEN+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:700,color:WA_GREEN,position:"relative"}}>{(waSel.nome||"?")[0].toUpperCase()}
+                  {waSel.score&&<span style={{position:"absolute",bottom:-2,right:-2,fontSize:9,fontWeight:800,padding:"1px 4px",borderRadius:4,background:scoreColor(waSel.score||"D"),color:"#fff"}}>{waSel.score||"D"}</span>}
+                </div>
+                <div>
+                  <div style={{fontWeight:600,fontSize:16,color:textColor}}>{waSel.nome||waSel.telefone}</div>
+                  <div style={{fontSize:12,color:subColor}}>{waSel.telefone} · {getAttName(waSel.atendente_id)} · {waSel.origem}</div>
+                </div>
+              </div>
+              <div style={{display:"flex",gap:4,alignItems:"center"}}>
+                {isSA&&<select value={waSel.score||"D"} onChange={function(e){e.stopPropagation();updateScore(waSel.id,e.target.value)}} style={{padding:"4px 6px",borderRadius:6,fontSize:11,fontWeight:700,background:scoreColor(waSel.score||"D")+"15",color:scoreColor(waSel.score||"D"),border:"1px solid "+scoreColor(waSel.score||"D")+"25",cursor:"pointer"}}>
+                  <option value="A">A ⭐</option><option value="B">B</option><option value="C">C</option><option value="D">D</option>
+                </select>}
+                {isSA&&<select value={waSel.atendente_id||""} onChange={async function(e){e.stopPropagation();await WA.updateLead(waSel.id,{atendente_id:e.target.value});setWaSel(Object.assign({},waSel,{atendente_id:e.target.value}));await loadData();wmsg("Atendente alterado!")}} style={{padding:"4px 6px",borderRadius:6,fontSize:11,background:cardBg,color:textColor,border:"1px solid "+borderColor,cursor:"pointer"}}>
+                  {waAtt.map(function(a){return <option key={a.id} value={a.id}>{a.nome}</option>})}
+                </select>}
+                <select value={waSel.etapa_funil} onChange={function(e){e.stopPropagation();changeEtapa(waSel.id,e.target.value)}} style={{padding:"4px 6px",borderRadius:6,fontSize:11,background:cardBg,color:textColor,border:"1px solid "+borderColor,cursor:"pointer"}}>
+                  {etapas.map(function(et){return <option key={et.k} value={et.k}>{et.e} {et.l}</option>})}
+                </select>
+                <button className="bh" onClick={function(){setShowLead360(!showLead360)}} title="Visão 360°" style={{width:28,height:28,borderRadius:6,background:showLead360?"#5B8FD415":"transparent",color:showLead360?"#5B8FD4":subColor,border:"none",cursor:"pointer",fontSize:13,display:"flex",alignItems:"center",justifyContent:"center"}}>📋</button>
+                {isSA&&<button className="bh" onClick={async function(e){e.stopPropagation();if(!confirm("Excluir lead "+waSel.nome+"?"))return;await sb.from("mensagens_whatsapp").delete().eq("lead_id",waSel.id);await sb.from("leads_whatsapp").delete().eq("id",waSel.id);setWaSel(null);await loadData();wmsg("🗑️ Excluído!")}} title="Excluir" style={{width:28,height:28,borderRadius:6,background:"rgba(213,91,91,0.1)",color:"#D45B5B",border:"none",cursor:"pointer",fontSize:13,display:"flex",alignItems:"center",justifyContent:"center"}}>🗑️</button>}
+                <button className="bh" onClick={function(){setWaSel(null);setShowLead360(false)}} style={{width:28,height:28,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,background:"transparent",color:subColor,border:"none",cursor:"pointer"}}>✕</button>
               </div>
             </div>
-            <div style={{display:"flex",gap:6,alignItems:"center"}}>
-              {isSA&&<select value={waSel.atendente_id||""} onChange={async function(e){e.stopPropagation();await WA.updateLead(waSel.id,{atendente_id:e.target.value});setWaSel(Object.assign({},waSel,{atendente_id:e.target.value}));await loadData();wmsg("Atendente alterado!")}} style={{padding:"5px 8px",borderRadius:8,fontSize:12,background:cardBg,color:textColor,border:"1px solid "+borderColor,cursor:"pointer"}}>
-                {waAtt.map(function(a){return <option key={a.id} value={a.id}>{a.nome}</option>})}
-              </select>}
-              <select value={waSel.etapa_funil} onChange={async function(e){e.stopPropagation();await WA.updateLeadEtapa(waSel.id,e.target.value);setWaSel(Object.assign({},waSel,{etapa_funil:e.target.value}));await loadData();wmsg("Etapa atualizada!")}} style={{padding:"5px 8px",borderRadius:8,fontSize:12,background:cardBg,color:textColor,border:"1px solid "+borderColor,cursor:"pointer"}}>
-                {etapas.map(function(et){return <option key={et.k} value={et.k}>{et.e} {et.l}</option>})}
-              </select>
-              {isSA&&<button className="bh" onClick={async function(e){e.stopPropagation();if(!confirm("Excluir lead "+waSel.nome+"? Todas as mensagens serão apagadas."))return;await sb.from("mensagens_whatsapp").delete().eq("lead_id",waSel.id);await sb.from("leads_whatsapp").delete().eq("id",waSel.id);setWaSel(null);await loadData();wmsg("🗑️ Lead excluído!")}} title="Excluir lead" style={{width:32,height:32,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,background:"rgba(213,91,91,0.1)",color:"#D45B5B",border:"none",cursor:"pointer"}}>🗑️</button>}
-              <button className="bh" onClick={function(){setWaSel(null)}} style={{width:32,height:32,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,background:"transparent",color:subColor,border:"none",cursor:"pointer"}}>✕</button>
-            </div>
+            {/* SLA Banner for new leads */}
+            {waSel.etapa_funil==="novo"&&!waSel.primeiro_contato_em&&(function(){var sla=getSLA(waSel);if(!sla||sla.done)return null;return <div style={{marginTop:6,padding:"6px 12px",borderRadius:8,background:sla.color+"10",border:"1px solid "+sla.color+"20",fontSize:12,fontWeight:600,color:sla.color,display:"flex",alignItems:"center",gap:6}}>⏱ SLA: {sla.mins} min sem resposta {sla.mins>5&&"— ATRASADO!"}</div>})()}
+            {/* Motivo de perda modal */}
+            {showPerdaModal&&<div style={{marginTop:8,padding:12,borderRadius:10,background:"rgba(213,91,91,0.05)",border:"1px solid rgba(213,91,91,0.15)"}}>
+              <div style={{fontSize:13,fontWeight:600,color:"#D45B5B",marginBottom:8}}>❌ Motivo da perda:</div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+                {motivosPerda.map(function(m2){return <button key={m2} className="bh" onClick={function(){confirmarPerda(m2)}} style={{padding:"6px 12px",borderRadius:8,fontSize:12,background:"rgba(213,91,91,0.08)",color:"#D45B5B",border:"1px solid rgba(213,91,91,0.12)",cursor:"pointer"}}>{m2}</button>})}
+                <button className="bh" onClick={function(){setShowPerdaModal(false)}} style={{padding:"6px 12px",borderRadius:8,fontSize:12,background:"transparent",color:subColor,border:"1px solid "+borderColor,cursor:"pointer"}}>Cancelar</button>
+              </div>
+            </div>}
+            {/* 360° View */}
+            {showLead360&&<div style={{marginTop:8,padding:12,borderRadius:10,background:isDark?"#1a1a19":"#EFEBE4",border:"1px solid "+borderColor,fontSize:13}}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:8}}>
+                <div><span style={{color:subColor}}>Score:</span> <b style={{color:scoreColor(waSel.score||"D")}}>{waSel.score||"D"}</b></div>
+                <div><span style={{color:subColor}}>Origem:</span> {waSel.origem}</div>
+                <div><span style={{color:subColor}}>Criado:</span> {new Date(waSel.criado_em).toLocaleDateString("pt-BR")}</div>
+                <div><span style={{color:subColor}}>Interesse:</span> {waSel.empreendimento_interesse||"—"}</div>
+                <div><span style={{color:subColor}}>Finalidade:</span> {waSel.finalidade||"—"}</div>
+                <div><span style={{color:subColor}}>Prazo:</span> {waSel.prazo_compra||"—"}</div>
+              </div>
+              {waSel.motivo_perda&&<div style={{color:"#D45B5B",fontSize:12}}>❌ Perdido: {waSel.motivo_perda}</div>}
+              {waSel.observacoes&&<div style={{fontSize:12,color:subColor,marginTop:4}}>📝 {waSel.observacoes}</div>}
+              {isSA&&<div style={{display:"flex",gap:4,marginTop:8,flexWrap:"wrap"}}>
+                <select onChange={async function(e){if(!e.target.value)return;await sb.from("leads_whatsapp").update({empreendimento_interesse:e.target.value}).eq("id",waSel.id);setWaSel(Object.assign({},waSel,{empreendimento_interesse:e.target.value}));wmsg("Atualizado!")}} value={waSel.empreendimento_interesse||""} style={{padding:"4px 6px",borderRadius:6,fontSize:11,background:cardBg,color:textColor,border:"1px solid "+borderColor}}>
+                  <option value="">Empreendimento...</option>
+                  {buildings.map(function(b2){return <option key={b2.id} value={b2.id}>{b2.name}</option>})}
+                </select>
+                <select onChange={async function(e){if(!e.target.value)return;await sb.from("leads_whatsapp").update({finalidade:e.target.value}).eq("id",waSel.id);setWaSel(Object.assign({},waSel,{finalidade:e.target.value}))}} value={waSel.finalidade||""} style={{padding:"4px 6px",borderRadius:6,fontSize:11,background:cardBg,color:textColor,border:"1px solid "+borderColor}}>
+                  <option value="">Finalidade...</option>
+                  <option value="moradia">Moradia</option><option value="investimento">Investimento</option><option value="veraneio">Veraneio</option>
+                </select>
+                <select onChange={async function(e){if(!e.target.value)return;await sb.from("leads_whatsapp").update({prazo_compra:e.target.value}).eq("id",waSel.id);setWaSel(Object.assign({},waSel,{prazo_compra:e.target.value}))}} value={waSel.prazo_compra||""} style={{padding:"4px 6px",borderRadius:6,fontSize:11,background:cardBg,color:textColor,border:"1px solid "+borderColor}}>
+                  <option value="">Prazo...</option>
+                  <option value="imediato">Imediato</option><option value="3meses">3 meses</option><option value="6meses">6 meses</option><option value="1ano">1 ano</option><option value="indefinido">Indefinido</option>
+                </select>
+              </div>}
+            </div>}
           </div>
           {/* Messages */}
           <div ref={chatRef} style={{flex:1,overflow:"auto",padding:"16px 20px",display:"flex",flexDirection:"column",gap:4}}>
@@ -3271,8 +3366,8 @@ function App(){
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <div style={{width:42,height:42,borderRadius:12,background:WA_GREEN+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>💬</div>
           <div>
-            <div style={{fontSize:20,fontWeight:700,color:textColor}}>WhatsApp</div>
-            <div style={{fontSize:12,color:subColor}}>{waLeads.length} leads · {totalUnread>0?totalUnread+" não lidos":"tudo lido"}</div>
+            <div style={{fontSize:20,fontWeight:700,color:textColor}}>CRM</div>
+            <div style={{fontSize:12,color:subColor}}>{waLeads.length} leads · {totalUnread>0?totalUnread+" não lidos":"tudo lido"} · {waLeads.filter(function(l){return l.etapa_funil==="novo"}).length} novos</div>
           </div>
         </div>
         <button className="bh" onClick={function(){setMdl(null)}} style={{width:36,height:36,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,background:"transparent",color:subColor,border:"1px solid "+borderColor,cursor:"pointer"}}>✕</button>
@@ -3542,7 +3637,7 @@ function App(){
         <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:10,alignItems:"center"}}>
           <TabBtn active={vw==="home"} onClick={function(){setVw("home")}}>{t.home}</TabBtn>
           {adm && <TabBtn active={vw==="manage"} green onClick={function(){setVw("manage")}}>Gerenciar</TabBtn>}
-          {adm && <span className="bh" onClick={function(){setMdl({t:"waInbox"})}} style={{flexShrink:0,padding:"10px 18px",borderRadius:12,fontSize:16,fontWeight:600,cursor:"pointer",background:"#25D366"+"12",color:"#25D366",border:"1px solid #25D36625",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:6,position:"relative"}}>💬 WhatsApp{waUnreadTotal>0&&<span style={{background:"#D45B5B",color:"#fff",fontSize:11,fontWeight:700,padding:"2px 7px",borderRadius:10,animation:"pulse 2s infinite"}}>{waUnreadTotal}</span>}</span>}
+          {adm && <span className="bh" onClick={function(){setMdl({t:"waInbox"})}} style={{flexShrink:0,padding:"10px 18px",borderRadius:12,fontSize:16,fontWeight:600,cursor:"pointer",background:"#25D366"+"12",color:"#25D366",border:"1px solid #25D36625",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:6,position:"relative"}}>💼 CRM{waUnreadTotal>0&&<span style={{background:"#D45B5B",color:"#fff",fontSize:11,fontWeight:700,padding:"2px 7px",borderRadius:10,animation:"pulse 2s infinite"}}>{waUnreadTotal}</span>}</span>}
           {vis.map(function(b){return <TabBtn key={b.id} active={vw==="detail"&&sel===b.id} onClick={function(){go(b.id)}}>{b.name.replace("Ed. ","").replace("Res. ","").replace("Imóveis de ","")}</TabBtn>})}
           <div style={{flex:1}}/>
           {broker && <span className="bh" onClick={function(){setMdl({t:"brokerDash"})}} style={{flexShrink:0,padding:"7px 14px",borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",background:"rgba(91,143,212,0.08)",color:"#5B8FD4",border:"1px solid rgba(91,143,212,0.12)",display:"flex",alignItems:"center",gap:4}}>👤 {broker.nome.split(" ")[0]}</span>}
