@@ -436,6 +436,8 @@ var SmartImg = function(props){
 function App(){
   var _rdy = useState(false); var rdy = _rdy[0]; var setRdy = _rdy[1];
   var _buildings = useState([]); var buildings = _buildings[0]; var setBuildings = _buildings[1];
+  var _allPromos = useState([]); var allPromos = _allPromos[0]; var setAllPromos = _allPromos[1];
+  var refreshPromos = async function(){try{var r=await sb.from("promocoes").select("*").eq("ativo",true).eq("destaque",true).order("criado_em",{ascending:false});setAllPromos(r.data||[])}catch(e){}};
   var _allUnits = useState([]); var allUnits = _allUnits[0]; var setAllUnits = _allUnits[1];
   var _allPhotos = useState([]); var allPhotos = _allPhotos[0]; var setAllPhotos = _allPhotos[1];
   var _allPlants = useState([]); var allPlants = _allPlants[0]; var setAllPlants = _allPlants[1];
@@ -562,6 +564,7 @@ function App(){
       setCfg(results[0]);setBuildings(results[1]);setAllUnits(results[2]);setAllPhotos(results[3]);setAllPlants(results[4]);setAllDocs(results[5]);setAllNotices(results[6]);setBrokers(results[7]);setSales(results[8]);setAdminUsers(results[9]);setTasks(results[10]);
     } catch(e){ console.log("Load error:", e); }
     setRdy(true);
+    refreshPromos();
   };
   useEffect(function(){ loadAll(); }, []);
 
@@ -663,6 +666,34 @@ function App(){
           <div style={{fontSize:14,color:subColor,marginTop:4}}>{vis.length} {lang==="en"?"active":lang==="es"?"activos":"ativos"}</div>
         </div>
         <div className="bld-grid">
+        {/* ═══ PROMO BANNERS ═══ */}
+        {allPromos.filter(function(p){return !p.validade||new Date(p.validade)>=new Date()}).length>0&&<div style={{gridColumn:"1/-1",marginBottom:8}}>
+          {allPromos.filter(function(p){return !p.validade||new Date(p.validade)>=new Date()}).map(function(p){
+            var bld2=buildings.find(function(b){return b.id===p.building_id});
+            var unit2=p.unit_id?getUnits(p.building_id).find(function(u){return u.id===p.unit_id}):null;
+            var cover2=bld2?getCover(bld2.id):"";
+            if(!bld2)return null;
+            return <div key={p.id} className="bh ch" onClick={function(){go(bld2.id);setTimeout(function(){setDtab("promos")},100)}} style={{cursor:"pointer",borderRadius:16,overflow:"hidden",marginBottom:10,border:"2px solid #E8A94E30",background:"linear-gradient(135deg,#E8A94E08,"+bld2.color+"05)",position:"relative"}}>
+              <div style={{display:"flex",minHeight:120}}>
+                {cover2&&<div style={{width:160,flexShrink:0,background:"url("+cover2+") center/cover"}}/>}
+                <div style={{flex:1,padding:"16px 20px",display:"flex",flexDirection:"column",justifyContent:"center"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
+                    <span style={{fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:6,background:"#E8A94E",color:"#0a0a09",textTransform:"uppercase",letterSpacing:1}}>🏷️ {lang==="en"?"Special Offer":"Oferta Especial"}</span>
+                    {p.validade&&<span style={{fontSize:11,color:subColor}}>até {new Date(p.validade).toLocaleDateString("pt-BR")}</span>}
+                  </div>
+                  <div style={{fontSize:20,fontWeight:700,color:"#E8A94E",lineHeight:1.2}}>{p.titulo}</div>
+                  <div style={{fontSize:13,color:subColor,marginTop:4}}>{bld2.name}{unit2?" — "+unit2.name:""}</div>
+                  {p.descricao&&<div style={{fontSize:13,color:subColor,marginTop:4,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{p.descricao}</div>}
+                  <div style={{display:"flex",alignItems:"baseline",gap:10,marginTop:8}}>
+                    {p.preco_promocional&&<span style={{fontSize:24,fontWeight:700,color:"#4CAF7D"}}>{fmt(p.preco_promocional)}</span>}
+                    {p.preco_promocional&&unit2&&<span style={{fontSize:14,color:subColor,textDecoration:"line-through"}}>{fmt(cp(unit2,bld2))}</span>}
+                  </div>
+                  {p.condicao_pagamento&&<div style={{fontSize:13,color:"#4CAF7D",fontWeight:600,marginTop:4}}>💰 {p.condicao_pagamento}</div>}
+                </div>
+              </div>
+            </div>
+          })}
+        </div>}
         {vis.map(function(b,idx){
           var cover = getCover(b.id);
           var units = getUnits(b.id);
@@ -760,7 +791,9 @@ function App(){
         </div>}
 
         <div style={{display:"flex",gap:6,overflowX:"auto",marginBottom:16,paddingBottom:4}}>
-          {[{id:"table",i:cfg.restrict_tables==="true"&&!adm&&!broker?"🔒":"📊",l:t.table},{id:"photos",i:"📸",l:t.photos},{id:"plants",i:"📐",l:t.plants},{id:"map",i:"📍",l:lang==="en"?"Map":lang==="es"?"Mapa":"Mapa"},{id:"promos",i:"🏷️",l:lang==="en"?"Offers":lang==="es"?"Ofertas":"Ofertas"},{id:"docs",i:"📄",l:t.docs},{id:"notices",i:"📢",l:t.notices}].map(function(tab){
+          {[{id:"table",i:cfg.restrict_tables==="true"&&!adm&&!broker?"🔒":"📊",l:t.table},{id:"photos",i:"📸",l:t.photos},{id:"plants",i:"📐",l:t.plants},{id:"map",i:"📍",l:lang==="en"?"Map":lang==="es"?"Mapa":"Mapa"}].concat(
+            (adm||allPromos.filter(function(p){return p.building_id===bld.id}).length>0)?[{id:"promos",i:"🏷️",l:lang==="en"?"Offers":lang==="es"?"Ofertas":"Ofertas"}]:[]
+          ).concat([{id:"docs",i:"📄",l:t.docs},{id:"notices",i:"📢",l:t.notices}]).map(function(tab){
             return <div key={tab.id} className="bh" onClick={function(){setDtab(tab.id)}} style={{flexShrink:0,padding:"10px 16px",borderRadius:10,fontSize:14,fontWeight:600,cursor:"pointer",background:dtab===tab.id?bld.color+"20":"#141413",color:dtab===tab.id?bld.color:subColor,border:dtab===tab.id?"1px solid "+bld.color+"30":"1px solid rgba(255,255,255,0.04)"}}>{tab.i} {tab.l}</div>;
           })}
         </div>
@@ -1070,14 +1103,14 @@ function App(){
           {(function(){
             var _promos=useState([]);var promos=_promos[0];var setPromos=_promos[1];
             var _showForm=useState(false);var showForm=_showForm[0];var setShowForm=_showForm[1];
-            var _pForm=useState({titulo:"",descricao:"",unit_id:"",preco_promocional:"",condicao_pagamento:"",validade:""});var pForm=_pForm[0];var setPForm=_pForm[1];
+            var _pForm=useState({titulo:"",descricao:"",unit_id:"",preco_promocional:"",condicao_pagamento:"",validade:"",destaque:true});var pForm=_pForm[0];var setPForm=_pForm[1];
             useEffect(function(){sb.from("promocoes").select("*").eq("building_id",bld.id).eq("ativo",true).order("criado_em",{ascending:false}).then(function(r){setPromos(r.data||[])})},[]);
             var bldUnits=getUnits(bld.id);
             var savePromo=async function(){
               if(!pForm.titulo.trim())return;
-              await sb.from("promocoes").insert({building_id:bld.id,unit_id:pForm.unit_id||null,titulo:pForm.titulo,descricao:pForm.descricao,preco_promocional:pForm.preco_promocional?+pForm.preco_promocional:null,condicao_pagamento:pForm.condicao_pagamento,validade:pForm.validade||null,destaque:true,ativo:true});
+              await sb.from("promocoes").insert({building_id:bld.id,unit_id:pForm.unit_id||null,titulo:pForm.titulo,descricao:pForm.descricao,preco_promocional:pForm.preco_promocional?+pForm.preco_promocional:null,condicao_pagamento:pForm.condicao_pagamento,validade:pForm.validade||null,destaque:pForm.destaque!==false,ativo:true});
               var r=await sb.from("promocoes").select("*").eq("building_id",bld.id).eq("ativo",true).order("criado_em",{ascending:false});
-              setPromos(r.data||[]);setPForm({titulo:"",descricao:"",unit_id:"",preco_promocional:"",condicao_pagamento:"",validade:""});setShowForm(false);msg("✅ Oferta criada!");
+              setPromos(r.data||[]);setPForm({titulo:"",descricao:"",unit_id:"",preco_promocional:"",condicao_pagamento:"",validade:"",destaque:true});setShowForm(false);refreshPromos();msg("✅ Oferta criada!");
             };
             return <div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
@@ -1098,6 +1131,10 @@ function App(){
                   <input type="date" style={Object.assign({},mI,{fontSize:13,flex:1})} value={pForm.validade} onChange={function(e){setPForm(Object.assign({},pForm,{validade:e.target.value}))}}/>
                 </div>
                 <input style={Object.assign({},mI,{fontSize:13})} value={pForm.condicao_pagamento} onChange={function(e){setPForm(Object.assign({},pForm,{condicao_pagamento:e.target.value}))}} placeholder="Condição de pagamento (ex: 20% entrada + 48x)"/>
+                <label style={{display:"flex",alignItems:"center",gap:8,fontSize:13,color:textColor,marginBottom:10,cursor:"pointer"}}>
+                  <input type="checkbox" checked={pForm.destaque!==false} onChange={function(e){setPForm(Object.assign({},pForm,{destaque:e.target.checked}))}}/>
+                  🏷️ Destacar como banner na página inicial
+                </label>
                 <div style={{display:"flex",gap:6}}>
                   <button className="bh" onClick={savePromo} style={{padding:"8px 20px",borderRadius:8,background:"#E8A94E",color:"#0a0a09",border:"none",cursor:"pointer",fontSize:13,fontWeight:600}}>💾 Salvar</button>
                   <button className="bh" onClick={function(){setShowForm(false)}} style={{padding:"8px 20px",borderRadius:8,background:"transparent",color:subColor,border:"1px solid "+borderColor,cursor:"pointer",fontSize:13}}>Cancelar</button>
@@ -1128,7 +1165,7 @@ function App(){
                         var text="🏷️ *OFERTA ESPECIAL*\n\n🏢 *"+bld.name+"*\n"+(unit?"📍 "+unit.name+" — "+unit.area+"m²\n":"")+"\n✨ "+p.titulo+"\n"+(p.descricao?p.descricao+"\n":"")+(p.preco_promocional?"\n💰 *"+fmt(p.preco_promocional)+"*\n":"")+(p.condicao_pagamento?"💳 "+p.condicao_pagamento+"\n":"")+(p.validade?"\n⏰ Válido até "+new Date(p.validade).toLocaleDateString("pt-BR"):"");
                         if(navigator.share){navigator.share({title:p.titulo,text:text})}else{navigator.clipboard.writeText(text);msg("📋 Copiado!")}
                       }} style={{padding:"5px 12px",borderRadius:6,fontSize:12,background:bld.color+"10",color:bld.color,border:"none",cursor:"pointer"}}>📤 Compartilhar</button>
-                      {adm&&<button className="bh" onClick={async function(){await sb.from("promocoes").update({ativo:false}).eq("id",p.id);var r=await sb.from("promocoes").select("*").eq("building_id",bld.id).eq("ativo",true);setPromos(r.data||[]);msg("Oferta removida")}} style={{padding:"5px 12px",borderRadius:6,fontSize:12,background:"rgba(213,91,91,0.1)",color:"#D45B5B",border:"none",cursor:"pointer"}}>🗑️</button>}
+                      {adm&&<button className="bh" onClick={async function(){await sb.from("promocoes").update({ativo:false}).eq("id",p.id);var r=await sb.from("promocoes").select("*").eq("building_id",bld.id).eq("ativo",true);setPromos(r.data||[]);refreshPromos();msg("Oferta removida")}} style={{padding:"5px 12px",borderRadius:6,fontSize:12,background:"rgba(213,91,91,0.1)",color:"#D45B5B",border:"none",cursor:"pointer"}}>🗑️</button>}
                     </div>
                   </div>
                 </div>
