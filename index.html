@@ -3426,7 +3426,10 @@ function App(){
 
   // ═══ SIMULATOR MODAL ═══
   function SimModal(){
-    var data=simUnit;var b=data.b;var u=data.u;var price=cp(u,b);
+    var data=simUnit;var b=data.b;var u=data.u;
+    var usdR=getUsdRate();
+    var rawPrice=cp(u,b); // Always BRL
+    var price=showUsd?Math.round(rawPrice/usdR):rawPrice; // In display currency
     var finConfig=b.financing||{};
     var defaultDown=finConfig.entradaPct||30;
     var parcOpts=finConfig.parcelasOpcoes?finConfig.parcelasOpcoes.split(",").map(Number):[24,36,48,60,72,96,120];
@@ -3438,7 +3441,7 @@ function App(){
     var _balaoFreq=useState("none");var balaoFreq=_balaoFreq[0];var setBalaoFreq=_balaoFreq[1];
     var _balaoMode=useState("fixo");var balaoMode=_balaoMode[0];var setBalaoMode=_balaoMode[1];
     var _balaoPct=useState(5);var balaoPct=_balaoPct[0];var setBalaoPct=_balaoPct[1];
-    var _balaoFixo=useState(50000);var balaoFixo=_balaoFixo[0];var setBalaoFixo=_balaoFixo[1];
+    var _balaoFixo=useState(showUsd?10000:50000);var balaoFixo=_balaoFixo[0];var setBalaoFixo=_balaoFixo[1];
     var _clientName=useState("");var clientName=_clientName[0];var setClientName=_clientName[1];
     var totalEntrada=down+bemVal;var saldo=Math.max(price-totalEntrada,0);
     var balaoMeses=balaoFreq==="trimestral"?3:balaoFreq==="semestral"?6:balaoFreq==="anual"?12:0;
@@ -3449,10 +3452,9 @@ function App(){
     var mr=rate/100;var pmt=months>0?(mr>0?saldoParcelas*(mr*Math.pow(1+mr,months))/(Math.pow(1+mr,months)-1):saldoParcelas/months):0;
     var totalPago=totalEntrada+(pmt*months)+totalBaloes;
     var indice=finConfig.indice||"CUB-SC";
-    // USD helpers
-    var usdR=getUsdRate();
-    var $=function(v){return showUsd?fmtUsd(Math.round(v/usdR)):fmt(v)};
-    var $eq=function(v){return showUsd?" ("+fmt(v)+")":""};
+    // Display helpers — everything already in display currency
+    var $=function(v){return showUsd?fmtUsd(Math.round(v)):fmt(v)};
+    var $eq=function(v){return showUsd?" ("+fmt(Math.round(v*usdR))+")":""};
     var curr=showUsd?"USD":"BRL";
     var usdDisclaimer=showUsd?"⚠️ Valores em USD são referenciais. A cotação será definida no momento do fechamento, considerando a volatilidade cambial. Ref: R$ "+usdR.toFixed(2)+"/USD. Contratos em BRL.":"";
 
@@ -3461,7 +3463,7 @@ function App(){
       var coverImg=b.cover_photo?"<img src='"+b.cover_photo+"' style='width:100%;max-height:200px;object-fit:cover;border-radius:12px;margin-bottom:20px'/>":"";
       var logo=cfg.report_logo?"<img src='"+cfg.report_logo+"' style='max-height:45px;max-width:160px'/>":"";
       var clientLine=clientName?"<div style='font-size:14px;color:#555;margin-bottom:16px'>Cliente: <strong style=\"color:#1a1a1a\">"+clientName+"</strong></div>":"";
-      var pf=function(v){return showUsd?fmtUsd(Math.round(v/usdR)):fmt(v)};
+      var pf=function(v){return showUsd?fmtUsd(Math.round(v)):fmt(v)};
       var peq=function(v){return showUsd?"<span style='font-size:11px;color:#999'>("+fmt(v)+")</span>":""};
       var usdNote=showUsd?"<div style='background:#FFF8E7;border:1px solid #E8A94E;border-radius:8px;padding:12px;margin:12px 0;font-size:10px;color:#856404;text-align:center;line-height:1.6'>⚠️ Valores em USD são referenciais. A cotação do dólar será definida no momento do fechamento, considerando a volatilidade cambial.<br>Referência: R$ "+usdR.toFixed(2)+"/USD · Contratos em BRL</div>":"";
       var discountHtml="";
