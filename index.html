@@ -667,8 +667,8 @@ function App(){
         </div>
         <div className="bld-grid">
         {/* ═══ PROMO BANNERS ═══ */}
-        {allPromos.filter(function(p){return !p.validade||new Date(p.validade)>=new Date()}).length>0&&<div style={{gridColumn:"1/-1",marginBottom:8}}>
-          {allPromos.filter(function(p){return !p.validade||new Date(p.validade)>=new Date()}).map(function(p){
+        {allPromos.filter(function(p){return (!p.validade||new Date(p.validade)>=new Date())&&(p.visibilidade!=="corretores"||(broker||adm))}).length>0&&<div style={{gridColumn:"1/-1",marginBottom:8}}>
+          {allPromos.filter(function(p){return (!p.validade||new Date(p.validade)>=new Date())&&(p.visibilidade!=="corretores"||(broker||adm))}).map(function(p){
             var bld2=buildings.find(function(b){return b.id===p.building_id});
             var unit2=p.unit_id?getUnits(p.building_id).find(function(u){return u.id===p.unit_id}):null;
             var cover2=bld2?getCover(bld2.id):"";
@@ -745,19 +745,37 @@ function App(){
     // Promos state
     var _promos=useState([]);var promos=_promos[0];var setPromos=_promos[1];
     var _showPromoForm=useState(false);var showPromoForm=_showPromoForm[0];var setShowPromoForm=_showPromoForm[1];
-    var _pForm=useState({titulo:"",descricao:"",unit_id:"",preco_promocional:"",condicao_pagamento:"",validade:"",destaque:true});var pForm=_pForm[0];var setPForm=_pForm[1];
+    var _editPromo=useState(null);var editPromo=_editPromo[0];var setEditPromo=_editPromo[1];
+    var _pForm=useState({titulo:"",descricao:"",unit_id:"",preco_promocional:"",condicao_pagamento:"",validade:"",destaque:true,visibilidade:"todos"});var pForm=_pForm[0];var setPForm=_pForm[1];
     useEffect(function(){
       sb.from("promocoes").select("*").eq("building_id",bld.id).eq("ativo",true).order("criado_em",{ascending:false}).then(function(r){setPromos(r.data||[])});
     },[bld.id]);
+    var reloadPromos=async function(){var r=await sb.from("promocoes").select("*").eq("building_id",bld.id).eq("ativo",true).order("criado_em",{ascending:false});setPromos(r.data||[]);refreshPromos()};
     var savePromo=async function(){
       if(!pForm.titulo.trim()){msg("Preencha o título");return}
       try{
-        var res=await sb.from("promocoes").insert({building_id:bld.id,unit_id:pForm.unit_id||null,titulo:pForm.titulo,descricao:pForm.descricao,preco_promocional:pForm.preco_promocional?+pForm.preco_promocional:null,condicao_pagamento:pForm.condicao_pagamento,validade:pForm.validade||null,destaque:pForm.destaque!==false,ativo:true});
-        if(res.error){msg("❌ Erro: "+res.error.message);console.error("Promo insert error:",res.error);return}
-        var r=await sb.from("promocoes").select("*").eq("building_id",bld.id).eq("ativo",true).order("criado_em",{ascending:false});
-        setPromos(r.data||[]);setPForm({titulo:"",descricao:"",unit_id:"",preco_promocional:"",condicao_pagamento:"",validade:"",destaque:true});setShowPromoForm(false);refreshPromos();msg("✅ Oferta criada!");
-      }catch(e){msg("❌ "+e.message);console.error(e)}
+        if(editPromo){
+          var res=await sb.from("promocoes").update({titulo:pForm.titulo,descricao:pForm.descricao,unit_id:pForm.unit_id||null,preco_promocional:pForm.preco_promocional?+pForm.preco_promocional:null,condicao_pagamento:pForm.condicao_pagamento,validade:pForm.validade||null,destaque:pForm.destaque!==false,visibilidade:pForm.visibilidade||"todos"}).eq("id",editPromo);
+          if(res.error){msg("❌ "+res.error.message);return}
+          setEditPromo(null);
+        }else{
+          var res=await sb.from("promocoes").insert({building_id:bld.id,unit_id:pForm.unit_id||null,titulo:pForm.titulo,descricao:pForm.descricao,preco_promocional:pForm.preco_promocional?+pForm.preco_promocional:null,condicao_pagamento:pForm.condicao_pagamento,validade:pForm.validade||null,destaque:pForm.destaque!==false,visibilidade:pForm.visibilidade||"todos",ativo:true});
+          if(res.error){msg("❌ "+res.error.message);console.error(res.error);return}
+        }
+        setPForm({titulo:"",descricao:"",unit_id:"",preco_promocional:"",condicao_pagamento:"",validade:"",destaque:true,visibilidade:"todos"});setShowPromoForm(false);await reloadPromos();msg(editPromo?"✅ Oferta atualizada!":"✅ Oferta criada!");
+      }catch(e){msg("❌ "+e.message)}
     };
+    var startEditPromo=function(p){
+      setEditPromo(p.id);
+      setPForm({titulo:p.titulo||"",descricao:p.descricao||"",unit_id:p.unit_id||"",preco_promocional:p.preco_promocional||"",condicao_pagamento:p.condicao_pagamento||"",validade:p.validade?p.validade.substring(0,10):"",destaque:p.destaque!==false,visibilidade:p.visibilidade||"todos"});
+      setShowPromoForm(true);
+    };
+    // Filter promos by visibility
+    var visiblePromos=promos.filter(function(p){
+      if(adm)return true;
+      if(p.visibilidade==="corretores")return !!broker||!!adm;
+      return true;
+    });
 
     return(
       <div style={{padding:"20px clamp(16px, 4vw, 48px)"}}>
@@ -1122,7 +1140,7 @@ function App(){
                 {adm&&<button className="bh" onClick={function(){setShowPromoForm(!showPromoForm)}} style={{padding:"6px 14px",borderRadius:8,background:"#E8A94E10",color:"#E8A94E",border:"1px solid #E8A94E25",cursor:"pointer",fontSize:13,fontWeight:600}}>+ {lang==="en"?"New Offer":"Nova Oferta"}</button>}
               </div>
               {showPromoForm&&adm&&<div style={{padding:14,borderRadius:12,background:cardBg,border:"1px solid rgba(232,169,78,0.15)",marginBottom:14}}>
-                <div style={{fontSize:14,fontWeight:600,color:"#E8A94E",marginBottom:10}}>✨ Criar Oferta</div>
+                <div style={{fontSize:14,fontWeight:600,color:"#E8A94E",marginBottom:10}}>{editPromo?"✏️ Editar Oferta":"✨ Criar Oferta"}</div>
                 <select style={Object.assign({},mI,{fontSize:13})} value={pForm.unit_id} onChange={function(e){setPForm(Object.assign({},pForm,{unit_id:e.target.value}))}}>
                   <option value="">Todas as unidades</option>
                   {units.filter(function(u){return u.status==="available"}).map(function(u){return <option key={u.id} value={u.id}>{u.name} — {u.area}m²</option>})}
@@ -1134,23 +1152,32 @@ function App(){
                   <input type="date" style={Object.assign({},mI,{fontSize:13,flex:1})} value={pForm.validade} onChange={function(e){setPForm(Object.assign({},pForm,{validade:e.target.value}))}}/>
                 </div>
                 <input style={Object.assign({},mI,{fontSize:13})} value={pForm.condicao_pagamento} onChange={function(e){setPForm(Object.assign({},pForm,{condicao_pagamento:e.target.value}))}} placeholder="Condição de pagamento (ex: 20% entrada + 48x)"/>
-                <label style={{display:"flex",alignItems:"center",gap:8,fontSize:13,color:textColor,marginBottom:10,cursor:"pointer"}}>
-                  <input type="checkbox" checked={pForm.destaque!==false} onChange={function(e){setPForm(Object.assign({},pForm,{destaque:e.target.checked}))}}/>
-                  🏷️ Destacar como banner na página inicial
-                </label>
+                <div style={{display:"flex",gap:16,marginBottom:10}}>
+                  <label style={{display:"flex",alignItems:"center",gap:6,fontSize:13,color:textColor,cursor:"pointer"}}>
+                    <input type="checkbox" checked={pForm.destaque!==false} onChange={function(e){setPForm(Object.assign({},pForm,{destaque:e.target.checked}))}}/>
+                    🏷️ Banner na home
+                  </label>
+                  <select style={{padding:"4px 8px",borderRadius:6,fontSize:12,background:cardBg,color:textColor,border:"1px solid "+borderColor}} value={pForm.visibilidade||"todos"} onChange={function(e){setPForm(Object.assign({},pForm,{visibilidade:e.target.value}))}}>
+                    <option value="todos">👁️ Visível para todos</option>
+                    <option value="corretores">🔒 Só corretores logados</option>
+                  </select>
+                </div>
                 <div style={{display:"flex",gap:6}}>
-                  <button className="bh" onClick={savePromo} style={{padding:"8px 20px",borderRadius:8,background:"#E8A94E",color:"#0a0a09",border:"none",cursor:"pointer",fontSize:13,fontWeight:600}}>💾 Salvar</button>
-                  <button className="bh" onClick={function(){setShowPromoForm(false)}} style={{padding:"8px 20px",borderRadius:8,background:"transparent",color:subColor,border:"1px solid "+borderColor,cursor:"pointer",fontSize:13}}>Cancelar</button>
+                  <button className="bh" onClick={savePromo} style={{padding:"8px 20px",borderRadius:8,background:"#E8A94E",color:"#0a0a09",border:"none",cursor:"pointer",fontSize:13,fontWeight:600}}>💾 {editPromo?"Atualizar":"Salvar"}</button>
+                  <button className="bh" onClick={function(){setShowPromoForm(false);setEditPromo(null);setPForm({titulo:"",descricao:"",unit_id:"",preco_promocional:"",condicao_pagamento:"",validade:"",destaque:true,visibilidade:"todos"})}} style={{padding:"8px 20px",borderRadius:8,background:"transparent",color:subColor,border:"1px solid "+borderColor,cursor:"pointer",fontSize:13}}>Cancelar</button>
                 </div>
               </div>}
-              {promos.length===0&&<div style={{padding:30,textAlign:"center",color:subColor}}>Nenhuma oferta ativa</div>}
-              {promos.map(function(p){
+              {visiblePromos.length===0&&<div style={{padding:30,textAlign:"center",color:subColor}}>Nenhuma oferta ativa</div>}
+              {visiblePromos.map(function(p){
                 var unit=p.unit_id?units.find(function(u){return u.id===p.unit_id}):null;
                 var expired=p.validade&&new Date(p.validade)<new Date();
                 return <div key={p.id} style={{padding:16,borderRadius:14,background:"linear-gradient(135deg,"+bld.color+"08,#E8A94E06)",border:"1px solid #E8A94E20",marginBottom:10,opacity:expired?0.5:1}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                     <div>
-                      {p.destaque&&<span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:4,background:"#E8A94E",color:"#0a0a09",marginRight:6}}>BANNER</span>}
+                      <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:4}}>
+                        {p.destaque&&<span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:4,background:"#E8A94E",color:"#0a0a09"}}>BANNER</span>}
+                        <span style={{fontSize:10,fontWeight:600,padding:"2px 8px",borderRadius:4,background:p.visibilidade==="corretores"?"rgba(91,143,212,0.1)":"rgba(76,175,125,0.1)",color:p.visibilidade==="corretores"?"#5B8FD4":"#4CAF7D"}}>{p.visibilidade==="corretores"?"🔒 Corretores":"👁️ Todos"}</span>
+                      </div>
                       {unit&&<span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:6,background:bld.color+"15",color:bld.color,display:"inline-block",marginBottom:4}}>{unit.name} — {unit.area}m²</span>}
                       <div style={{fontSize:18,fontWeight:700,color:"#E8A94E",marginTop:4}}>{p.titulo}</div>
                     </div>
@@ -1168,7 +1195,8 @@ function App(){
                         var text="🏷️ *OFERTA ESPECIAL*\n\n🏢 *"+bld.name+"*\n"+(unit?"📍 "+unit.name+" — "+unit.area+"m²\n":"")+"\n✨ "+p.titulo+"\n"+(p.descricao?p.descricao+"\n":"")+(p.preco_promocional?"\n💰 *"+fmt(p.preco_promocional)+"*\n":"")+(p.condicao_pagamento?"💳 "+p.condicao_pagamento+"\n":"")+(p.validade?"\n⏰ Válido até "+new Date(p.validade).toLocaleDateString("pt-BR"):"");
                         if(navigator.share){navigator.share({title:p.titulo,text:text})}else{navigator.clipboard.writeText(text);msg("📋 Copiado!")}
                       }} style={{padding:"5px 12px",borderRadius:6,fontSize:12,background:bld.color+"10",color:bld.color,border:"none",cursor:"pointer"}}>📤</button>
-                      {adm&&<button className="bh" onClick={async function(){await sb.from("promocoes").update({ativo:false}).eq("id",p.id);var r=await sb.from("promocoes").select("*").eq("building_id",bld.id).eq("ativo",true);setPromos(r.data||[]);refreshPromos();msg("Removida")}} style={{padding:"5px 12px",borderRadius:6,fontSize:12,background:"rgba(213,91,91,0.1)",color:"#D45B5B",border:"none",cursor:"pointer"}}>🗑️</button>}
+                      {adm&&<button className="bh" onClick={function(){startEditPromo(p)}} style={{padding:"5px 12px",borderRadius:6,fontSize:12,background:"rgba(91,143,212,0.1)",color:"#5B8FD4",border:"none",cursor:"pointer"}}>✏️</button>}
+                      {adm&&<button className="bh" onClick={async function(){await sb.from("promocoes").update({ativo:false}).eq("id",p.id);await reloadPromos();msg("Removida")}} style={{padding:"5px 12px",borderRadius:6,fontSize:12,background:"rgba(213,91,91,0.1)",color:"#D45B5B",border:"none",cursor:"pointer"}}>🗑️</button>}
                     </div>
                   </div>
                 </div>
