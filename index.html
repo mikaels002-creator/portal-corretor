@@ -2643,6 +2643,10 @@ function App(){
     // Local toast (does NOT trigger App re-render)
     var _waToast=useState(null);var waToast=_waToast[0];var setWaToast=_waToast[1];
     var wmsg=function(m){setWaToast(m);setTimeout(function(){setWaToast(null)},2500)};
+    // Quick messages
+    var _quickMsgs=useState([]);var quickMsgs=_quickMsgs[0];var setQuickMsgs=_quickMsgs[1];
+    var _showQuick=useState(false);var showQuick=_showQuick[0];var setShowQuick=_showQuick[1];
+    useEffect(function(){sb.from("mensagens_prontas").select("*").eq("ativo",true).order("ordem").then(function(r){setQuickMsgs(r.data||[])})},[])
 
     var WA_GREEN="#25D366";
     // ═══ CONTATOS ═══
@@ -2983,7 +2987,17 @@ function App(){
             })}
           </div>
           {/* Input */}
-          <div style={{padding:"10px 14px",background:cardBg,borderTop:"1px solid "+borderColor,display:"flex",gap:8,alignItems:"center"}}>
+          {/* Quick Messages Panel */}
+          {showQuick&&<div style={{padding:8,borderBottom:"1px solid "+borderColor,maxHeight:180,overflow:"auto",display:"flex",flexWrap:"wrap",gap:4}}>
+            {quickMsgs.map(function(qm){
+              return <button key={qm.id} className="bh" onClick={function(){setWaInput(qm.conteudo);setShowQuick(false)}} style={{padding:"6px 10px",borderRadius:8,fontSize:12,background:qm.categoria==="lead"?"#25D36608":qm.categoria==="corretor"?"#5B8FD408":"#8B6FBF08",color:qm.categoria==="lead"?"#25D366":qm.categoria==="corretor"?"#5B8FD4":"#8B6FBF",border:"1px solid "+(qm.categoria==="lead"?"#25D36615":"#5B8FD415"),cursor:"pointer",textAlign:"left"}}>
+                <div style={{fontWeight:600,fontSize:11}}>{qm.titulo}</div>
+                <div style={{fontSize:11,color:subColor,marginTop:2,maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{qm.conteudo.substring(0,50)}...</div>
+              </button>
+            })}
+          </div>}
+          <div style={{padding:"10px 14px",background:cardBg,borderTop:showQuick?"none":"1px solid "+borderColor,display:"flex",gap:8,alignItems:"center"}}>
+            <button className="bh" onClick={function(){setShowQuick(!showQuick)}} title="Mensagens prontas" style={{width:36,height:36,borderRadius:"50%",background:showQuick?"#8B6FBF15":"transparent",color:showQuick?"#8B6FBF":subColor,border:"1px solid "+borderColor,cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>⚡</button>
             <input style={{flex:1,padding:"10px 14px",borderRadius:20,border:"1px solid "+borderColor,background:isDark?"#1a1a19":"#EFEBE4",color:textColor,fontSize:14,outline:"none"}} value={waInput} onChange={function(e){setWaInput(e.target.value)}} onKeyDown={function(e){if(e.key==="Enter"&&!e.shiftKey)sendMsg()}} placeholder="Digite uma mensagem..."/>
             <button className="bh" onClick={sendMsg} disabled={waSending} style={{width:40,height:40,borderRadius:"50%",background:WA_GREEN,color:"#fff",border:"none",cursor:"pointer",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",opacity:waSending?0.5:1,flexShrink:0}}>{waSending?"⏳":"➤"}</button>
           </div>
@@ -3040,7 +3054,7 @@ function App(){
 
     var saveAtendente=async function(att){
       if(att.id){
-        await sb.from("atendentes_whatsapp").update({nome:att.nome,ordem:att.ordem,ativo:att.ativo,assinatura_personalizada:att.assinatura_personalizada,atualizado_em:new Date().toISOString()}).eq("id",att.id);
+        await sb.from("atendentes_whatsapp").update({nome:att.nome,ordem:att.ordem,ativo:att.ativo,assinatura_personalizada:att.assinatura_personalizada,telefone:att.telefone||null,atualizado_em:new Date().toISOString()}).eq("id",att.id);
         wmsg("✅ Atendente atualizado!");
       }else{
         await sb.from("atendentes_whatsapp").insert({nome:att.nome,ordem:att.ordem||waAtt.length+1,ativo:true});
@@ -3097,6 +3111,10 @@ function App(){
           <div style={{marginBottom:8}}>
             <div style={{fontSize:12,color:subColor,marginBottom:3}}>Assinatura personalizada (opcional)</div>
             <input style={{width:"100%",padding:"8px 12px",borderRadius:8,border:"1px solid "+borderColor,background:cardBg,color:textColor,fontSize:14,outline:"none"}} value={editAtt.assinatura_personalizada||""} onChange={function(e){setEditAtt(Object.assign({},editAtt,{assinatura_personalizada:e.target.value}))}} placeholder="Ex: Monique - MK Realty"/>
+          </div>
+          <div style={{marginBottom:8}}>
+            <div style={{fontSize:12,color:subColor,marginBottom:3}}>📱 WhatsApp do atendente (para receber notificações)</div>
+            <input style={{width:"100%",padding:"8px 12px",borderRadius:8,border:"1px solid "+borderColor,background:cardBg,color:textColor,fontSize:14,outline:"none"}} value={editAtt.telefone||""} onChange={function(e){setEditAtt(Object.assign({},editAtt,{telefone:e.target.value}))}} placeholder="Ex: 47992134870"/>
           </div>
           {editAtt.id&&<div style={{marginBottom:10}}>
             <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",fontSize:13,color:textColor}}>
@@ -3218,6 +3236,29 @@ function App(){
           <div style={{fontSize:13,color:subColor,marginBottom:4}}>Phone ID: <span style={{fontFamily:"monospace",color:textColor}}>{WA.PHONE_ID}</span></div>
           <div style={{fontSize:13,color:"#4CAF7D",marginTop:6}}>✅ Webhook ativo · Edge Functions deployadas</div>
           <div style={{fontSize:11,color:subColor,marginTop:4}}>⚠️ Token temporário — gerar permanente via Usuário do Sistema no Meta Business</div>
+        </div>
+
+        {/* Quick Messages Manager */}
+        <div style={{fontSize:16,fontWeight:700,color:textColor,marginTop:20,marginBottom:12}}>⚡ Mensagens Prontas</div>
+        {quickMsgs.map(function(qm){
+          return <div key={qm.id} style={{display:"flex",alignItems:"center",gap:8,padding:10,borderRadius:10,background:cardBg,border:"1px solid "+borderColor,marginBottom:6}}>
+            <span style={{fontSize:10,padding:"2px 6px",borderRadius:4,background:qm.categoria==="lead"?"#25D36610":qm.categoria==="corretor"?"#5B8FD410":"#8B6FBF10",color:qm.categoria==="lead"?"#25D366":qm.categoria==="corretor"?"#5B8FD4":"#8B6FBF"}}>{qm.categoria}</span>
+            <div style={{flex:1}}>
+              <div style={{fontWeight:600,fontSize:13,color:textColor}}>{qm.titulo}</div>
+              <div style={{fontSize:11,color:subColor}}>{qm.conteudo.substring(0,80)}{qm.conteudo.length>80?"...":""}</div>
+            </div>
+            <button className="bh" onClick={async function(){await sb.from("mensagens_prontas").delete().eq("id",qm.id);var r=await sb.from("mensagens_prontas").select("*").eq("ativo",true).order("ordem");setQuickMsgs(r.data||[]);wmsg("Removida")}} style={{width:24,height:24,borderRadius:6,background:"rgba(213,91,91,0.1)",color:"#D45B5B",border:"none",cursor:"pointer",fontSize:11,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+          </div>
+        })}
+        <div style={{padding:12,borderRadius:10,background:cardBg,border:"1px dashed "+borderColor,marginTop:6}}>
+          <div style={{display:"flex",gap:6,marginBottom:6}}>
+            <input id="qm_titulo" style={{flex:1,padding:"6px 10px",borderRadius:6,border:"1px solid "+borderColor,background:isDark?"#1a1a19":"#EFEBE4",color:textColor,fontSize:12,outline:"none"}} placeholder="Título"/>
+            <select id="qm_cat" style={{padding:"6px 8px",borderRadius:6,border:"1px solid "+borderColor,background:isDark?"#1a1a19":"#EFEBE4",color:textColor,fontSize:12}}>
+              <option value="lead">Lead</option><option value="corretor">Corretor</option><option value="geral">Geral</option>
+            </select>
+          </div>
+          <textarea id="qm_conteudo" style={{width:"100%",padding:"6px 10px",borderRadius:6,border:"1px solid "+borderColor,background:isDark?"#1a1a19":"#EFEBE4",color:textColor,fontSize:12,outline:"none",minHeight:40}} placeholder="Conteúdo da mensagem"/>
+          <button className="bh" onClick={async function(){var ti=document.getElementById("qm_titulo").value;var co=document.getElementById("qm_conteudo").value;var ca=document.getElementById("qm_cat").value;if(!ti||!co)return;await sb.from("mensagens_prontas").insert({titulo:ti,conteudo:co,categoria:ca,ordem:quickMsgs.length+1});var r=await sb.from("mensagens_prontas").select("*").eq("ativo",true).order("ordem");setQuickMsgs(r.data||[]);document.getElementById("qm_titulo").value="";document.getElementById("qm_conteudo").value="";wmsg("✅ Adicionada!")}} style={{marginTop:6,padding:"6px 14px",borderRadius:6,background:"#8B6FBF",color:"#fff",border:"none",cursor:"pointer",fontSize:12,fontWeight:600}}>+ Adicionar</button>
         </div>
       </div>
     };
