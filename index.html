@@ -2501,48 +2501,144 @@ function App(){
       </div>
     };
 
-    // ═══ CONFIG ═══
+    // ═══ CONFIG (super_admin only) ═══
+    var _editAtt=useState(null);var editAtt=_editAtt[0];var setEditAtt=_editAtt[1];
+    var _newAtt=useState({nome:"",ordem:0});var newAtt=_newAtt[0];var setNewAtt=_newAtt[1];
+    var _reassign=useState(null);var reassign=_reassign[0];var setReassign=_reassign[1];
+
+    var saveAtendente=async function(att){
+      if(att.id){
+        await sb.from("atendentes_whatsapp").update({nome:att.nome,ordem:att.ordem,ativo:att.ativo,assinatura_personalizada:att.assinatura_personalizada,atualizado_em:new Date().toISOString()}).eq("id",att.id);
+        msg("✅ Atendente atualizado!");
+      }else{
+        await sb.from("atendentes_whatsapp").insert({nome:att.nome,ordem:att.ordem||waAtt.length+1,ativo:true});
+        msg("✅ Atendente criado!");
+      }
+      setEditAtt(null);setNewAtt({nome:"",ordem:0});await loadData();
+    };
+
+    var deleteAtendente=async function(id){
+      var leadsCount=waLeads.filter(function(l){return l.atendente_id===id}).length;
+      if(leadsCount>0){msg("❌ Atendente tem "+leadsCount+" leads. Reatribua antes de excluir.");return}
+      if(!confirm("Excluir este atendente?"))return;
+      await sb.from("atendentes_whatsapp").delete().eq("id",id);
+      msg("🗑️ Atendente excluído!");await loadData();
+    };
+
+    var reassignLeads=async function(fromId,toId){
+      if(!toId)return;
+      await sb.from("leads_whatsapp").update({atendente_id:toId,atualizado_em:new Date().toISOString()}).eq("atendente_id",fromId);
+      msg("✅ Leads reatribuídos!");setReassign(null);await loadData();
+    };
+
     var renderConfig=function(){
       return <div>
-        {/* Atendentes */}
-        <div style={{fontSize:15,fontWeight:700,color:textColor,marginBottom:10,display:"flex",alignItems:"center",gap:6}}>👥 Atendentes</div>
-        <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:20}}>
-          {waAtt.map(function(a){
-            return <div key={a.id} style={{flex:1,minWidth:140,padding:14,borderRadius:12,background:cardBg,border:"1px solid "+borderColor,textAlign:"center"}}>
-              <div style={{width:48,height:48,borderRadius:"50%",background:WA_GREEN+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,fontWeight:700,color:WA_GREEN,margin:"0 auto 8px"}}>{a.nome[0]}</div>
-              <div style={{fontWeight:600,fontSize:15,color:textColor}}>{a.nome}</div>
-              <div style={{fontSize:12,color:subColor,marginTop:2}}>Ordem: {a.ordem}</div>
-              <span style={{display:"inline-block",marginTop:6,padding:"3px 10px",borderRadius:6,fontSize:11,fontWeight:700,background:a.ativo?"rgba(76,175,125,0.1)":"rgba(213,91,91,0.1)",color:a.ativo?"#4CAF7D":"#D45B5B"}}>{a.ativo?"Ativo":"Inativo"}</span>
-            </div>
-          })}
+        {/* ═══ ATENDENTES ═══ */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+          <div style={{fontSize:16,fontWeight:700,color:textColor}}>👥 Atendentes</div>
+          <button className="bh" onClick={function(){setEditAtt({id:null,nome:"",ordem:waAtt.length+1,ativo:true,assinatura_personalizada:""})}} style={{padding:"6px 14px",borderRadius:8,background:WA_GREEN,color:"#fff",border:"none",cursor:"pointer",fontSize:13,fontWeight:600}}>+ Novo Atendente</button>
         </div>
 
-        {/* Settings */}
-        <div style={{fontSize:15,fontWeight:700,color:textColor,marginBottom:10}}>⚙️ Configurações</div>
+        {/* Edit/New form */}
+        {editAtt&&<div style={{padding:16,borderRadius:12,background:isDark?"#1a1a19":"#EFEBE4",border:"1px solid "+borderColor,marginBottom:14}}>
+          <div style={{fontSize:14,fontWeight:600,color:textColor,marginBottom:10}}>{editAtt.id?"✏️ Editar Atendente":"➕ Novo Atendente"}</div>
+          <div style={{display:"flex",gap:8,marginBottom:8}}>
+            <div style={{flex:2}}>
+              <div style={{fontSize:12,color:subColor,marginBottom:3}}>Nome</div>
+              <input style={{width:"100%",padding:"8px 12px",borderRadius:8,border:"1px solid "+borderColor,background:cardBg,color:textColor,fontSize:14,outline:"none"}} value={editAtt.nome} onChange={function(e){setEditAtt(Object.assign({},editAtt,{nome:e.target.value}))}} placeholder="Nome do atendente"/>
+            </div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:12,color:subColor,marginBottom:3}}>Ordem</div>
+              <input type="number" style={{width:"100%",padding:"8px 12px",borderRadius:8,border:"1px solid "+borderColor,background:cardBg,color:textColor,fontSize:14,outline:"none"}} value={editAtt.ordem} onChange={function(e){setEditAtt(Object.assign({},editAtt,{ordem:+e.target.value}))}}/>
+            </div>
+          </div>
+          <div style={{marginBottom:8}}>
+            <div style={{fontSize:12,color:subColor,marginBottom:3}}>Assinatura personalizada (opcional)</div>
+            <input style={{width:"100%",padding:"8px 12px",borderRadius:8,border:"1px solid "+borderColor,background:cardBg,color:textColor,fontSize:14,outline:"none"}} value={editAtt.assinatura_personalizada||""} onChange={function(e){setEditAtt(Object.assign({},editAtt,{assinatura_personalizada:e.target.value}))}} placeholder="Ex: Monique - MK Realty"/>
+          </div>
+          {editAtt.id&&<div style={{marginBottom:10}}>
+            <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",fontSize:13,color:textColor}}>
+              <input type="checkbox" checked={editAtt.ativo} onChange={function(e){setEditAtt(Object.assign({},editAtt,{ativo:e.target.checked}))}}/>
+              Atendente ativo (recebe novos leads)
+            </label>
+          </div>}
+          <div style={{display:"flex",gap:6}}>
+            <button className="bh" onClick={function(){saveAtendente(editAtt)}} style={{padding:"8px 20px",borderRadius:8,background:WA_GREEN,color:"#fff",border:"none",cursor:"pointer",fontSize:13,fontWeight:600}}>💾 Salvar</button>
+            <button className="bh" onClick={function(){setEditAtt(null)}} style={{padding:"8px 20px",borderRadius:8,background:"transparent",color:subColor,border:"1px solid "+borderColor,cursor:"pointer",fontSize:13}}>Cancelar</button>
+          </div>
+        </div>}
+
+        {/* Attendant list */}
+        {waAtt.map(function(a){
+          var leadCount=waLeads.filter(function(l){return l.atendente_id===a.id}).length;
+          return <div key={a.id} style={{display:"flex",alignItems:"center",gap:12,padding:14,borderRadius:12,background:cardBg,marginBottom:8,border:"1px solid "+(a.ativo?borderColor:"rgba(213,91,91,0.15)"),opacity:a.ativo?1:0.6}}>
+            <div style={{width:44,height:44,borderRadius:"50%",background:a.ativo?WA_GREEN+"15":"rgba(213,91,91,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,fontWeight:700,color:a.ativo?WA_GREEN:"#D45B5B",flexShrink:0}}>{a.nome[0]}</div>
+            <div style={{flex:1}}>
+              <div style={{fontWeight:600,fontSize:15,color:textColor}}>{a.nome} {!a.ativo&&<span style={{fontSize:11,color:"#D45B5B"}}>(bloqueado)</span>}</div>
+              <div style={{fontSize:12,color:subColor}}>Ordem: {a.ordem} · {leadCount} leads · {a.ativo?"Ativo":"Inativo"}</div>
+              {a.assinatura_personalizada&&<div style={{fontSize:11,color:WA_GREEN}}>Assinatura: {a.assinatura_personalizada}</div>}
+            </div>
+            <div style={{display:"flex",gap:4,flexShrink:0}}>
+              <button className="bh" onClick={function(){setEditAtt(Object.assign({},a))}} title="Editar" style={{width:32,height:32,borderRadius:8,background:"rgba(91,143,212,0.1)",color:"#5B8FD4",border:"none",cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>✏️</button>
+              <button className="bh" onClick={async function(){await sb.from("atendentes_whatsapp").update({ativo:!a.ativo}).eq("id",a.id);await loadData();msg(a.ativo?"🔒 Bloqueado":"🔓 Desbloqueado")}} title={a.ativo?"Bloquear":"Desbloquear"} style={{width:32,height:32,borderRadius:8,background:a.ativo?"rgba(213,91,91,0.1)":"rgba(76,175,125,0.1)",color:a.ativo?"#D45B5B":"#4CAF7D",border:"none",cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>{a.ativo?"🔒":"🔓"}</button>
+              <button className="bh" onClick={function(){setReassign(a.id)}} title="Reatribuir leads" style={{width:32,height:32,borderRadius:8,background:"rgba(232,169,78,0.1)",color:"#E8A94E",border:"none",cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>🔄</button>
+              {leadCount===0&&<button className="bh" onClick={function(){deleteAtendente(a.id)}} title="Excluir" style={{width:32,height:32,borderRadius:8,background:"rgba(213,91,91,0.1)",color:"#D45B5B",border:"none",cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center"}}>🗑️</button>}
+            </div>
+          </div>
+        })}
+
+        {/* Reassign modal */}
+        {reassign&&<div style={{padding:16,borderRadius:12,background:"rgba(232,169,78,0.06)",border:"1px solid rgba(232,169,78,0.15)",marginBottom:14,marginTop:8}}>
+          <div style={{fontSize:14,fontWeight:600,color:"#E8A94E",marginBottom:8}}>🔄 Reatribuir leads de {getAttName(reassign)}</div>
+          <div style={{fontSize:13,color:subColor,marginBottom:10}}>Escolha para qual atendente transferir todos os leads:</div>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+            {waAtt.filter(function(a){return a.id!==reassign&&a.ativo}).map(function(a){
+              return <button key={a.id} className="bh" onClick={function(){reassignLeads(reassign,a.id)}} style={{padding:"8px 16px",borderRadius:8,background:WA_GREEN+"10",color:WA_GREEN,border:"1px solid "+WA_GREEN+"25",cursor:"pointer",fontSize:13,fontWeight:600}}>{a.nome}</button>
+            })}
+            <button className="bh" onClick={function(){setReassign(null)}} style={{padding:"8px 16px",borderRadius:8,background:"transparent",color:subColor,border:"1px solid "+borderColor,cursor:"pointer",fontSize:13}}>Cancelar</button>
+          </div>
+        </div>}
+
+        {/* ═══ DISTRIBUIÇÃO ═══ */}
+        <div style={{fontSize:16,fontWeight:700,color:textColor,marginTop:20,marginBottom:12}}>🔄 Distribuição de Leads</div>
         <div style={{padding:16,borderRadius:12,background:cardBg,border:"1px solid "+borderColor,marginBottom:10}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={{fontWeight:600,fontSize:14,color:textColor,marginBottom:6}}>Modo: Round-robin</div>
+          <div style={{fontSize:13,color:subColor,marginBottom:10}}>Leads novos são distribuídos automaticamente na ordem definida acima.</div>
+          <div style={{display:"flex",alignItems:"center",gap:6,padding:"10px 14px",background:isDark?"#1a1a19":"#EFEBE4",borderRadius:10}}>
+            {waAtt.filter(function(a){return a.ativo}).sort(function(a,b){return a.ordem-b.ordem}).map(function(a,i,arr){
+              return <span key={a.id} style={{display:"flex",alignItems:"center",gap:6}}>
+                <span style={{padding:"4px 10px",borderRadius:6,background:WA_GREEN+"15",color:WA_GREEN,fontWeight:600,fontSize:13}}>{a.nome}</span>
+                {i<arr.length-1&&<span style={{color:subColor}}>→</span>}
+              </span>
+            })}
+          </div>
+          <div style={{fontSize:12,color:subColor,marginTop:8}}>Leads por atendente: {waAtt.filter(function(a){return a.ativo}).map(function(a){return a.nome+": "+waLeads.filter(function(l){return l.atendente_id===a.id}).length}).join(" · ")}</div>
+        </div>
+
+        {/* ═══ ASSINATURA ═══ */}
+        <div style={{fontSize:16,fontWeight:700,color:textColor,marginTop:20,marginBottom:12}}>✍️ Assinatura</div>
+        <div style={{padding:16,borderRadius:12,background:cardBg,border:"1px solid "+borderColor,marginBottom:10}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
             <div>
               <div style={{fontWeight:600,fontSize:14,color:textColor}}>Assinatura automática</div>
-              <div style={{fontSize:12,color:subColor,marginTop:2}}>Adiciona <b>*Nome:*</b> antes das mensagens enviadas</div>
-              <div style={{fontSize:12,color:WA_GREEN,marginTop:4,padding:"4px 8px",background:WA_GREEN+"08",borderRadius:6,display:"inline-block"}}>Ex: <b>*Monique:*</b> Olá, tudo bem?</div>
+              <div style={{fontSize:12,color:subColor}}>Adiciona o nome do atendente antes de cada mensagem</div>
             </div>
             <button className="bh" onClick={async function(){var v=waCfg.assinatura_ativa==="true"||waCfg.assinatura_ativa===true?"false":"true";await WA.saveConfig("assinatura_ativa",v);setWaCfg(Object.assign({},waCfg,{assinatura_ativa:v}));msg(v==="true"?"✅ Ativada":"❌ Desativada")}} style={{padding:"8px 16px",borderRadius:10,fontSize:13,fontWeight:600,cursor:"pointer",background:waCfg.assinatura_ativa==="true"||waCfg.assinatura_ativa===true?"rgba(76,175,125,0.1)":"rgba(213,91,91,0.1)",color:waCfg.assinatura_ativa==="true"||waCfg.assinatura_ativa===true?"#4CAF7D":"#D45B5B",border:"none"}}>{waCfg.assinatura_ativa==="true"||waCfg.assinatura_ativa===true?"✅ Ativa":"❌ Inativa"}</button>
           </div>
+          <div style={{padding:"8px 12px",borderRadius:8,background:isDark?"#1a1a19":"#EFEBE4",fontSize:13,color:subColor}}>Preview: <b style={{color:WA_GREEN}}>*Monique:*</b> Olá, tudo bem?</div>
         </div>
 
-        <div style={{padding:16,borderRadius:12,background:cardBg,border:"1px solid "+borderColor,marginBottom:10}}>
-          <div style={{fontWeight:600,fontSize:14,color:textColor,marginBottom:4}}>🔄 Distribuição de Leads</div>
-          <div style={{fontSize:13,color:subColor}}>Modo: <b style={{color:WA_GREEN}}>Round-robin</b></div>
-          <div style={{fontSize:12,color:subColor,marginTop:4}}>Ordem: {waAtt.filter(function(a){return a.ativo}).map(function(a,i){return(i>0?" → ":"")+a.nome}).join("")}</div>
-        </div>
-
+        {/* ═══ API STATUS ═══ */}
+        <div style={{fontSize:16,fontWeight:700,color:textColor,marginTop:20,marginBottom:12}}>📡 Conexão</div>
         <div style={{padding:16,borderRadius:12,background:cardBg,border:"1px solid "+borderColor}}>
-          <div style={{fontWeight:600,fontSize:14,color:textColor,marginBottom:4}}>📡 WhatsApp Cloud API</div>
-          <div style={{fontSize:12,color:subColor}}>Phone ID: <span style={{fontFamily:"monospace"}}>{WA.PHONE_ID}</span></div>
-          <div style={{fontSize:12,color:"#4CAF7D",marginTop:4}}>✅ Webhook configurado · Edge Functions ativas</div>
+          <div style={{fontSize:13,color:subColor,marginBottom:4}}>Phone ID: <span style={{fontFamily:"monospace",color:textColor}}>{WA.PHONE_ID}</span></div>
+          <div style={{fontSize:13,color:"#4CAF7D",marginTop:6}}>✅ Webhook ativo · Edge Functions deployadas</div>
+          <div style={{fontSize:11,color:subColor,marginTop:4}}>⚠️ Token temporário — gerar permanente via Usuário do Sistema no Meta Business</div>
         </div>
       </div>
     };
+
+    var isSuperAdmin=currentUser&&currentUser.role==="super_admin";
 
     return <div>
       {/* Header */}
@@ -2558,13 +2654,13 @@ function App(){
       </div>
       {/* Tabs */}
       <div style={{display:"flex",gap:6,marginBottom:14}}>
-        {[{k:"inbox",l:"📥 Inbox",c:WA_GREEN},{k:"funil",l:"📊 Funil",c:"#E8A94E"},{k:"config",l:"⚙️ Config",c:"#5B8FD4"}].map(function(tb){
+        {[{k:"inbox",l:"📥 Inbox",c:WA_GREEN},{k:"funil",l:"📊 Funil",c:"#E8A94E"}].concat(isSuperAdmin?[{k:"config",l:"⚙️ Config",c:"#5B8FD4"}]:[]).map(function(tb){
           return <span key={tb.k} className="bh" onClick={function(){setWaTab(tb.k)}} style={{padding:"8px 18px",borderRadius:10,fontSize:14,fontWeight:600,cursor:"pointer",background:waTab===tb.k?tb.c+"15":"transparent",color:waTab===tb.k?tb.c:subColor,border:waTab===tb.k?"1px solid "+tb.c+"25":"1px solid "+borderColor,transition:"all 0.15s"}}>{tb.l}{tb.k==="inbox"&&totalUnread>0?" ("+totalUnread+")":""}</span>
         })}
       </div>
       {waTab==="inbox"&&renderInbox()}
       {waTab==="funil"&&renderFunil()}
-      {waTab==="config"&&renderConfig()}
+      {waTab==="config"&&isSuperAdmin&&renderConfig()}
     </div>
   }
 
