@@ -2218,9 +2218,10 @@ function App(){
     };
 
     // AI Analysis
-    var runAI=function(type){
+    var runAI=async function(type){
       setLoading(true);setAiResp("");
-      setTimeout(function(){
+      await new Promise(function(res){setTimeout(res,300)});
+      try{
         var r="";
         var bldData=buildings.map(function(b){
           var u=getUnits(b.id);var p=getPhotos(b.id);var pl=getPlants(b.id);var dc=getDocs(b.id);
@@ -2234,6 +2235,80 @@ function App(){
           return{b:b,u:u,p:p,pl:pl,dc:dc,av:av,rs:rs,sd:sd,vgv:vgv,avgPrice:avgPrice,avgM2:avgM2,pctSold:pctSold};
         });
         var totalU=allUnits.length;var totalAv=bldData.reduce(function(s,d){return s+d.av},0);var totalRs=bldData.reduce(function(s,d){return s+d.rs},0);var totalSd=bldData.reduce(function(s,d){return s+d.sd},0);var totalVgv=bldData.reduce(function(s,d){return s+d.vgv},0);
+        var allPricesM2=[];bldData.forEach(function(d){d.u.filter(function(x){return x.status==="available"&&x.area>0}).forEach(function(x){allPricesM2.push({name:d.b.name+" "+x.name,m2:Math.round(cp(x,d.b)/x.area)})})});
+
+        // ═══ DIAGNÓSTICO COMPLETO ═══
+        if(type==="diagnostico"){
+          r+="🔍 DIAGNÓSTICO COMPLETO — "+new Date().toLocaleDateString("pt-BR")+"\n";
+          r+="━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
+          r+="📦 PORTFÓLIO:\n";
+          r+="   "+buildings.length+" empreendimentos · "+totalU+" unidades\n";
+          r+="   ✅ "+totalAv+" disp. · ⏳ "+totalRs+" res. · 🔑 "+totalSd+" vend.\n";
+          r+="   💰 VGV: "+fmt(totalVgv)+"\n";
+          r+="   📈 "+Math.round((totalSd+totalRs)/Math.max(1,totalU)*100)+"% comercializado\n\n";
+          r+="👥 EQUIPE: "+brokers.length+" corretores · "+adminUsers.length+" admins\n\n";
+          r+="🌐 PORTAL (30 dias):\n";
+          r+="   👁️ "+summary.views+" visitas · 🏦 "+summary.sims+" simulações · 📱 "+summary.waSh+" compartilhamentos\n";
+          r+="   📈 Conversão visita→simulação: "+(summary.views>0?((summary.sims/summary.views)*100).toFixed(1):"0")+"%\n\n";
+          try{var waL=await WA.getLeads();var waA=await WA.getAtendentes();var cAll=(await sb.from("contatos_whatsapp").select("id",{count:"exact"}).eq("ativo",true)).count||0;
+            r+="📞 WHATSAPP: "+waL.length+" leads · "+cAll+" contatos · "+waA.filter(function(a){return a.ativo}).length+" atendentes\n";
+            var wF=waL.filter(function(l){return l.etapa_funil==="fechado"}).length;
+            r+="   📈 Conversão: "+(waL.length>0?((wF/waL.length)*100).toFixed(1):"0")+"%\n\n";
+          }catch(e){}
+          r+="🏢 RANKING COMERCIAL:\n";
+          bldData.sort(function(a,b){return b.pctSold-a.pctSold}).forEach(function(d){var bar="";for(var i=0;i<10;i++)bar+=i<Math.round(d.pctSold/10)?"█":"░";r+=bar+" "+d.pctSold+"% "+d.b.name+" ("+d.av+" disp.)\n"});
+          r+="\n🚨 ALERTAS:\n";
+          bldData.filter(function(d){return d.av<=3&&d.av>0&&d.u.length>5}).forEach(function(d){r+="🔥 "+d.b.name+": ÚLTIMAS "+d.av+" unidades!\n"});
+          bldData.filter(function(d){return d.pctSold<15&&d.u.length>3}).forEach(function(d){r+="⚠️ "+d.b.name+": apenas "+d.pctSold+"% vendido — precisa de ação!\n"});
+          if(summary.sims<3)r+="📉 Pouquíssimas simulações ("+summary.sims+") — promova o simulador\n";
+          if(brokers.length<5)r+="👥 Apenas "+brokers.length+" corretores — expanda a rede\n";
+        }
+
+        // ═══ CORRETORES ═══
+        if(type==="corretores"){
+          r+="👥 RANKING DE CORRETORES\n━━━━━━━━━━━━━━━━━━━━━\n\n";
+          r+="📊 "+brokers.length+" cadastrados\n\n";
+          var bStats=brokers.map(function(bk){var sc=sales.filter(function(s2){return s2.broker_id===bk.id}).length;var sv=sales.filter(function(s2){return s2.broker_id===bk.id}).reduce(function(s,x){return s+(x.value||0)},0);return{bk:bk,sc:sc,sv:sv}});
+          bStats.sort(function(a,b){return b.sc-a.sc});
+          r+="🏆 POR VENDAS:\n";
+          bStats.forEach(function(bs,i){r+=(i===0?"🥇":i===1?"🥈":i===2?"🥉":"  "+(i+1)+".")+" "+bs.bk.nome+" — "+bs.sc+" vendas"+(bs.sv>0?" ("+fmt(bs.sv)+")":"")+"\n   📧 "+bs.bk.email+" · 📅 "+(bs.bk.last_login||"Nunca")+"\n\n"});
+          var inat=bStats.filter(function(bs){return !bs.bk.last_login});
+          if(inat.length>0){r+="⚠️ SEM ACESSO ("+inat.length+"):\n";inat.forEach(function(bs){r+="   ❌ "+bs.bk.nome+"\n"})}
+          r+="\n💡 Contate corretores inativos · Crie programa de incentivo para top sellers\n";
+        }
+
+        // ═══ LEADS ═══
+        if(type==="leads"){
+          r+="📞 ANÁLISE DE LEADS\n━━━━━━━━━━━━━━━━━━\n\n";
+          try{var waL2=await WA.getLeads();var waA2=await WA.getAtendentes();
+            var etN={novo:"🆕 Novo",em_contato:"💬 Em Contato",qualificado:"⭐ Qualificado",proposta:"📋 Proposta",fechado:"✅ Fechado",perdido:"❌ Perdido"};
+            r+="📊 FUNIL ("+waL2.length+" leads):\n";
+            ["novo","em_contato","qualificado","proposta","fechado","perdido"].forEach(function(e){var c2=waL2.filter(function(l){return l.etapa_funil===e}).length;var p2=waL2.length>0?((c2/waL2.length)*100).toFixed(0):"0";var bar="";for(var i=0;i<10;i++)bar+=i<Math.round(c2/Math.max(1,waL2.length)*10)?"█":"░";r+=bar+" "+p2+"% "+etN[e]+" ("+c2+")\n"});
+            r+="\n👥 POR ATENDENTE:\n";
+            waA2.forEach(function(a){var aL=waL2.filter(function(l){return l.atendente_id===a.id});if(aL.length===0)return;var f2=aL.filter(function(l){return l.etapa_funil==="fechado"}).length;r+="📞 "+a.nome+": "+aL.length+" leads · ✅ "+f2+" fechados · 📈 "+(aL.length>0?((f2/aL.length)*100).toFixed(0):"0")+"%\n"});
+            r+="\n📍 POR ORIGEM:\n";
+            var or2={};waL2.forEach(function(l){or2[l.origem]=(or2[l.origem]||0)+1});
+            Object.keys(or2).sort(function(a,b){return or2[b]-or2[a]}).forEach(function(o){r+="   "+o+": "+or2[o]+"\n"});
+            var novos2=waL2.filter(function(l){return l.etapa_funil==="novo"}).length;
+            if(novos2>0)r+="\n⚠️ "+novos2+" leads sem contato — priorize!\n";
+          }catch(e){r+="Erro ao carregar dados\n"}
+        }
+
+        // ═══ CONTATOS ═══
+        if(type==="contatos"){
+          r+="📇 BASE DE CONTATOS\n━━━━━━━━━━━━━━━━━━━\n\n";
+          try{var cA=(await sb.from("contatos_whatsapp").select("*").eq("ativo",true)).data||[];
+            var corr=cA.filter(function(x){return x.tipo==="corretor"}).length;var cli=cA.filter(function(x){return x.tipo==="cliente"}).length;
+            r+="📊 "+cA.length+" contatos: 🏢 "+corr+" corretores · 👤 "+cli+" clientes\n\n";
+            r+="📍 POR CANAL:\n";var cn={};cA.forEach(function(x){cn[x.canal||"direto"]=(cn[x.canal||"direto"]||0)+1});
+            Object.keys(cn).sort(function(a,b){return cn[b]-cn[a]}).forEach(function(k){r+="   "+k+": "+cn[k]+"\n"});
+            var waA3=await WA.getAtendentes();r+="\n👥 POR ATENDENTE:\n";
+            waA3.forEach(function(a){var c2=cA.filter(function(x){return x.atendente_responsavel===a.id}).length;if(c2>0)r+="   "+a.nome+": "+c2+"\n"});
+            var dir=cA.filter(function(x){return !x.atendente_responsavel}).length;if(dir>0)r+="   Direto: "+dir+"\n";
+            var semE=cA.filter(function(x){return !x.email}).length;
+            if(semE>0)r+="\n📧 "+semE+" sem email — colete para campanhas\n";
+          }catch(e){r+="Erro ao carregar\n"}
+        }
 
         if(type==="full"){
           r+="📊 ANÁLISE COMPLETA DO PORTAL\n";
@@ -2358,8 +2433,8 @@ function App(){
         setAiResp(r);
         DB.saveReport({report_type:type,content:r,score:health?health.score:0});
         DB.loadReports().then(setReports);
-        setLoading(false);
-      },800);
+      }catch(e){console.error(e);setAiResp("Erro ao gerar relatório: "+e.message)}
+      setLoading(false);
     };
 
     var scoreColor=function(s){return s>=80?"#4CAF7D":s>=50?"#E8A94E":"#D45B5B"};
@@ -2469,15 +2544,18 @@ function App(){
 
       {/* AI Tab */}
       {tab==="ai"&&<div>
-        <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:14}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:14}}>
           {[
-            {l:"📊 Análise completa do portal",p:"full"},
-            {l:"💰 Análise de preços e mercado",p:"prices"},
-            {l:"📈 Relatório de performance de vendas",p:"sales"},
-            {l:"🎯 Sugestões de marketing e conteúdo",p:"marketing"},
-            {l:"🏗️ Status dos empreendimentos",p:"status"}
+            {l:"🔍 Diagnóstico Completo",p:"diagnostico",c:"#E8A94E"},
+            {l:"💰 Preços e Mercado",p:"prices",c:"#4CAF7D"},
+            {l:"📈 Performance Comercial",p:"sales",c:"#5B8FD4"},
+            {l:"🏗️ Status dos Empreendimentos",p:"status",c:"#8B6FBF"},
+            {l:"🎯 Plano de Marketing",p:"marketing",c:"#C47070"},
+            {l:"👥 Ranking de Corretores",p:"corretores",c:G},
+            {l:"📞 Análise de Leads",p:"leads",c:"#25D366"},
+            {l:"📇 Base de Contatos",p:"contatos",c:"#8B6FBF"}
           ].map(function(opt){
-            return <button key={opt.l} className="bh" onClick={function(){runAI(opt.p)}} disabled={loading} style={{padding:"12px 14px",borderRadius:10,fontSize:14,fontWeight:500,background:cardBg,color:textColor,border:"1px solid "+borderColor,cursor:loading?"wait":"pointer",textAlign:"left"}}>{opt.l}</button>;
+            return <button key={opt.p} className="bh" onClick={function(){runAI(opt.p)}} disabled={loading} style={{padding:"12px 14px",borderRadius:10,fontSize:13,fontWeight:600,background:opt.c+"08",color:opt.c,border:"1px solid "+opt.c+"15",cursor:loading?"wait":"pointer",textAlign:"left"}}>{opt.l}</button>;
           })}
         </div>
         {loading&&<div style={{textAlign:"center",padding:20}}>
@@ -2485,8 +2563,11 @@ function App(){
           <div style={{fontSize:14,color:"#5B8FD4"}}>Analisando dados...</div>
         </div>}
         {aiResp&&!loading&&<div style={{padding:16,background:cardBg,borderRadius:14,border:"1px solid rgba(91,143,212,0.1)",marginTop:8}}>
-          <div style={{fontSize:12,color:"#5B8FD4",fontWeight:600,textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>🤖 Resposta do Agente</div>
-          <div style={{fontSize:15,color:textColor,lineHeight:1.8,whiteSpace:"pre-wrap"}}>{aiResp}</div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+            <div style={{fontSize:12,color:"#5B8FD4",fontWeight:600,textTransform:"uppercase",letterSpacing:1}}>🤖 Relatório do Agente</div>
+            <button className="bh" onClick={function(){navigator.clipboard.writeText(aiResp);msg("📋 Copiado!")}} style={{padding:"4px 10px",borderRadius:6,fontSize:11,background:"#5B8FD410",color:"#5B8FD4",border:"none",cursor:"pointer"}}>📋 Copiar</button>
+          </div>
+          <div style={{fontSize:14,color:textColor,lineHeight:1.8,whiteSpace:"pre-wrap"}}>{aiResp}</div>
         </div>}
       </div>}
 
