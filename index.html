@@ -2236,11 +2236,16 @@ function App(){
     var _inter=useState([]);var inter=_inter[0];var setInter=_inter[1];
     var _showForm2=useState(false);var showForm2=_showForm2[0];var setShowForm2=_showForm2[1];
     var _showPagForm=useState(false);var showPagForm=_showPagForm[0];var setShowPagForm=_showPagForm[1];
+    var _planos2=useState([]);var planos2=_planos2[0];var setPlanos2=_planos2[1];
+    var _showPlanoForm=useState(false);var showPlanoForm=_showPlanoForm[0];var setShowPlanoForm=_showPlanoForm[1];
+    var _editPlano=useState(null);var editPlano=_editPlano[0];var setEditPlano=_editPlano[1];
+    var _showAssinForm=useState(false);var showAssinForm=_showAssinForm[0];var setShowAssinForm=_showAssinForm[1];
 
     var loadAll2=async function(){
       var r=await sb.from("tenants").select("*").order("criado_em",{ascending:false});setTenants3(r.data||[]);
       var s=await sb.from("assinaturas").select("*").order("criado_em",{ascending:false});setSubs(s.data||[]);
-      var p=await sb.from("pagamentos").select("*").order("vencimento",{ascending:false}).limit(100);setPagtos(p.data||[]);
+      var p=await sb.from("pagamentos").select("*").order("vencimento",{ascending:false}).limit(200);setPagtos(p.data||[]);
+      var pl=await sb.from("planos").select("*").eq("ativo",true).order("valor_mensal");setPlanos2(pl.data||[]);
     };
     useEffect(function(){loadAll2()},[]);
 
@@ -2311,7 +2316,7 @@ function App(){
 
       {/* Tabs */}
       <div style={{display:"flex",gap:4,marginBottom:16,borderBottom:"1px solid "+borderColor,paddingBottom:8}}>
-        {[{k:"dash",l:"📊 Dashboard"},{k:"pipe",l:"🔄 Pipeline"},{k:"list",l:"👥 Clientes"},{k:"pagtos",l:"💰 Pagamentos"}].map(function(tb){
+        {[{k:"dash",l:"📊 Dashboard"},{k:"pipe",l:"🔄 Pipeline"},{k:"list",l:"👥 Clientes"},{k:"pagtos",l:"💰 Pagamentos"},{k:"planos",l:"📦 Planos"}].map(function(tb){
           return <span key={tb.k} className="bh" onClick={function(){setTab2(tb.k);if(tb.k!=="list"&&tb.k!=="pagtos")setShowForm2(false)}} style={{padding:"8px 16px",borderRadius:10,fontSize:14,fontWeight:600,cursor:"pointer",background:tab2===tb.k?"#5B8FD415":"transparent",color:tab2===tb.k?"#5B8FD4":subColor}}>{tb.l}</span>
         })}
       </div>
@@ -2396,11 +2401,95 @@ function App(){
             <div><div style={{fontSize:11,color:subColor,marginBottom:2}}>Logo (URL)</div><input id="t_logo" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},mI,{fontSize:13})} placeholder="https://..."/></div>
           </div>
           <div><div style={{fontSize:11,color:subColor,marginBottom:2}}>Observações</div><textarea id="t_obs" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},mI,{fontSize:13,minHeight:40})} placeholder="Notas internas..."></textarea></div>
-          <div style={{display:"flex",gap:6}}>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
             <button className="bh" onClick={saveTenant2} style={{padding:"8px 20px",borderRadius:8,background:"#5B8FD4",color:"#fff",border:"none",cursor:"pointer",fontSize:13,fontWeight:600}}>💾 {selT?"Atualizar":"Criar"}</button>
-            {selT&&<button className="bh" onClick={function(){setShowPagForm(true)}} style={{padding:"8px 20px",borderRadius:8,background:"#4CAF7D15",color:"#4CAF7D",border:"1px solid #4CAF7D25",cursor:"pointer",fontSize:13,fontWeight:600}}>💰 + Pagamento</button>}
+            {selT&&<button className="bh" onClick={function(){setShowAssinForm(!showAssinForm);setShowPagForm(false)}} style={{padding:"8px 20px",borderRadius:8,background:"#8B6FBF15",color:"#8B6FBF",border:"1px solid #8B6FBF25",cursor:"pointer",fontSize:13,fontWeight:600}}>📋 {showAssinForm?"Fechar":"Nova Assinatura"}</button>}
+            {selT&&<button className="bh" onClick={function(){setShowPagForm(!showPagForm);setShowAssinForm(false)}} style={{padding:"8px 20px",borderRadius:8,background:"#4CAF7D15",color:"#4CAF7D",border:"1px solid #4CAF7D25",cursor:"pointer",fontSize:13,fontWeight:600}}>💰 {showPagForm?"Fechar":"+ Pagamento Avulso"}</button>}
             <button className="bh" onClick={function(){setShowForm2(false);setSelT(null)}} style={{padding:"8px 20px",borderRadius:8,background:"transparent",color:subColor,border:"1px solid "+borderColor,cursor:"pointer",fontSize:13}}>Cancelar</button>
           </div>
+          {/* ═══ NOVA ASSINATURA ═══ */}
+          {showAssinForm&&selT&&<div style={{marginTop:10,padding:14,borderRadius:12,background:"rgba(139,111,191,0.04)",border:"1px solid rgba(139,111,191,0.15)"}}>
+            <div style={{fontSize:14,fontWeight:700,color:"#8B6FBF",marginBottom:10}}>📋 Criar Assinatura</div>
+            <div style={{fontSize:12,color:subColor,marginBottom:8}}>Selecione o plano e a forma de pagamento:</div>
+            {/* Plano selection */}
+            <div style={{display:"flex",gap:8,marginBottom:10,flexWrap:"wrap"}}>
+              {planos2.map(function(pl){return <div key={pl.id} className="bh" id={"plan_"+pl.id} onClick={function(){document.querySelectorAll("[id^=plan_]").forEach(function(el){el.style.border="1px solid "+borderColor});document.getElementById("plan_"+pl.id).style.border="2px solid #8B6FBF";window._selectedPlan=pl}} style={{flex:1,minWidth:140,padding:12,borderRadius:10,background:cardBg,border:"1px solid "+borderColor,cursor:"pointer",textAlign:"center"}}>
+                {pl.destaque&&<div style={{fontSize:9,fontWeight:700,color:"#E8A94E",marginBottom:4}}>⭐ MAIS POPULAR</div>}
+                <div style={{fontSize:16,fontWeight:700,color:textColor}}>{pl.nome}</div>
+                <div style={{fontSize:22,fontWeight:700,color:"#4CAF7D",margin:"6px 0"}}>R$ {fmt(pl.valor_mensal)}<span style={{fontSize:12,color:subColor}}>/mês</span></div>
+                <div style={{fontSize:11,color:subColor}}>{pl.max_empreendimentos===-1?"∞":pl.max_empreendimentos} empreend. · {pl.max_corretores===-1?"∞":pl.max_corretores} corretores</div>
+                {pl.recursos&&<div style={{marginTop:6,fontSize:11,color:subColor,textAlign:"left"}}>{(pl.recursos||[]).map(function(r2,i){return <div key={i}>✓ {r2}</div>})}</div>}
+              </div>})}
+            </div>
+            {/* Forma de pagamento */}
+            <div style={{display:"flex",gap:8,marginBottom:10}}>
+              <div style={{flex:1}}>
+                <div style={{fontSize:11,color:subColor,marginBottom:3}}>Forma de pagamento</div>
+                <select id="assin_forma" style={Object.assign({},mI,{fontSize:13})}>
+                  <option value="mensal">Mensal (12x)</option>
+                  <option value="trimestral">Trimestral (4x)</option>
+                  <option value="semestral">Semestral (2x)</option>
+                  <option value="anual">Anual (1x - 10% desc.)</option>
+                  <option value="avista">À Vista (15% desc.)</option>
+                  <option value="custom">Personalizado</option>
+                </select>
+              </div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:11,color:subColor,marginBottom:3}}>Duração (meses)</div>
+                <input id="assin_meses" type="number" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},mI,{fontSize:13})} defaultValue="12"/>
+              </div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:11,color:subColor,marginBottom:3}}>Valor negociado/parcela</div>
+                <input id="assin_valor_custom" type="number" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},mI,{fontSize:13})} placeholder="Vazio = valor do plano"/>
+              </div>
+            </div>
+            <div style={{display:"flex",gap:8,marginBottom:10}}>
+              <div style={{flex:1}}>
+                <div style={{fontSize:11,color:subColor,marginBottom:3}}>Dia do vencimento</div>
+                <input id="assin_dia" type="number" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},mI,{fontSize:13})} defaultValue="10"/>
+              </div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:11,color:subColor,marginBottom:3}}>Método</div>
+                <select id="assin_metodo" style={Object.assign({},mI,{fontSize:13})}>
+                  <option value="pix">PIX</option><option value="boleto">Boleto</option><option value="cartao">Cartão</option><option value="ted">TED</option>
+                </select>
+              </div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:11,color:subColor,marginBottom:3}}>Início</div>
+                <input id="assin_inicio" type="date" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},mI,{fontSize:13})} defaultValue={new Date().toISOString().split("T")[0]}/>
+              </div>
+            </div>
+            <button className="bh" onClick={async function(){
+              var plan=window._selectedPlan;if(!plan){msg("Selecione um plano");return}
+              var forma=document.getElementById("assin_forma").value;
+              var meses=+document.getElementById("assin_meses").value||12;
+              var valorCustom=+document.getElementById("assin_valor_custom").value||0;
+              var dia=+document.getElementById("assin_dia").value||10;
+              var metodo=document.getElementById("assin_metodo").value;
+              var inicio=document.getElementById("assin_inicio").value||new Date().toISOString().split("T")[0];
+              // Calculate parcelas
+              var valorBase=plan.valor_mensal;
+              var numParc=forma==="mensal"?meses:forma==="trimestral"?Math.ceil(meses/3):forma==="semestral"?Math.ceil(meses/6):forma==="anual"?Math.ceil(meses/12):1;
+              var mesesPorParc=forma==="mensal"?1:forma==="trimestral"?3:forma==="semestral"?6:forma==="anual"?12:meses;
+              var valorParc=valorCustom>0?valorCustom:(forma==="anual"?Math.round(valorBase*mesesPorParc*0.9):forma==="avista"?Math.round(valorBase*meses*0.85):valorBase*mesesPorParc);
+              if(forma==="avista")numParc=1;
+              if(forma==="custom"){numParc=meses;valorParc=valorCustom>0?valorCustom:valorBase}
+              var valorTotal=valorParc*numParc;
+              // Create subscription
+              var subRes=await sb.from("assinaturas").insert({tenant_id:selT.id,plano_id:plan.id,plano:plan.nome,valor_mensal:valorBase,valor_total:valorTotal,parcelas_total:numParc,parcelas_pagas:0,forma_pagamento:forma,dia_vencimento:dia,status:"ativo",inicio:inicio,proximo_vencimento:inicio});
+              if(subRes.error){msg("❌ "+subRes.error.message);return}
+              var subId=subRes.data?subRes.data[0]?subRes.data[0].id:null:null;
+              // Generate payment schedule
+              for(var i=0;i<numParc;i++){
+                var vencDate=new Date(inicio);vencDate.setMonth(vencDate.getMonth()+(i*mesesPorParc));vencDate.setDate(dia);
+                await sb.from("pagamentos").insert({tenant_id:selT.id,assinatura_id:subId,valor:valorParc,vencimento:vencDate.toISOString().split("T")[0],metodo:metodo,status:"pendente",observacoes:"Parcela "+(i+1)+"/"+numParc+" — "+plan.nome});
+              }
+              // Update tenant
+              await sb.from("tenants").update({valor_mensal:valorBase,pipeline:"ativo"}).eq("id",selT.id);
+              await sb.from("interacoes_tenant").insert({tenant_id:selT.id,tipo:"assinatura",conteudo:"Assinatura criada: "+plan.nome+" — "+numParc+"x R$ "+fmt(valorParc)+" ("+forma+")",usuario:currentUser?currentUser.nome:"Admin"});
+              window._selectedPlan=null;setShowAssinForm(false);await loadAll2();await loadInteracoes(selT.id);msg("✅ Assinatura criada! "+numParc+" parcelas geradas.");
+            }} style={{padding:"10px 24px",borderRadius:10,background:"#8B6FBF",color:"#fff",border:"none",cursor:"pointer",fontSize:14,fontWeight:600,width:"100%"}}>📋 Criar Assinatura e Gerar Parcelas</button>
+          </div>}
           {/* Registrar pagamento inline */}
           {showPagForm&&selT&&<div style={{marginTop:10,padding:12,borderRadius:10,background:"rgba(76,175,125,0.04)",border:"1px solid rgba(76,175,125,0.12)"}}>
             <div style={{fontSize:13,fontWeight:600,color:"#4CAF7D",marginBottom:6}}>💰 Registrar Pagamento</div>
@@ -2429,6 +2518,33 @@ function App(){
                 <span style={{color:subColor}}>{new Date(n2.criado_em).toLocaleDateString("pt-BR")} · {n2.usuario}:</span> <span style={{color:textColor}}>{n2.conteudo}</span>
               </div>})}
             </div>
+          </div>}
+          {/* Assinaturas do cliente */}
+          {selT&&<div style={{marginTop:10,borderTop:"1px solid "+borderColor,paddingTop:8}}>
+            <div style={{fontSize:13,fontWeight:600,color:textColor,marginBottom:6}}>📋 Assinaturas</div>
+            {subs.filter(function(s2){return s2.tenant_id===selT.id}).length===0&&<div style={{fontSize:12,color:subColor}}>Nenhuma assinatura — clique "Nova Assinatura" acima</div>}
+            {subs.filter(function(s2){return s2.tenant_id===selT.id}).map(function(s2){
+              var progPct=s2.parcelas_total>0?Math.round((s2.parcelas_pagas||0)/s2.parcelas_total*100):0;
+              var pagasSub=pagtos.filter(function(p2){return p2.assinatura_id===s2.id&&p2.status==="pago"}).length;
+              var pendSub=pagtos.filter(function(p2){return p2.assinatura_id===s2.id&&p2.status==="pendente"}).length;
+              return <div key={s2.id} style={{padding:10,borderRadius:10,background:isDark?"#1a1a19":"#F8F5F0",marginBottom:6,border:"1px solid "+borderColor}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                  <div>
+                    <span style={{fontWeight:700,fontSize:14,color:textColor}}>{s2.plano}</span>
+                    <span style={{fontSize:11,padding:"2px 6px",borderRadius:4,background:s2.status==="ativo"?"#4CAF7D15":"#E8A94E15",color:s2.status==="ativo"?"#4CAF7D":"#E8A94E",marginLeft:6}}>{s2.status}</span>
+                  </div>
+                  <div style={{fontSize:13,fontWeight:600,color:"#4CAF7D"}}>R$ {fmt(s2.valor_total||0)}</div>
+                </div>
+                <div style={{fontSize:12,color:subColor}}>{s2.forma_pagamento} · {s2.parcelas_total}x · Início: {s2.inicio?new Date(s2.inicio).toLocaleDateString("pt-BR"):""} · Venc. dia {s2.dia_vencimento}</div>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginTop:6}}>
+                  <div style={{flex:1,height:6,borderRadius:3,background:borderColor,overflow:"hidden"}}>
+                    <div style={{width:progPct+"%",height:"100%",background:"#4CAF7D",borderRadius:3,transition:"width .3s"}}/>
+                  </div>
+                  <span style={{fontSize:11,color:"#4CAF7D",fontWeight:600}}>{pagasSub}/{s2.parcelas_total} pagas</span>
+                  {pendSub>0&&<span style={{fontSize:11,color:"#E8A94E"}}>{pendSub} pendentes</span>}
+                </div>
+              </div>
+            })}
           </div>}
           {/* Pagamentos do cliente */}
           {selT&&<div style={{marginTop:10,borderTop:"1px solid "+borderColor,paddingTop:8}}>
@@ -2488,6 +2604,69 @@ function App(){
             <span style={{fontSize:11,padding:"3px 8px",borderRadius:6,background:(p2.status==="pago"?"#4CAF7D":"#E8A94E")+"12",color:p2.status==="pago"?"#4CAF7D":"#E8A94E",fontWeight:600}}>{p2.status}{p2.pago_em?" · "+new Date(p2.pago_em).toLocaleDateString("pt-BR"):""}</span>
           </div>
         </div>})}
+      </div>}
+
+      {/* ═══ PLANOS ═══ */}
+      {tab2==="planos"&&<div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <div style={{fontSize:15,fontWeight:700,color:textColor}}>📦 Planos de Assinatura</div>
+          <button className="bh" onClick={function(){setShowPlanoForm(true);setEditPlano(null)}} style={{padding:"6px 14px",borderRadius:8,background:"#8B6FBF10",color:"#8B6FBF",border:"1px solid #8B6FBF25",cursor:"pointer",fontSize:13,fontWeight:600}}>+ Novo Plano</button>
+        </div>
+        {showPlanoForm&&<div style={{padding:16,borderRadius:14,background:cardBg,border:"1px solid rgba(139,111,191,0.15)",marginBottom:14}}>
+          <div style={{fontSize:14,fontWeight:700,color:"#8B6FBF",marginBottom:10}}>{editPlano?"✏️ Editar":"➕ Novo"} Plano</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:8}}>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:2}}>Nome *</div><input id="pl_nome" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},mI,{fontSize:13})} placeholder="Professional"/></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:2}}>Valor mensal (R$) *</div><input id="pl_valor" type="number" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},mI,{fontSize:13})} placeholder="497"/></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:2}}>Duração padrão (meses)</div><input id="pl_duracao" type="number" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},mI,{fontSize:13})} defaultValue="12"/></div>
+          </div>
+          <div><div style={{fontSize:11,color:subColor,marginBottom:2}}>Descrição</div><input id="pl_desc" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},mI,{fontSize:13})} placeholder="Ideal para construtoras em crescimento"/></div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:8}}>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:2}}>Máx empreendimentos</div><input id="pl_max_emp" type="number" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},mI,{fontSize:13})} defaultValue="10"/></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:2}}>Máx corretores</div><input id="pl_max_cor" type="number" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},mI,{fontSize:13})} defaultValue="50"/></div>
+            <div style={{display:"flex",alignItems:"flex-end",paddingBottom:12}}><label style={{display:"flex",alignItems:"center",gap:6,fontSize:13,color:"#E8A94E",cursor:"pointer"}}><input type="checkbox" id="pl_destaque"/>⭐ Destaque</label></div>
+          </div>
+          <div><div style={{fontSize:11,color:subColor,marginBottom:2}}>Recursos (1 por linha)</div><textarea id="pl_recursos" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},mI,{fontSize:12,minHeight:60})} placeholder={"CRM completo\nAté 10 empreendimentos\nSuporte prioritário"}></textarea></div>
+          <div style={{display:"flex",gap:6}}>
+            <button className="bh" onClick={async function(){
+              var nome=document.getElementById("pl_nome").value;var valor=+document.getElementById("pl_valor").value;
+              if(!nome||!valor){msg("Preencha nome e valor");return}
+              var data3={nome:nome,valor_mensal:valor,duracao_meses:+document.getElementById("pl_duracao").value||12,descricao:document.getElementById("pl_desc").value||null,max_empreendimentos:+document.getElementById("pl_max_emp").value||10,max_corretores:+document.getElementById("pl_max_cor").value||50,destaque:document.getElementById("pl_destaque").checked,recursos:document.getElementById("pl_recursos").value?document.getElementById("pl_recursos").value.split("\n").filter(function(x){return x.trim()}):null};
+              if(editPlano){var res=await sb.from("planos").update(data3).eq("id",editPlano);if(res.error){msg("❌ "+res.error.message);return}}
+              else{var res=await sb.from("planos").insert(data3);if(res.error){msg("❌ "+res.error.message);return}}
+              setShowPlanoForm(false);setEditPlano(null);await loadAll2();msg("✅ "+(editPlano?"Atualizado":"Plano criado")+"!");
+            }} style={{padding:"8px 20px",borderRadius:8,background:"#8B6FBF",color:"#fff",border:"none",cursor:"pointer",fontSize:13,fontWeight:600}}>💾 {editPlano?"Atualizar":"Criar"}</button>
+            <button className="bh" onClick={function(){setShowPlanoForm(false);setEditPlano(null)}} style={{padding:"8px 20px",borderRadius:8,background:"transparent",color:subColor,border:"1px solid "+borderColor,cursor:"pointer",fontSize:13}}>Cancelar</button>
+          </div>
+        </div>}
+        {/* Planos cards */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:12}}>
+          {planos2.map(function(pl){
+            var clientCount=subs.filter(function(s2){return s2.plano_id===pl.id&&s2.status==="ativo"}).length;
+            return <div key={pl.id} style={{padding:20,borderRadius:14,background:pl.destaque?"linear-gradient(135deg,rgba(139,111,191,0.06),rgba(232,169,78,0.04))":cardBg,border:pl.destaque?"2px solid #8B6FBF30":"1px solid "+borderColor,textAlign:"center",position:"relative"}}>
+              {pl.destaque&&<div style={{position:"absolute",top:-8,left:"50%",transform:"translateX(-50%)",fontSize:10,fontWeight:700,padding:"2px 12px",borderRadius:10,background:"#E8A94E",color:"#0a0a09"}}>⭐ MAIS POPULAR</div>}
+              <div style={{fontSize:20,fontWeight:700,color:textColor,marginTop:pl.destaque?8:0}}>{pl.nome}</div>
+              <div style={{fontSize:12,color:subColor,marginTop:4,minHeight:30}}>{pl.descricao||""}</div>
+              <div style={{fontSize:32,fontWeight:700,color:"#4CAF7D",margin:"12px 0"}}>R$ {fmt(pl.valor_mensal)}<span style={{fontSize:13,color:subColor,fontWeight:400}}>/mês</span></div>
+              <div style={{fontSize:12,color:subColor,marginBottom:10}}>
+                {pl.max_empreendimentos===-1?"∞":pl.max_empreendimentos} empreend. · {pl.max_corretores===-1?"∞":pl.max_corretores} corretores · {pl.duracao_meses}m
+              </div>
+              {pl.recursos&&<div style={{textAlign:"left",marginBottom:12}}>{(pl.recursos||[]).map(function(r2,i){return <div key={i} style={{fontSize:12,color:textColor,padding:"3px 0"}}>✓ {r2}</div>})}</div>}
+              <div style={{fontSize:12,color:"#5B8FD4",fontWeight:600,marginBottom:10}}>{clientCount} cliente{clientCount!==1?"s":""} ativo{clientCount!==1?"s":""}</div>
+              <div style={{display:"flex",gap:4,justifyContent:"center"}}>
+                <button className="bh" onClick={function(){
+                  setEditPlano(pl.id);setShowPlanoForm(true);
+                  setTimeout(function(){
+                    var f={pl_nome:pl.nome,pl_valor:pl.valor_mensal,pl_duracao:pl.duracao_meses,pl_desc:pl.descricao||"",pl_max_emp:pl.max_empreendimentos,pl_max_cor:pl.max_corretores};
+                    Object.keys(f).forEach(function(k){var el=document.getElementById(k);if(el)el.value=f[k]});
+                    document.getElementById("pl_destaque").checked=pl.destaque;
+                    document.getElementById("pl_recursos").value=(pl.recursos||[]).join("\n");
+                  },100);
+                }} style={{padding:"6px 12px",borderRadius:6,fontSize:12,background:"#5B8FD410",color:"#5B8FD4",border:"none",cursor:"pointer"}}>✏️ Editar</button>
+                <button className="bh" onClick={async function(){await sb.from("planos").update({ativo:false}).eq("id",pl.id);await loadAll2();msg("Removido")}} style={{padding:"6px 12px",borderRadius:6,fontSize:12,background:"rgba(213,91,91,0.1)",color:"#D45B5B",border:"none",cursor:"pointer"}}>🗑️</button>
+              </div>
+            </div>
+          })}
+        </div>
       </div>}
     </div>
   }
