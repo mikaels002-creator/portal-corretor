@@ -907,7 +907,13 @@ function App(){
 
           {/* Export Buttons */}
           <div style={{display:"flex",gap:8,marginTop:14}}>
-            <button className="bh" onClick={function(){printBld(bld.id)}} style={{flex:1,padding:"12px",borderRadius:10,fontSize:14,fontWeight:600,background:bld.color+"10",color:bld.color,border:"1px solid "+bld.color+"20",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>🖨️ PDF</button>
+            <div style={{flex:1,position:"relative"}}>
+              <button className="bh" onClick={function(){setDtab(dtab==="pdfMenu"?"table":"pdfMenu")}} style={{width:"100%",padding:"12px",borderRadius:10,fontSize:14,fontWeight:600,background:bld.color+"10",color:bld.color,border:"1px solid "+bld.color+"20",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>🖨️ PDF</button>
+              {dtab==="pdfMenu"&&<div style={{position:"absolute",top:"100%",left:0,right:0,marginTop:4,background:cardBg,borderRadius:10,border:"1px solid "+borderColor,padding:6,zIndex:10,boxShadow:"0 8px 24px rgba(0,0,0,0.3)"}}>
+                <button className="bh" onClick={function(){printBld(bld.id,"available");setDtab("table")}} style={{width:"100%",padding:"10px",borderRadius:8,fontSize:13,fontWeight:600,background:"rgba(76,175,125,0.08)",color:"#4CAF7D",border:"none",cursor:"pointer",marginBottom:4,textAlign:"left"}}>✅ Só disponíveis</button>
+                <button className="bh" onClick={function(){printBld(bld.id,"all");setDtab("table")}} style={{width:"100%",padding:"10px",borderRadius:8,fontSize:13,fontWeight:600,background:"rgba(91,143,212,0.08)",color:"#5B8FD4",border:"none",cursor:"pointer",textAlign:"left"}}>📋 Todas as unidades</button>
+              </div>}
+            </div>
             <button className="bh" onClick={function(){exportExcel(bld.id)}} style={{flex:1,padding:"12px",borderRadius:10,fontSize:14,fontWeight:600,background:"rgba(76,175,125,0.06)",color:"#6BAF8D",border:"1px solid rgba(76,175,125,0.12)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>📊 Excel</button>
           </div>
           </div>)}
@@ -1362,17 +1368,58 @@ function App(){
     );
   }
 
-  // ═══ SHARE UNIT ═══
-  // ═══ PDF EXPORT ═══
-  var printBld = function(bid){DB.trackEvent("pdf_export",{building_id:bid});
+  // ═══ PDF EXPORT (2-column premium layout) ═══
+  var printBld = function(bid,mode){DB.trackEvent("pdf_export",{building_id:bid});logAction("export_pdf","buildings",bid,null,{modo:mode});
     var b=buildings.find(function(x){return x.id===bid});if(!b)return;
-    var units=getUnits(bid);
-    var logo=cfg.report_logo?"<img src='"+cfg.report_logo+"' style='max-height:50px;max-width:180px;margin-bottom:12px'/>":"";
-    var coverImg=b.cover_photo?"<img src='"+b.cover_photo+"' style='width:100%;max-height:220px;object-fit:cover;border-radius:12px;margin-bottom:16px'/>":"";
+    var allU=getUnits(bid);
+    var units=mode==="available"?allU.filter(function(u){return u.status==="available"}):allU;
+    var logo=cfg.report_logo?"<img src='"+cfg.report_logo+"' style='max-height:45px;max-width:160px'/>":"";
+    var coverImg=b.cover_photo?"<img src='"+b.cover_photo+"' style='width:100%;max-height:180px;object-fit:cover;border-radius:10px;margin-bottom:14px'/>":"";
     var currency=showUsd?"USD":"BRL";
-    var usdWarn=showUsd?"<div style='margin:12px 0;padding:10px;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;font-size:10px;color:#856404;text-align:center'>⚠️ Valores em USD são referência. Cotação confirmada no dia da transação. Contratos em BRL. Ref: R$ "+getUsdRate().toFixed(2)+"</div>":"";
-    var rows=units.map(function(u){var p=cp(u,b);var showPrice=u.status==="available";return "<tr><td>"+u.name+"</td><td>"+u.area+"m²</td><td style='font-weight:600;color:#2e7d52'>"+(showPrice&&p>0?fmtV(p):"—")+"</td><td style='color:"+sC[u.status]+";font-weight:600'>"+sL[u.status]+"</td></tr>"}).join("");
-    var html="<html><head><meta charset='UTF-8'><title>"+b.name+"</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Helvetica,sans-serif;padding:36px;color:#1a1a1a;max-width:780px;margin:0 auto}h1{font-size:24px;margin-bottom:4px}h2{font-size:12px;color:#888;font-weight:400;margin-bottom:18px}table{width:100%;border-collapse:collapse;margin-top:8px}th{background:#f5f0e8;padding:10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid #ddd}td{padding:10px;border-bottom:1px solid #eee;font-size:12px}.ft{margin-top:24px;padding-top:12px;border-top:1px solid #ddd;font-size:9px;color:#999;text-align:center}.badge{display:inline-block;padding:4px 12px;border-radius:16px;font-size:10px;font-weight:700;color:#fff;margin-bottom:12px}.cub{font-size:11px;color:#666;margin-bottom:10px;padding:8px 10px;background:#f8f6f2;border-radius:5px}</style></head><body>"+logo+coverImg+"<h1>"+b.name+"</h1><h2>"+b.subtitle+"</h2><div class='badge' style='background:"+b.color+"'>"+(b.status==="ready"?t.ready:t.construction+" — "+b.construction_pct+"%")+"</div><div class='cub'>CUB/SC: "+fmt(b.cub_base)+" → "+fmt(b.cub_current)+" ("+((b.cub_current/b.cub_base-1)*100).toFixed(2)+"%)</div>"+usdWarn+"<table><thead><tr><th>"+t.unit+"</th><th>"+t.area+"</th><th>"+t.value+(showUsd?" (USD)":"")+"</th><th>"+t.status+"</th></tr></thead><tbody>"+rows+"</tbody></table><div class='ft'>"+contactLine+"</div></body></html>";
+    var usdWarn=showUsd?"<div style='margin:10px 0;padding:8px;background:#fff8e1;border:1px solid #ffe082;border-radius:6px;font-size:9px;color:#856404;text-align:center'>⚠️ Valores em USD referenciais. Cotação no dia da transação. Contratos em BRL. Ref: R$ "+getUsdRate().toFixed(2)+"</div>":"";
+    // Stats
+    var avCount=allU.filter(function(u){return u.status==="available"}).length;
+    var rsCount=allU.filter(function(u){return u.status==="reserved"}).length;
+    var sdCount=allU.filter(function(u){return u.status==="sold"}).length;
+    // Split units into 2 columns
+    var half=Math.ceil(units.length/2);
+    var col1=units.slice(0,half);
+    var col2=units.slice(half);
+    var makeRows=function(arr){return arr.map(function(u){var p=cp(u,b);var showPrice=u.status==="available";var sc=u.status==="available"?"#2e7d52":u.status==="reserved"?"#e67e22":"#c0392b";return "<tr><td style='padding:5px 8px;border-bottom:1px solid #eee;font-size:11px;font-weight:600'>"+u.name+"</td><td style='padding:5px 8px;border-bottom:1px solid #eee;font-size:11px;text-align:center'>"+u.area+"</td><td style='padding:5px 8px;border-bottom:1px solid #eee;font-size:11px;text-align:right;font-weight:600;color:"+sc+"'>"+(showPrice&&p>0?fmtV(p):"—")+"</td><td style='padding:5px 8px;border-bottom:1px solid #eee;font-size:10px;text-align:center;color:"+sc+"'>"+sL[u.status]+"</td></tr>"}).join("")};
+    var tableHtml=function(arr){return "<table style='width:100%;border-collapse:collapse'><thead><tr style='background:#f5f0e8'><th style='padding:6px 8px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid #ddd'>Unid.</th><th style='padding:6px 8px;text-align:center;font-size:9px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid #ddd'>m²</th><th style='padding:6px 8px;text-align:right;font-size:9px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid #ddd'>Valor"+(showUsd?" (USD)":"")+"</th><th style='padding:6px 8px;text-align:center;font-size:9px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid #ddd'>Status</th></tr></thead><tbody>"+makeRows(arr)+"</tbody></table>"};
+    var html="<html><head><meta charset='UTF-8'><title>"+b.name+" — Tabela de Vendas</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;padding:28px 32px;color:#1a1a1a;max-width:820px;margin:0 auto}@media print{body{padding:20px}}</style></head><body>";
+    // Header
+    html+="<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid "+b.color+"'>";
+    html+="<div>"+logo+"<h1 style='font-size:22px;margin-top:6px;color:#1a1a1a'>"+b.name+"</h1><div style='font-size:12px;color:#888;margin-top:2px'>"+b.subtitle+"</div></div>";
+    html+="<div style='text-align:right'><div style='display:inline-block;padding:5px 14px;border-radius:16px;font-size:10px;font-weight:700;color:#fff;background:"+b.color+"'>"+(b.status==="ready"?t.ready:t.construction+" — "+b.construction_pct+"%")+"</div>";
+    html+="<div style='font-size:10px;color:#888;margin-top:6px'>"+new Date().toLocaleDateString("pt-BR")+"</div></div></div>";
+    // Cover
+    html+=coverImg;
+    // Stats bar
+    html+="<div style='display:flex;gap:12px;margin-bottom:14px'>";
+    html+="<div style='flex:1;padding:8px;background:#f0fdf4;border-radius:8px;text-align:center'><div style='font-size:20px;font-weight:700;color:#2e7d52'>"+avCount+"</div><div style='font-size:9px;color:#888'>Disponíveis</div></div>";
+    html+="<div style='flex:1;padding:8px;background:#fff8e1;border-radius:8px;text-align:center'><div style='font-size:20px;font-weight:700;color:#e67e22'>"+rsCount+"</div><div style='font-size:9px;color:#888'>Reservados</div></div>";
+    html+="<div style='flex:1;padding:8px;background:#fef2f2;border-radius:8px;text-align:center'><div style='font-size:20px;font-weight:700;color:#c0392b'>"+sdCount+"</div><div style='font-size:9px;color:#888'>Vendidos</div></div>";
+    html+="<div style='flex:1;padding:8px;background:#f5f0e8;border-radius:8px;text-align:center'><div style='font-size:20px;font-weight:700;color:#1a1a1a'>"+allU.length+"</div><div style='font-size:9px;color:#888'>Total</div></div>";
+    html+="</div>";
+    // CUB info
+    html+="<div style='font-size:10px;color:#666;margin-bottom:10px;padding:6px 10px;background:#f8f6f2;border-radius:5px'>CUB/SC: "+fmt(b.cub_base)+" → "+fmt(b.cub_current)+" ("+((b.cub_current/b.cub_base-1)*100).toFixed(2)+"%)</div>";
+    html+=usdWarn;
+    // Mode indicator
+    html+="<div style='font-size:10px;color:#888;margin-bottom:8px;font-weight:600'>"+(mode==="available"?"✅ Exibindo apenas unidades disponíveis ("+units.length+")":"📋 Todas as unidades ("+units.length+")")+"</div>";
+    // 2-column table
+    if(units.length>6){
+      html+="<div style='display:flex;gap:16px'>";
+      html+="<div style='flex:1'>"+tableHtml(col1)+"</div>";
+      html+="<div style='flex:1'>"+tableHtml(col2)+"</div>";
+      html+="</div>";
+    }else{
+      // Single column for few units
+      html+=tableHtml(units);
+    }
+    // Footer
+    html+="<div style='margin-top:20px;padding-top:10px;border-top:1px solid #ddd;font-size:9px;color:#999;text-align:center'>"+contactLine+"<br>📐 Correção pelo CUB/SC durante o período de obras<br>Tabela gerada em "+new Date().toLocaleDateString("pt-BR")+" · Valores sujeitos a confirmação</div>";
+    html+="</body></html>";
     var w=window.open("","_blank");if(w){w.document.write(html);w.document.close();setTimeout(function(){w.print()},500)}
   };
 
