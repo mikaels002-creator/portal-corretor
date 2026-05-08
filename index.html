@@ -1319,6 +1319,7 @@ function App(){
           <button className="bh ch" onClick={function(){setMdl({t:"aiAgent"})}} style={{padding:16,borderRadius:14,fontSize:15,fontWeight:500,background:"linear-gradient(135deg,#111110,#15131d)",color:"#8B6FBF",border:"1px solid rgba(139,111,191,0.15)",cursor:"pointer",textAlign:"center"}}>🤖 Agente IA</button>
           <button className="bh ch" onClick={function(){setMdl({t:"waInbox"})}} style={{padding:16,borderRadius:14,fontSize:15,fontWeight:500,background:"linear-gradient(135deg,#111110,#0d1a13)",color:"#25D366",border:"1px solid rgba(37,211,102,0.15)",cursor:"pointer",textAlign:"center"}}>💼 CRM</button>
           {currentUser&&currentUser.role==="super_admin"&&<button className="bh ch" onClick={function(){setMdl({t:"auditLog"})}} style={{padding:16,borderRadius:14,fontSize:15,fontWeight:500,background:"linear-gradient(135deg,#111110,#1a1510)",color:"#E8A94E",border:"1px solid rgba(232,169,78,0.15)",cursor:"pointer",textAlign:"center"}}>📋 Logs</button>}
+          {currentUser&&currentUser.role==="super_admin"&&<button className="bh ch" onClick={function(){setMdl({t:"tenants"})}} style={{padding:16,borderRadius:14,fontSize:15,fontWeight:500,background:"linear-gradient(135deg,#111110,#101518)",color:"#5B8FD4",border:"1px solid rgba(91,143,212,0.15)",cursor:"pointer",textAlign:"center"}}>🏢 Assinantes</button>}
           <button className="bh ch" onClick={function(){setMdl({t:"taskManager"})}} style={{padding:16,borderRadius:14,fontSize:15,fontWeight:500,background:cardBg,color:"#E8A94E",border:"1px solid rgba(232,169,78,0.1)",cursor:"pointer",textAlign:"center",position:"relative"}}>📋 Tarefas {tasks.filter(function(t2){return t2.status==="pending"}).length>0?" · "+tasks.filter(function(t2){return t2.status==="pending"}).length:""}</button>
           <button className="bh ch" onClick={function(){setMiniChat({channel:"admin_team",title:"Chat Equipe"})}} style={{padding:16,borderRadius:14,fontSize:15,fontWeight:500,background:cardBg,color:"#4CAF7D",border:"1px solid rgba(76,175,125,0.1)",cursor:"pointer",textAlign:"center"}}>💬 Chat Equipe</button>
         </div>
@@ -1486,6 +1487,7 @@ function App(){
     if(mdl.t==="aiAgent") return <AIAgentM/>;
     if(mdl.t==="waInbox") return <WAInboxM/>;
     if(mdl.t==="auditLog") return <AuditLogM/>;
+    if(mdl.t==="tenants") return <TenantsM/>;
     if(mdl.t==="taskManager") return <TaskManagerM/>;
     if(mdl.t==="adminChat") return <AdminChatM/>;
     if(mdl.t==="brokerChat") return <BrokerChatM/>;
@@ -2220,6 +2222,158 @@ function App(){
   }
 
   // ═══ AI AGENT ═══
+  // ═══ TENANTS MANAGEMENT MODAL ═══
+  function TenantsM(){
+    var _tenants=useState([]);var tenants2=_tenants[0];var setTenants2=_tenants[1];
+    var _editT=useState(null);var editT=_editT[0];var setEditT=_editT[1];
+    var _newT=useState(false);var newT=_newT[0];var setNewT=_newT[1];
+    var _tForm=useState({slug:"",nome_empresa:"",logo_url:"",cor_primaria:"#C8A45C",plano:"trial",max_empreendimentos:10,max_corretores:50,ativo:true,expira_em:""});var tForm=_tForm[0];var setTF=_tForm[1];
+
+    var loadTenants=async function(){var r=await sb.from("tenants").select("*").order("criado_em",{ascending:false});setTenants2(r.data||[])};
+    useEffect(function(){loadTenants()},[]);
+
+    var saveTenant=async function(){
+      if(!tForm.slug||!tForm.nome_empresa){msg("Preencha slug e nome");return}
+      var clean=tForm.slug.toLowerCase().replace(/[^a-z0-9\-]/g,"-").replace(/--+/g,"-");
+      try{
+        if(editT){
+          await sb.from("tenants").update({slug:clean,nome_empresa:tForm.nome_empresa,logo_url:tForm.logo_url||null,cor_primaria:tForm.cor_primaria,plano:tForm.plano,max_empreendimentos:+tForm.max_empreendimentos||10,max_corretores:+tForm.max_corretores||50,ativo:tForm.ativo,expira_em:tForm.expira_em||null}).eq("id",editT);
+          msg("✅ Assinante atualizado!");
+        }else{
+          await sb.from("tenants").insert({id:clean,slug:clean,nome_empresa:tForm.nome_empresa,logo_url:tForm.logo_url||null,cor_primaria:tForm.cor_primaria,plano:tForm.plano,max_empreendimentos:+tForm.max_empreendimentos||10,max_corretores:+tForm.max_corretores||50,ativo:tForm.ativo!==false,expira_em:tForm.expira_em||null});
+          msg("✅ Assinante criado!");
+        }
+        setEditT(null);setNewT(false);setTF({slug:"",nome_empresa:"",logo_url:"",cor_primaria:"#C8A45C",plano:"trial",max_empreendimentos:10,max_corretores:50,ativo:true,expira_em:""});
+        await loadTenants();
+      }catch(e){msg("❌ "+e.message)}
+    };
+
+    var startEdit=function(t2){
+      setEditT(t2.id);setNewT(true);
+      setTF({slug:t2.slug,nome_empresa:t2.nome_empresa,logo_url:t2.logo_url||"",cor_primaria:t2.cor_primaria||"#C8A45C",plano:t2.plano||"trial",max_empreendimentos:t2.max_empreendimentos||10,max_corretores:t2.max_corretores||50,ativo:t2.ativo!==false,expira_em:t2.expira_em?t2.expira_em.substring(0,10):""});
+    };
+
+    var planoBadge=function(p){var cols={trial:"#E8A94E",basic:"#5B8FD4",premium:"#4CAF7D",enterprise:"#8B6FBF"};return <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:4,background:(cols[p]||"#555")+"15",color:cols[p]||"#555",textTransform:"uppercase"}}>{p}</span>};
+
+    return <div>
+      <div style={mT}>🏢 Gestão de Assinantes</div>
+
+      {/* Current tenant highlight */}
+      <div style={{padding:12,borderRadius:10,background:"rgba(76,175,125,0.06)",border:"1px solid rgba(76,175,125,0.12)",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div>
+          <div style={{fontSize:13,fontWeight:600,color:"#4CAF7D"}}>✅ Tenant ativo nesta sessão</div>
+          <div style={{fontSize:18,fontWeight:700,color:textColor,marginTop:2}}>Portal <span style={{color:G}}>{tenant?tenant.nome_empresa.split(" ")[0]:slug}</span></div>
+          <div style={{fontSize:12,color:subColor}}>portal-corretor.com/<b>{slug}</b></div>
+        </div>
+        {tenant&&<div>{planoBadge(tenant.plano)}</div>}
+      </div>
+
+      {/* New tenant button */}
+      <button className="bh" onClick={function(){setNewT(!newT);setEditT(null);setTF({slug:"",nome_empresa:"",logo_url:"",cor_primaria:"#C8A45C",plano:"trial",max_empreendimentos:10,max_corretores:50,ativo:true,expira_em:""})}} style={{width:"100%",padding:12,borderRadius:10,background:"#5B8FD408",color:"#5B8FD4",border:"1px dashed #5B8FD425",cursor:"pointer",fontSize:14,fontWeight:600,marginBottom:14}}>+ Novo Assinante</button>
+
+      {/* Form */}
+      {newT&&<div style={{padding:14,borderRadius:12,background:cardBg,border:"1px solid rgba(91,143,212,0.15)",marginBottom:14}}>
+        <div style={{fontSize:14,fontWeight:600,color:"#5B8FD4",marginBottom:10}}>{editT?"✏️ Editar":"➕ Novo"} Assinante</div>
+        <div style={{display:"flex",gap:8,marginBottom:6}}>
+          <div style={{flex:1}}>
+            <div style={{fontSize:11,color:subColor,marginBottom:3}}>Nome da empresa</div>
+            <input style={Object.assign({},mI,{fontSize:13})} value={tForm.nome_empresa} onChange={function(e){setTF(Object.assign({},tForm,{nome_empresa:e.target.value}))}} placeholder="Ex: Construtora ABC"/>
+          </div>
+          <div style={{flex:1}}>
+            <div style={{fontSize:11,color:subColor,marginBottom:3}}>Slug (URL)</div>
+            <div style={{display:"flex",alignItems:"center",gap:0}}>
+              <span style={{fontSize:11,color:subColor,whiteSpace:"nowrap",padding:"10px 0 10px 12px",background:isDark?"#1a1a19":"#EFEBE4",borderRadius:"10px 0 0 10px",border:"1px solid "+borderColor,borderRight:"none"}}>/</span>
+              <input style={Object.assign({},mI,{fontSize:13,borderRadius:"0 10px 10px 0",flex:1})} value={tForm.slug} onChange={function(e){setTF(Object.assign({},tForm,{slug:e.target.value.toLowerCase().replace(/[^a-z0-9\-]/g,"")}))}} placeholder="construtora-abc"/>
+            </div>
+          </div>
+        </div>
+        <div style={{padding:8,borderRadius:8,background:"rgba(91,143,212,0.04)",marginBottom:8,fontSize:12,color:subColor}}>
+          Preview: <b style={{color:textColor}}>portal-corretor.com/{tForm.slug||"..."}</b> → <b style={{color:G}}>Portal {tForm.nome_empresa?tForm.nome_empresa.split(" ")[0]:"..."}</b>
+        </div>
+        <div style={{display:"flex",gap:8,marginBottom:6}}>
+          <div style={{flex:1}}>
+            <div style={{fontSize:11,color:subColor,marginBottom:3}}>Logo (URL)</div>
+            <input style={Object.assign({},mI,{fontSize:13})} value={tForm.logo_url} onChange={function(e){setTF(Object.assign({},tForm,{logo_url:e.target.value}))}} placeholder="https://..."/>
+          </div>
+          <div style={{width:100}}>
+            <div style={{fontSize:11,color:subColor,marginBottom:3}}>Cor</div>
+            <input type="color" style={{width:"100%",height:38,borderRadius:10,border:"1px solid "+borderColor,cursor:"pointer"}} value={tForm.cor_primaria} onChange={function(e){setTF(Object.assign({},tForm,{cor_primaria:e.target.value}))}}/>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:8,marginBottom:6}}>
+          <div style={{flex:1}}>
+            <div style={{fontSize:11,color:subColor,marginBottom:3}}>Plano</div>
+            <select style={Object.assign({},mI,{fontSize:13})} value={tForm.plano} onChange={function(e){setTF(Object.assign({},tForm,{plano:e.target.value}))}}>
+              <option value="trial">Trial (14 dias)</option>
+              <option value="basic">Basic</option>
+              <option value="premium">Premium</option>
+              <option value="enterprise">Enterprise</option>
+            </select>
+          </div>
+          <div style={{flex:1}}>
+            <div style={{fontSize:11,color:subColor,marginBottom:3}}>Expira em</div>
+            <input type="date" style={Object.assign({},mI,{fontSize:13})} value={tForm.expira_em} onChange={function(e){setTF(Object.assign({},tForm,{expira_em:e.target.value}))}}/>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:8,marginBottom:6}}>
+          <div style={{flex:1}}>
+            <div style={{fontSize:11,color:subColor,marginBottom:3}}>Máx empreendimentos</div>
+            <input type="number" style={Object.assign({},mI,{fontSize:13})} value={tForm.max_empreendimentos} onChange={function(e){setTF(Object.assign({},tForm,{max_empreendimentos:e.target.value}))}}/>
+          </div>
+          <div style={{flex:1}}>
+            <div style={{fontSize:11,color:subColor,marginBottom:3}}>Máx corretores</div>
+            <input type="number" style={Object.assign({},mI,{fontSize:13})} value={tForm.max_corretores} onChange={function(e){setTF(Object.assign({},tForm,{max_corretores:e.target.value}))}}/>
+          </div>
+          <div style={{display:"flex",alignItems:"flex-end",paddingBottom:8}}>
+            <label style={{display:"flex",alignItems:"center",gap:6,fontSize:13,color:textColor,cursor:"pointer"}}>
+              <input type="checkbox" checked={tForm.ativo!==false} onChange={function(e){setTF(Object.assign({},tForm,{ativo:e.target.checked}))}}/>
+              Ativo
+            </label>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:6}}>
+          <button className="bh" onClick={saveTenant} style={{padding:"8px 20px",borderRadius:8,background:"#5B8FD4",color:"#fff",border:"none",cursor:"pointer",fontSize:13,fontWeight:600}}>💾 {editT?"Atualizar":"Criar"}</button>
+          <button className="bh" onClick={function(){setNewT(false);setEditT(null)}} style={{padding:"8px 20px",borderRadius:8,background:"transparent",color:subColor,border:"1px solid "+borderColor,cursor:"pointer",fontSize:13}}>Cancelar</button>
+        </div>
+      </div>}
+
+      {/* Tenants list */}
+      <div style={{maxHeight:"45vh",overflow:"auto"}}>
+        {tenants2.map(function(t2){
+          var isActive=t2.ativo&&(!t2.expira_em||new Date(t2.expira_em)>=new Date());
+          var isCurrent=t2.slug===slug;
+          return <div key={t2.id} style={{padding:14,borderRadius:12,background:isCurrent?"rgba(76,175,125,0.04)":cardBg,border:"1px solid "+(isCurrent?"rgba(76,175,125,0.15)":borderColor),marginBottom:8,opacity:isActive?1:0.5}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                {t2.logo_url?<img src={t2.logo_url} style={{height:32,maxWidth:80,objectFit:"contain"}}/>:<div style={{width:36,height:36,borderRadius:10,background:t2.cor_primaria+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:700,color:t2.cor_primaria}}>{t2.nome_empresa[0]}</div>}
+                <div>
+                  <div style={{fontWeight:700,fontSize:16,color:textColor}}>{t2.nome_empresa}</div>
+                  <div style={{fontSize:12,color:subColor}}>portal-corretor.com/<b>{t2.slug}</b>{isCurrent&&<span style={{color:"#4CAF7D",marginLeft:6}}>← atual</span>}</div>
+                </div>
+              </div>
+              <div style={{display:"flex",gap:4,alignItems:"center"}}>
+                {planoBadge(t2.plano)}
+                <span style={{fontSize:10,padding:"2px 6px",borderRadius:4,background:isActive?"#4CAF7D15":"#D45B5B15",color:isActive?"#4CAF7D":"#D45B5B"}}>{isActive?"✅ Ativo":"❌ Inativo"}</span>
+              </div>
+            </div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:8}}>
+              <div style={{fontSize:11,color:subColor}}>
+                📦 {t2.max_empreendimentos} empreend. · 👥 {t2.max_corretores} corretores
+                {t2.expira_em&&<span> · ⏰ {new Date(t2.expira_em).toLocaleDateString("pt-BR")}</span>}
+              </div>
+              <div style={{display:"flex",gap:4}}>
+                <button className="bh" onClick={function(){startEdit(t2)}} style={{padding:"4px 10px",borderRadius:6,fontSize:11,background:"#5B8FD410",color:"#5B8FD4",border:"none",cursor:"pointer"}}>✏️ Editar</button>
+                <button className="bh" onClick={async function(){await sb.from("tenants").update({ativo:!t2.ativo}).eq("id",t2.id);await loadTenants();msg(t2.ativo?"Desativado":"Ativado")}} style={{padding:"4px 10px",borderRadius:6,fontSize:11,background:t2.ativo?"rgba(213,91,91,0.1)":"rgba(76,175,125,0.1)",color:t2.ativo?"#D45B5B":"#4CAF7D",border:"none",cursor:"pointer"}}>{t2.ativo?"⏸ Pausar":"▶️ Ativar"}</button>
+              </div>
+            </div>
+          </div>
+        })}
+      </div>
+
+      <button style={mC} onClick={function(){setMdl(null)}}>Fechar</button>
+    </div>
+  }
+
   // ═══ AUDIT LOG MODAL ═══
   function AuditLogM(){
     var _logs=useState([]);var logs=_logs[0];var setLogs=_logs[1];
