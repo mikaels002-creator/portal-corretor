@@ -575,6 +575,7 @@ function App(){
     try {
       // Load tenant first
       var tr=await sb.from("tenants").select("*").eq("slug",slug).eq("ativo",true).single();
+      if(!tr.data){tr=await sb.from("tenants").select("*").eq("ativo",true).order("criado_em").limit(1).single()}
       if(tr.data){setTenant(tr.data);document.title="Portal "+tr.data.nome_empresa.split(" ")[0]}
       var results = await Promise.all([DB.loadConfig(),DB.loadBuildings(),DB.loadAllUnits(),DB.loadPhotos(),DB.loadPlants(),DB.loadDocuments(),DB.loadNotices(),DB.loadBrokers(),DB.loadSales(),DB.loadAdminUsers(),DB.loadTasks()]);
       setCfg(results[0]);setBuildings(results[1]);setAllUnits(results[2]);setAllPhotos(results[3]);setAllPlants(results[4]);setAllDocs(results[5]);setAllNotices(results[6]);setBrokers(results[7]);setSales(results[8]);setAdminUsers(results[9]);setTasks(results[10]);
@@ -2253,8 +2254,10 @@ function App(){
         }
         setEditT(null);setNewT(false);setTF({slug:"",nome_empresa:"",logo_url:"",cor_primaria:"#C8A45C",plano:"trial",max_empreendimentos:10,max_corretores:50,ativo:true,expira_em:""});
         await loadTenants();
-        // If editing current tenant, update display immediately
-        if(editT===slug||clean===slug){var tr2=await sb.from("tenants").select("*").eq("slug",slug).single();if(tr2.data){setTenant(tr2.data);document.title="Portal "+tr2.data.nome_empresa.split(" ")[0]}}
+        // Always refresh current tenant display
+        var tr2=await sb.from("tenants").select("*").eq("slug",tenant?tenant.slug:slug).single();
+        if(!tr2.data)tr2=await sb.from("tenants").select("*").eq("id",editT||clean).single();
+        if(tr2.data){setTenant(tr2.data);document.title="Portal "+tr2.data.nome_empresa.split(" ")[0]}
       }catch(e){msg("❌ "+e.message)}
     };
 
@@ -2294,7 +2297,7 @@ function App(){
         <div style={{display:"flex",gap:8,marginBottom:6}}>
           <div style={{flex:1}}>
             <div style={{fontSize:11,color:subColor,marginBottom:3}}>Nome da empresa</div>
-            <input id="tenant_nome" style={{width:"100%",padding:"13px 16px",background:"#1a1a19",border:"1px solid rgba(255,255,255,0.06)",borderRadius:10,color:"#F0EBE3",fontSize:13,fontFamily:"inherit",outline:"none",marginBottom:10}} placeholder="Ex: Construtora ABC"/>
+            <textarea id="tenant_nome" rows="1" onKeyDown={function(e){e.stopPropagation();if(e.key==="Enter")e.preventDefault()}} style={{width:"100%",padding:"13px 16px",background:"#1a1a19",border:"1px solid rgba(255,255,255,0.06)",borderRadius:10,color:"#F0EBE3",fontSize:13,fontFamily:"inherit",outline:"none",marginBottom:10,resize:"none",overflow:"hidden"}} placeholder="Ex: Construtora ABC"></textarea>
           </div>
           <div style={{flex:1}}>
             <div style={{fontSize:11,color:subColor,marginBottom:3}}>Slug (URL)</div>
