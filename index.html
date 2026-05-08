@@ -2279,13 +2279,13 @@ function App(){
         <div style={{display:"flex",gap:8,marginBottom:6}}>
           <div style={{flex:1}}>
             <div style={{fontSize:11,color:subColor,marginBottom:3}}>Nome da empresa</div>
-            <input style={Object.assign({},mI,{fontSize:13})} value={tForm.nome_empresa} onChange={function(e){setTF(Object.assign({},tForm,{nome_empresa:e.target.value}))}} placeholder="Ex: Construtora ABC"/>
+            <input style={Object.assign({},mI,{fontSize:13})} value={tForm.nome_empresa} onChange={function(e){setTF(function(p){return Object.assign({},p,{nome_empresa:e.target.value})})}} placeholder="Ex: Construtora ABC"/>
           </div>
           <div style={{flex:1}}>
             <div style={{fontSize:11,color:subColor,marginBottom:3}}>Slug (URL)</div>
             <div style={{display:"flex",alignItems:"center",gap:0}}>
               <span style={{fontSize:11,color:subColor,whiteSpace:"nowrap",padding:"10px 0 10px 12px",background:isDark?"#1a1a19":"#EFEBE4",borderRadius:"10px 0 0 10px",border:"1px solid "+borderColor,borderRight:"none"}}>/</span>
-              <input style={Object.assign({},mI,{fontSize:13,borderRadius:"0 10px 10px 0",flex:1})} value={tForm.slug} onChange={function(e){setTF(Object.assign({},tForm,{slug:e.target.value.toLowerCase().replace(/[^a-z0-9\-]/g,"")}))}} placeholder="construtora-abc"/>
+              <input style={Object.assign({},mI,{fontSize:13,borderRadius:"0 10px 10px 0",flex:1})} value={tForm.slug} onChange={function(e){setTF(function(p){return Object.assign({},p,{slug:e.target.value.toLowerCase().replace(/[^a-z0-9\-]/g,"")})})}} placeholder="construtora-abc"/>
             </div>
           </div>
         </div>
@@ -2298,17 +2298,17 @@ function App(){
         <div style={{display:"flex",gap:8,marginBottom:6}}>
           <div style={{flex:1}}>
             <div style={{fontSize:11,color:subColor,marginBottom:3}}>Logo (URL)</div>
-            <input style={Object.assign({},mI,{fontSize:13})} value={tForm.logo_url} onChange={function(e){setTF(Object.assign({},tForm,{logo_url:e.target.value}))}} placeholder="https://..."/>
+            <input style={Object.assign({},mI,{fontSize:13})} value={tForm.logo_url} onChange={function(e){setTF(function(p){return Object.assign({},p,{logo_url:e.target.value})})}} placeholder="https://..."/>
           </div>
           <div style={{width:100}}>
             <div style={{fontSize:11,color:subColor,marginBottom:3}}>Cor</div>
-            <input type="color" style={{width:"100%",height:38,borderRadius:10,border:"1px solid "+borderColor,cursor:"pointer"}} value={tForm.cor_primaria} onChange={function(e){setTF(Object.assign({},tForm,{cor_primaria:e.target.value}))}}/>
+            <input type="color" style={{width:"100%",height:38,borderRadius:10,border:"1px solid "+borderColor,cursor:"pointer"}} value={tForm.cor_primaria} onChange={function(e){setTF(function(p){return Object.assign({},p,{cor_primaria:e.target.value})})}}/>
           </div>
         </div>
         <div style={{display:"flex",gap:8,marginBottom:6}}>
           <div style={{flex:1}}>
             <div style={{fontSize:11,color:subColor,marginBottom:3}}>Plano</div>
-            <select style={Object.assign({},mI,{fontSize:13})} value={tForm.plano} onChange={function(e){setTF(Object.assign({},tForm,{plano:e.target.value}))}}>
+            <select style={Object.assign({},mI,{fontSize:13})} value={tForm.plano} onChange={function(e){setTF(function(p){return Object.assign({},p,{plano:e.target.value})})}}>
               <option value="trial">Trial (14 dias)</option>
               <option value="basic">Basic</option>
               <option value="premium">Premium</option>
@@ -2317,27 +2317,27 @@ function App(){
           </div>
           <div style={{flex:1}}>
             <div style={{fontSize:11,color:subColor,marginBottom:3}}>Expira em</div>
-            <input type="date" style={Object.assign({},mI,{fontSize:13})} value={tForm.expira_em} onChange={function(e){setTF(Object.assign({},tForm,{expira_em:e.target.value}))}}/>
+            <input type="date" style={Object.assign({},mI,{fontSize:13})} value={tForm.expira_em} onChange={function(e){setTF(function(p){return Object.assign({},p,{expira_em:e.target.value})})}}/>
           </div>
         </div>
         <div style={{display:"flex",gap:8,marginBottom:6}}>
           <div style={{flex:1}}>
             <div style={{fontSize:11,color:subColor,marginBottom:3}}>Máx empreendimentos</div>
             <div style={{display:"flex",gap:6,alignItems:"center"}}>
-              {tForm.max_empreendimentos===-1?<div style={Object.assign({},mI,{flex:1,fontSize:13,display:"flex",alignItems:"center",color:"#4CAF7D",fontWeight:600})}>∞ Ilimitado</div>:<input type="number" style={Object.assign({},mI,{flex:1,fontSize:13})} value={tForm.max_empreendimentos} onChange={function(e){setTF(Object.assign({},tForm,{max_empreendimentos:+e.target.value||0}))}}/>}
-              <button className="bh" onClick={function(){setTF(Object.assign({},tForm,{max_empreendimentos:tForm.max_empreendimentos===-1?10:-1}))}} style={{padding:"6px 10px",borderRadius:8,fontSize:11,fontWeight:600,background:tForm.max_empreendimentos===-1?"#4CAF7D15":"transparent",color:tForm.max_empreendimentos===-1?"#4CAF7D":subColor,border:"1px solid "+borderColor,cursor:"pointer",whiteSpace:"nowrap"}}>∞</button>
+              {tForm.max_empreendimentos===-1?<div style={Object.assign({},mI,{flex:1,fontSize:13,display:"flex",alignItems:"center",color:"#4CAF7D",fontWeight:600})}>∞ Ilimitado</div>:<input type="number" style={Object.assign({},mI,{flex:1,fontSize:13})} value={tForm.max_empreendimentos} onChange={function(e){setTF(function(p){return Object.assign({},p,{max_empreendimentos:+e.target.value||0})})}}/>}
+              <button className="bh" onClick={function(){setTF(function(p){return Object.assign({},p,{max_empreendimentos:p.max_empreendimentos===-1?10:-1})})}} style={{padding:"6px 10px",borderRadius:8,fontSize:11,fontWeight:600,background:tForm.max_empreendimentos===-1?"#4CAF7D15":"transparent",color:tForm.max_empreendimentos===-1?"#4CAF7D":subColor,border:"1px solid "+borderColor,cursor:"pointer",whiteSpace:"nowrap"}}>∞</button>
             </div>
           </div>
           <div style={{flex:1}}>
             <div style={{fontSize:11,color:subColor,marginBottom:3}}>Máx corretores</div>
             <div style={{display:"flex",gap:6,alignItems:"center"}}>
-              {tForm.max_corretores===-1?<div style={Object.assign({},mI,{flex:1,fontSize:13,display:"flex",alignItems:"center",color:"#4CAF7D",fontWeight:600})}>∞ Ilimitado</div>:<input type="number" style={Object.assign({},mI,{flex:1,fontSize:13})} value={tForm.max_corretores} onChange={function(e){setTF(Object.assign({},tForm,{max_corretores:+e.target.value||0}))}}/>}
-              <button className="bh" onClick={function(){setTF(Object.assign({},tForm,{max_corretores:tForm.max_corretores===-1?50:-1}))}} style={{padding:"6px 10px",borderRadius:8,fontSize:11,fontWeight:600,background:tForm.max_corretores===-1?"#4CAF7D15":"transparent",color:tForm.max_corretores===-1?"#4CAF7D":subColor,border:"1px solid "+borderColor,cursor:"pointer",whiteSpace:"nowrap"}}>∞</button>
+              {tForm.max_corretores===-1?<div style={Object.assign({},mI,{flex:1,fontSize:13,display:"flex",alignItems:"center",color:"#4CAF7D",fontWeight:600})}>∞ Ilimitado</div>:<input type="number" style={Object.assign({},mI,{flex:1,fontSize:13})} value={tForm.max_corretores} onChange={function(e){setTF(function(p){return Object.assign({},p,{max_corretores:+e.target.value||0})})}}/>}
+              <button className="bh" onClick={function(){setTF(function(p){return Object.assign({},p,{max_corretores:p.max_corretores===-1?50:-1})})}} style={{padding:"6px 10px",borderRadius:8,fontSize:11,fontWeight:600,background:tForm.max_corretores===-1?"#4CAF7D15":"transparent",color:tForm.max_corretores===-1?"#4CAF7D":subColor,border:"1px solid "+borderColor,cursor:"pointer",whiteSpace:"nowrap"}}>∞</button>
             </div>
           </div>
         </div>
         <label style={{display:"flex",alignItems:"center",gap:6,fontSize:13,color:textColor,marginBottom:10,cursor:"pointer"}}>
-          <input type="checkbox" checked={tForm.ativo!==false} onChange={function(e){setTF(Object.assign({},tForm,{ativo:e.target.checked}))}}/>
+          <input type="checkbox" checked={tForm.ativo!==false} onChange={function(e){setTF(function(p){return Object.assign({},p,{ativo:e.target.checked})})}}/>
           Ativo
         </label>
         <div style={{display:"flex",gap:6}}>
