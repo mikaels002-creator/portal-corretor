@@ -340,7 +340,7 @@ var DB = {
 // ═══════════════════════════════════════
 var WA = {
   TOKEN:"EAAX7CZAnuN8UBRYtPtRxTZCQOZCldkyhqWGiBlRrBBQupR0qiw9IZCgQnpWNs42ZCXL9jFzxuPsGFeWKxL0nZBWTJKAoreGcEHSpoSjQHKe9NYwZAzbsefu1dsnqZCpeODCkiJ5eUj4ea5Qyesp0YlGK3jjJmHZBxJFZCWzhfiErFWZAB2KonlovDk3zZCoJkSaZCVXhltcOYpMLUOteHRZB659gYCb7fh9dSpcKzrOuOVXfeGwO9qYv93hGqAkqAiOy1xSX07IZBbZCPt1pRSWXZBkEHaNhI",
-  PHONE_ID:"1172677832585790",
+  PHONE_ID:"1064884910048060",
   API:"https://graph.facebook.com/v21.0",
   getAtendentes:async function(){var r=await sb.from("atendentes_whatsapp").select("*").order("ordem");return r.data||[]},
   getLeads:async function(atendenteId){
@@ -2918,13 +2918,6 @@ function App(){
       setWaSending(false);
     };
 
-    var createNewLead=async function(){
-      if(!newPhone.trim())return;
-      var attId=await WA.distribuirLead();
-      var lead=await WA.createLead(newPhone,newName||newPhone,attId,"manual");
-      if(lead){setNewPhone("");setNewName("");setShowNew(false);await loadData();wmsg("✅ Lead criado!")}
-    };
-
     var filteredLeads=waLeads.filter(function(l){
       if(waSearch){var s=waSearch.toLowerCase();if((l.nome||"").toLowerCase().indexOf(s)===-1&&(l.telefone||"").indexOf(s)===-1)return false}
       if(waFilter==="all")return true;
@@ -3105,43 +3098,6 @@ function App(){
       </div>
     };
 
-    // ═══ FUNIL ═══
-    var renderFunil=function(){
-      return <div style={{overflow:"auto"}}>
-        <div style={{display:"flex",gap:10,minWidth:etapas.length*170,padding:"4px 0"}}>
-          {etapas.map(function(et){
-            var items=waLeads.filter(function(l){return l.etapa_funil===et.k});
-            return <div key={et.k} style={{flex:1,minWidth:155}}>
-              <div style={{padding:"10px 12px",borderRadius:"12px 12px 0 0",background:et.c+"18",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"2px solid "+et.c}}>
-                <span style={{fontWeight:700,fontSize:13,color:et.c}}>{et.e} {et.l}</span>
-                <span style={{fontSize:12,color:et.c,fontWeight:700,background:et.c+"15",padding:"2px 8px",borderRadius:10}}>{items.length}</span>
-              </div>
-              <div style={{minHeight:120,background:cardBg,borderRadius:"0 0 12px 12px",padding:6,border:"1px solid "+borderColor,borderTop:"none"}}>
-                {items.length===0&&<div style={{padding:20,textAlign:"center",fontSize:12,color:subColor}}>Vazio</div>}
-                {items.map(function(lead){
-                  var dias=Math.floor((Date.now()-new Date(lead.atualizado_em).getTime())/86400000);
-                  return <div key={lead.id} className="bh" style={{padding:10,borderRadius:10,background:isDark?"#1a1a19":"#F8F5F0",marginBottom:6,border:"1px solid "+borderColor,cursor:"pointer"}} onClick={function(){setWaTab("inbox");selectLead(lead)}}>
-                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
-                      <div style={{width:24,height:24,borderRadius:"50%",background:WA_GREEN+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:WA_GREEN}}>{(lead.nome||"?")[0].toUpperCase()}</div>
-                      <div style={{fontWeight:600,fontSize:13,color:textColor,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{lead.nome||lead.telefone}</div>
-                    </div>
-                    <div style={{fontSize:11,color:subColor,marginBottom:4}}>{lead.telefone}</div>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                      <span style={{fontSize:10,color:subColor}}>{getAttName(lead.atendente_id)}</span>
-                      <span style={{fontSize:10,color:subColor}}>{dias}d · {lead.origem}</span>
-                    </div>
-                    <select value={lead.etapa_funil} onChange={async function(e){e.stopPropagation();await WA.updateLeadEtapa(lead.id,e.target.value);await loadData();wmsg("Movido!")}} onClick={function(e){e.stopPropagation()}} style={{width:"100%",marginTop:6,padding:"4px 6px",borderRadius:6,fontSize:11,background:cardBg,color:textColor,border:"1px solid "+borderColor,cursor:"pointer"}}>
-                      {etapas.map(function(e2){return <option key={e2.k} value={e2.k}>{e2.e} {e2.l}</option>})}
-                    </select>
-                  </div>
-                })}
-              </div>
-            </div>
-          })}
-        </div>
-      </div>
-    };
-
     // ═══ CONFIG (super_admin only) ═══
     var _editAtt=useState(null);var editAtt=_editAtt[0];var setEditAtt=_editAtt[1];
     var _newAtt=useState({nome:"",ordem:0});var newAtt=_newAtt[0];var setNewAtt=_newAtt[1];
@@ -3180,6 +3136,277 @@ function App(){
     var toggleSelLead=function(id){
       if(selLeads.indexOf(id)!==-1){setSelLeads(selLeads.filter(function(x){return x!==id}))}
       else{setSelLeads(selLeads.concat([id]))}
+    };
+
+    // ═══ VISITAS STATE ═══
+    var _visitas=useState([]);var visitas2=_visitas[0];var setVisitas2=_visitas[1];
+    var _showVisitaForm=useState(false);var showVisitaForm=_showVisitaForm[0];var setShowVisitaForm=_showVisitaForm[1];
+    var _vForm=useState({lead_id:"",building_id:"",data_hora:"",observacoes:""});var vForm=_vForm[0];var setVForm=_vForm[1];
+    var loadVisitas=async function(){try{var r=await sb.from("visitas").select("*").order("data_hora",{ascending:true});setVisitas2(r.data||[])}catch(e){}};
+    useEffect(function(){if(waTab==="visitas")loadVisitas()},[waTab]);
+
+    // ═══ PROPOSTAS STATE ═══
+    var _propostas2=useState([]);var propostas2=_propostas2[0];var setPropostas2=_propostas2[1];
+    var _showPropForm=useState(false);var showPropForm=_showPropForm[0];var setShowPropForm=_showPropForm[1];
+    var _propForm=useState({lead_id:"",building_id:"",unit_id:"",valor_proposta:"",condicao_pagamento:"",desconto_pct:"",validade:"",observacoes:""});var propForm=_propForm[0];var setPropForm=_propForm[1];
+    var loadPropostas=async function(){try{var r=await sb.from("propostas").select("*").order("criado_em",{ascending:false});setPropostas2(r.data||[])}catch(e){}};
+    useEffect(function(){if(waTab==="propostas")loadPropostas()},[waTab]);
+
+    // ═══ AVISOS STATE ═══
+    var _avisos2=useState([]);var avisos2=_avisos2[0];var setAvisos2=_avisos2[1];
+    var _showAvisoForm=useState(false);var showAvisoForm=_showAvisoForm[0];var setShowAvisoForm=_showAvisoForm[1];
+    var _avisoForm=useState({titulo:"",conteudo:"",tipo:"geral",destinatarios:"todos",building_id:""});var avisoForm=_avisoForm[0];var setAvisoForm=_avisoForm[1];
+    var loadAvisos=async function(){try{var r=await sb.from("avisos").select("*").eq("ativo",true).order("criado_em",{ascending:false});setAvisos2(r.data||[])}catch(e){}};
+    useEffect(function(){if(waTab==="avisos")loadAvisos()},[waTab]);
+
+    // ═══ FUNIL FILTER ═══
+    var _funilBld=useState("all");var funilBld=_funilBld[0];var setFunilBld=_funilBld[1];
+
+    // ═══ RENDER FUNIL (enhanced) ═══
+    var renderFunil=function(){
+      var fLeads=funilBld==="all"?waLeads:waLeads.filter(function(l){return l.empreendimento_interesse===funilBld});
+      // Cold lead detection
+      var coldLeads=waLeads.filter(function(l){return l.etapa_funil!=="fechado"&&l.etapa_funil!=="perdido"&&l.ultima_mensagem_em&&(Date.now()-new Date(l.ultima_mensagem_em).getTime())>30*86400000});
+      return <div>
+        {/* Filters */}
+        <div style={{display:"flex",gap:6,marginBottom:10,alignItems:"center"}}>
+          <select value={funilBld} onChange={function(e){setFunilBld(e.target.value)}} style={{padding:"6px 10px",borderRadius:8,fontSize:12,background:cardBg,color:textColor,border:"1px solid "+borderColor}}>
+            <option value="all">Todos os empreendimentos</option>
+            {buildings.map(function(b2){return <option key={b2.id} value={b2.id}>{b2.name}</option>})}
+          </select>
+          {coldLeads.length>0&&<span style={{padding:"4px 10px",borderRadius:8,fontSize:11,background:"rgba(213,91,91,0.08)",color:"#D45B5B",fontWeight:600}}>❄️ {coldLeads.length} leads frios (30+ dias)</span>}
+        </div>
+        {/* Cold leads alert */}
+        {isSA&&coldLeads.length>0&&<div style={{padding:10,borderRadius:10,background:"rgba(213,91,91,0.04)",border:"1px solid rgba(213,91,91,0.1)",marginBottom:10}}>
+          <div style={{fontSize:13,fontWeight:600,color:"#D45B5B",marginBottom:6}}>❄️ Leads sem interação há 30+ dias:</div>
+          <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+            {coldLeads.slice(0,10).map(function(cl){var dias=Math.floor((Date.now()-new Date(cl.ultima_mensagem_em).getTime())/86400000);return <span key={cl.id} className="bh" onClick={function(){setWaTab("inbox");selectLead(cl)}} style={{padding:"4px 8px",borderRadius:6,fontSize:11,background:"rgba(213,91,91,0.06)",color:"#D45B5B",cursor:"pointer",border:"1px solid rgba(213,91,91,0.1)"}}>{cl.nome||cl.telefone} ({dias}d)</span>})}
+          </div>
+        </div>}
+        {/* Kanban */}
+        <div style={{overflow:"auto"}}>
+          <div style={{display:"flex",gap:10,minWidth:etapas.length*170,padding:"4px 0"}}>
+            {etapas.map(function(et){
+              var items=fLeads.filter(function(l){return l.etapa_funil===et.k});
+              return <div key={et.k} style={{flex:1,minWidth:155}}>
+                <div style={{padding:"10px 12px",borderRadius:"12px 12px 0 0",background:et.c+"18",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"2px solid "+et.c}}>
+                  <span style={{fontWeight:700,fontSize:13,color:et.c}}>{et.e} {et.l}</span>
+                  <span style={{fontSize:12,color:et.c,fontWeight:700,background:et.c+"15",padding:"2px 8px",borderRadius:10}}>{items.length}</span>
+                </div>
+                <div style={{minHeight:120,background:cardBg,borderRadius:"0 0 12px 12px",padding:6,border:"1px solid "+borderColor,borderTop:"none"}}>
+                  {items.length===0&&<div style={{padding:20,textAlign:"center",fontSize:12,color:subColor}}>Vazio</div>}
+                  {items.map(function(lead){
+                    var dias=Math.floor((Date.now()-new Date(lead.atualizado_em).getTime())/86400000);
+                    var cold=lead.ultima_mensagem_em&&(Date.now()-new Date(lead.ultima_mensagem_em).getTime())>30*86400000;
+                    return <div key={lead.id} className="bh" style={{padding:10,borderRadius:10,background:isDark?"#1a1a19":"#F8F5F0",marginBottom:6,border:"1px solid "+(cold?"rgba(213,91,91,0.2)":borderColor),cursor:"pointer"}} onClick={function(){setWaTab("inbox");selectLead(lead)}}>
+                      <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
+                        <div style={{width:24,height:24,borderRadius:"50%",background:WA_GREEN+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:WA_GREEN}}>{(lead.nome||"?")[0].toUpperCase()}</div>
+                        <div style={{fontWeight:600,fontSize:13,color:textColor,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{lead.nome||lead.telefone}</div>
+                        {lead.score&&lead.score!=="D"&&<span style={{fontSize:9,fontWeight:800,padding:"1px 4px",borderRadius:3,background:scoreColor(lead.score)+"15",color:scoreColor(lead.score)}}>{lead.score}</span>}
+                        {cold&&<span style={{fontSize:9,color:"#D45B5B"}}>❄️</span>}
+                      </div>
+                      <div style={{fontSize:11,color:subColor}}>{lead.telefone}</div>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:4}}>
+                        <span style={{fontSize:10,color:subColor}}>{getAttName(lead.atendente_id)}</span>
+                        <span style={{fontSize:10,color:subColor}}>{dias}d · {lead.origem}</span>
+                      </div>
+                      <select value={lead.etapa_funil} onChange={async function(e){e.stopPropagation();if(e.target.value==="perdido"){await sb.from("leads_whatsapp").update({etapa_funil:"perdido",motivo_perda:"Sem resposta"}).eq("id",lead.id)}else{await WA.updateLeadEtapa(lead.id,e.target.value)}await loadData();wmsg("Movido!")}} onClick={function(e){e.stopPropagation()}} style={{width:"100%",marginTop:6,padding:"4px 6px",borderRadius:6,fontSize:11,background:cardBg,color:textColor,border:"1px solid "+borderColor,cursor:"pointer"}}>
+                        {etapas.map(function(e2){return <option key={e2.k} value={e2.k}>{e2.e} {e2.l}</option>})}
+                      </select>
+                    </div>
+                  })}
+                </div>
+              </div>
+            })}
+          </div>
+        </div>
+      </div>
+    };
+
+    // ═══ RENDER VISITAS ═══
+    var renderVisitas=function(){
+      var hoje=new Date().toISOString().split("T")[0];
+      var futuras=visitas2.filter(function(v2){return v2.data_hora&&v2.data_hora.split("T")[0]>=hoje&&v2.status!=="cancelada"});
+      var passadas=visitas2.filter(function(v2){return v2.data_hora&&v2.data_hora.split("T")[0]<hoje||v2.status==="realizada"});
+      return <div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+          <div style={{fontSize:15,fontWeight:700,color:textColor}}>📅 Agendamento de Visitas</div>
+          <button className="bh" onClick={function(){setShowVisitaForm(!showVisitaForm)}} style={{padding:"6px 14px",borderRadius:8,background:"#5B8FD410",color:"#5B8FD4",border:"1px solid #5B8FD425",cursor:"pointer",fontSize:13,fontWeight:600}}>+ Agendar</button>
+        </div>
+        {showVisitaForm&&<div style={{padding:14,borderRadius:12,background:cardBg,border:"1px solid rgba(91,143,212,0.15)",marginBottom:14}}>
+          <div style={{display:"flex",gap:8,marginBottom:6}}>
+            <select style={Object.assign({},mI,{flex:1,fontSize:13})} value={vForm.lead_id} onChange={function(e){setVForm(Object.assign({},vForm,{lead_id:e.target.value}))}}>
+              <option value="">Selecione o lead</option>
+              {waLeads.map(function(l){return <option key={l.id} value={l.id}>{l.nome||l.telefone}</option>})}
+            </select>
+            <select style={Object.assign({},mI,{flex:1,fontSize:13})} value={vForm.building_id} onChange={function(e){setVForm(Object.assign({},vForm,{building_id:e.target.value}))}}>
+              <option value="">Empreendimento</option>
+              {buildings.map(function(b2){return <option key={b2.id} value={b2.id}>{b2.name}</option>})}
+            </select>
+          </div>
+          <div style={{display:"flex",gap:8,marginBottom:6}}>
+            <input type="datetime-local" style={Object.assign({},mI,{flex:1,fontSize:13})} value={vForm.data_hora} onChange={function(e){setVForm(Object.assign({},vForm,{data_hora:e.target.value}))}}/>
+          </div>
+          <input style={Object.assign({},mI,{fontSize:13})} value={vForm.observacoes} onChange={function(e){setVForm(Object.assign({},vForm,{observacoes:e.target.value}))}} placeholder="Observações"/>
+          <div style={{display:"flex",gap:6}}>
+            <button className="bh" onClick={async function(){if(!vForm.lead_id||!vForm.data_hora){wmsg("Preencha lead e data");return}var myAtt=waAtt.find(function(a){return a.admin_user_id===currentUser.id});await sb.from("visitas").insert({lead_id:vForm.lead_id,building_id:vForm.building_id||null,data_hora:vForm.data_hora,observacoes:vForm.observacoes,atendente_id:myAtt?myAtt.id:null});setVForm({lead_id:"",building_id:"",data_hora:"",observacoes:""});setShowVisitaForm(false);await loadVisitas();wmsg("✅ Visita agendada!")}} style={{padding:"8px 20px",borderRadius:8,background:"#5B8FD4",color:"#fff",border:"none",cursor:"pointer",fontSize:13,fontWeight:600}}>💾 Agendar</button>
+            <button className="bh" onClick={function(){setShowVisitaForm(false)}} style={{padding:"8px 20px",borderRadius:8,background:"transparent",color:subColor,border:"1px solid "+borderColor,cursor:"pointer",fontSize:13}}>Cancelar</button>
+          </div>
+        </div>}
+        {/* Próximas visitas */}
+        <div style={{fontSize:14,fontWeight:600,color:"#5B8FD4",marginBottom:8}}>📅 Próximas ({futuras.length})</div>
+        {futuras.length===0&&<div style={{padding:20,textAlign:"center",color:subColor}}>Nenhuma visita agendada</div>}
+        {futuras.map(function(v2){var lead=waLeads.find(function(l){return l.id===v2.lead_id});var bld2=buildings.find(function(b2){return b2.id===v2.building_id});return <div key={v2.id} style={{display:"flex",alignItems:"center",gap:10,padding:12,borderRadius:10,background:cardBg,border:"1px solid "+borderColor,marginBottom:6}}>
+          <div style={{textAlign:"center",minWidth:50}}>
+            <div style={{fontSize:18,fontWeight:700,color:"#5B8FD4"}}>{new Date(v2.data_hora).getDate()}</div>
+            <div style={{fontSize:10,color:subColor}}>{new Date(v2.data_hora).toLocaleDateString("pt-BR",{month:"short"})}</div>
+            <div style={{fontSize:12,fontWeight:600,color:textColor}}>{new Date(v2.data_hora).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</div>
+          </div>
+          <div style={{flex:1}}>
+            <div style={{fontWeight:600,fontSize:14,color:textColor}}>{lead?lead.nome:v2.lead_id}</div>
+            <div style={{fontSize:12,color:subColor}}>{bld2?bld2.name:"—"} · {getAttName(v2.atendente_id)}</div>
+            {v2.observacoes&&<div style={{fontSize:11,color:subColor}}>{v2.observacoes}</div>}
+          </div>
+          <div style={{display:"flex",gap:4}}>
+            <button className="bh" onClick={async function(){await sb.from("visitas").update({status:"realizada",compareceu:true}).eq("id",v2.id);await loadVisitas();wmsg("✅ Realizada")}} style={{padding:"4px 8px",borderRadius:6,fontSize:11,background:"rgba(76,175,125,0.1)",color:"#4CAF7D",border:"none",cursor:"pointer"}}>✅</button>
+            <button className="bh" onClick={async function(){await sb.from("visitas").update({status:"realizada",compareceu:false}).eq("id",v2.id);await loadVisitas();wmsg("No-show")}} style={{padding:"4px 8px",borderRadius:6,fontSize:11,background:"rgba(213,91,91,0.1)",color:"#D45B5B",border:"none",cursor:"pointer"}}>❌</button>
+            <button className="bh" onClick={async function(){await sb.from("visitas").update({status:"cancelada"}).eq("id",v2.id);await loadVisitas();wmsg("Cancelada")}} style={{padding:"4px 8px",borderRadius:6,fontSize:11,background:"rgba(255,255,255,0.05)",color:subColor,border:"none",cursor:"pointer"}}>🗑️</button>
+          </div>
+        </div>})}
+        {/* Histórico */}
+        {passadas.length>0&&<div>
+          <div style={{fontSize:14,fontWeight:600,color:subColor,marginTop:16,marginBottom:8}}>📋 Histórico ({passadas.length})</div>
+          {passadas.slice(0,10).map(function(v2){var lead=waLeads.find(function(l){return l.id===v2.lead_id});return <div key={v2.id} style={{display:"flex",alignItems:"center",gap:8,padding:8,borderRadius:8,marginBottom:4,opacity:0.6}}>
+            <span style={{fontSize:12,color:subColor,minWidth:70}}>{new Date(v2.data_hora).toLocaleDateString("pt-BR")}</span>
+            <span style={{fontSize:13,color:textColor}}>{lead?lead.nome:"—"}</span>
+            <span style={{fontSize:11,color:v2.compareceu?"#4CAF7D":"#D45B5B"}}>{v2.compareceu===true?"✅ Compareceu":v2.compareceu===false?"❌ No-show":"—"}</span>
+          </div>})}
+        </div>}
+      </div>
+    };
+
+    // ═══ RENDER PROPOSTAS ═══
+    var renderPropostas=function(){
+      return <div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+          <div style={{fontSize:15,fontWeight:700,color:textColor}}>📄 Propostas Digitais</div>
+          <button className="bh" onClick={function(){setShowPropForm(!showPropForm)}} style={{padding:"6px 14px",borderRadius:8,background:"#4CAF7D10",color:"#4CAF7D",border:"1px solid #4CAF7D25",cursor:"pointer",fontSize:13,fontWeight:600}}>+ Nova Proposta</button>
+        </div>
+        {showPropForm&&<div style={{padding:14,borderRadius:12,background:cardBg,border:"1px solid rgba(76,175,125,0.15)",marginBottom:14}}>
+          <div style={{display:"flex",gap:8,marginBottom:6}}>
+            <select style={Object.assign({},mI,{flex:1,fontSize:13})} value={propForm.lead_id} onChange={function(e){setPropForm(Object.assign({},propForm,{lead_id:e.target.value}))}}>
+              <option value="">Lead</option>
+              {waLeads.map(function(l){return <option key={l.id} value={l.id}>{l.nome||l.telefone}</option>})}
+            </select>
+            <select style={Object.assign({},mI,{flex:1,fontSize:13})} value={propForm.building_id} onChange={function(e){setPropForm(Object.assign({},propForm,{building_id:e.target.value}))}}>
+              <option value="">Empreendimento</option>
+              {buildings.map(function(b2){return <option key={b2.id} value={b2.id}>{b2.name}</option>})}
+            </select>
+          </div>
+          {propForm.building_id&&<select style={Object.assign({},mI,{fontSize:13})} value={propForm.unit_id} onChange={function(e){setPropForm(Object.assign({},propForm,{unit_id:e.target.value}))}}>
+            <option value="">Unidade</option>
+            {getUnits(propForm.building_id).filter(function(u){return u.status==="available"}).map(function(u){return <option key={u.id} value={u.id}>{u.name} — {u.area}m²</option>})}
+          </select>}
+          <div style={{display:"flex",gap:8,marginBottom:6}}>
+            <input type="text" inputMode="numeric" style={Object.assign({},mI,{flex:1,fontSize:13})} value={propForm.valor_proposta||""} onChange={function(e){setPropForm(Object.assign({},propForm,{valor_proposta:e.target.value.replace(/[^0-9]/g,"")}))}} placeholder="Valor da proposta (R$)"/>
+            <input type="text" style={Object.assign({},mI,{flex:1,fontSize:13})} value={propForm.desconto_pct||""} onChange={function(e){setPropForm(Object.assign({},propForm,{desconto_pct:e.target.value}))}} placeholder="Desconto %"/>
+            <input type="date" style={Object.assign({},mI,{flex:1,fontSize:13})} value={propForm.validade||""} onChange={function(e){setPropForm(Object.assign({},propForm,{validade:e.target.value}))}}/>
+          </div>
+          <input style={Object.assign({},mI,{fontSize:13})} value={propForm.condicao_pagamento||""} onChange={function(e){setPropForm(Object.assign({},propForm,{condicao_pagamento:e.target.value}))}} placeholder="Condição de pagamento"/>
+          <textarea style={Object.assign({},mI,{fontSize:13,minHeight:40})} value={propForm.observacoes||""} onChange={function(e){setPropForm(Object.assign({},propForm,{observacoes:e.target.value}))}} placeholder="Observações"/>
+          <div style={{display:"flex",gap:6}}>
+            <button className="bh" onClick={async function(){if(!propForm.lead_id){wmsg("Selecione o lead");return}await sb.from("propostas").insert({lead_id:propForm.lead_id,building_id:propForm.building_id||null,unit_id:propForm.unit_id||null,valor_proposta:propForm.valor_proposta?+propForm.valor_proposta:null,condicao_pagamento:propForm.condicao_pagamento,desconto_pct:propForm.desconto_pct?+propForm.desconto_pct:0,validade:propForm.validade||null,observacoes:propForm.observacoes,status:"rascunho"});setPropForm({lead_id:"",building_id:"",unit_id:"",valor_proposta:"",condicao_pagamento:"",desconto_pct:"",validade:"",observacoes:""});setShowPropForm(false);await loadPropostas();wmsg("✅ Proposta criada!")}} style={{padding:"8px 20px",borderRadius:8,background:"#4CAF7D",color:"#fff",border:"none",cursor:"pointer",fontSize:13,fontWeight:600}}>💾 Salvar</button>
+            <button className="bh" onClick={function(){setShowPropForm(false)}} style={{padding:"8px 20px",borderRadius:8,background:"transparent",color:subColor,border:"1px solid "+borderColor,cursor:"pointer",fontSize:13}}>Cancelar</button>
+          </div>
+        </div>}
+        {/* Status filters */}
+        <div style={{display:"flex",gap:4,marginBottom:10}}>
+          {["rascunho","enviada","aceita","recusada"].map(function(s){var cnt=propostas2.filter(function(p){return p.status===s}).length;var cols={rascunho:"#E8A94E",enviada:"#5B8FD4",aceita:"#4CAF7D",recusada:"#D45B5B"};return <span key={s} style={{padding:"4px 10px",borderRadius:8,fontSize:11,background:cols[s]+"10",color:cols[s],fontWeight:600}}>{s} ({cnt})</span>})}
+        </div>
+        {propostas2.length===0&&<div style={{padding:30,textAlign:"center",color:subColor}}>Nenhuma proposta</div>}
+        {propostas2.map(function(p){var lead=waLeads.find(function(l){return l.id===p.lead_id});var bld2=buildings.find(function(b2){return b2.id===p.building_id});var statusCol={rascunho:"#E8A94E",enviada:"#5B8FD4",aceita:"#4CAF7D",recusada:"#D45B5B"};return <div key={p.id} style={{padding:14,borderRadius:12,background:cardBg,border:"1px solid "+borderColor,marginBottom:8}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+            <div>
+              <div style={{fontWeight:600,fontSize:15,color:textColor}}>{lead?lead.nome:"—"}</div>
+              <div style={{fontSize:12,color:subColor}}>{bld2?bld2.name:"—"}{p.unit_id?" · "+p.unit_id:""}</div>
+            </div>
+            <div style={{textAlign:"right"}}>
+              {p.valor_proposta&&<div style={{fontSize:20,fontWeight:700,color:"#4CAF7D"}}>{fmt(p.valor_proposta)}</div>}
+              {p.desconto_pct>0&&<div style={{fontSize:11,color:"#E8A94E"}}>{p.desconto_pct}% desconto</div>}
+            </div>
+          </div>
+          {p.condicao_pagamento&&<div style={{fontSize:13,color:subColor}}>{p.condicao_pagamento}</div>}
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:8}}>
+            <div style={{display:"flex",gap:4,alignItems:"center"}}>
+              <span style={{fontSize:11,padding:"3px 8px",borderRadius:6,background:(statusCol[p.status]||"#555")+"12",color:statusCol[p.status]||"#555",fontWeight:600}}>{p.status}</span>
+              {p.validade&&<span style={{fontSize:11,color:subColor}}>até {new Date(p.validade).toLocaleDateString("pt-BR")}</span>}
+            </div>
+            <div style={{display:"flex",gap:4}}>
+              {p.status==="rascunho"&&<button className="bh" onClick={async function(){await sb.from("propostas").update({status:"enviada"}).eq("id",p.id);await loadPropostas();wmsg("📤 Enviada")}} style={{padding:"4px 10px",borderRadius:6,fontSize:11,background:"#5B8FD410",color:"#5B8FD4",border:"none",cursor:"pointer"}}>📤 Enviar</button>}
+              {p.status==="enviada"&&<button className="bh" onClick={async function(){await sb.from("propostas").update({status:"aceita"}).eq("id",p.id);await loadPropostas();wmsg("✅ Aceita!")}} style={{padding:"4px 10px",borderRadius:6,fontSize:11,background:"#4CAF7D10",color:"#4CAF7D",border:"none",cursor:"pointer"}}>✅ Aceitar</button>}
+              <button className="bh" onClick={async function(){await sb.from("propostas").delete().eq("id",p.id);await loadPropostas();wmsg("Removida")}} style={{padding:"4px 10px",borderRadius:6,fontSize:11,background:"rgba(213,91,91,0.1)",color:"#D45B5B",border:"none",cursor:"pointer"}}>🗑️</button>
+            </div>
+          </div>
+        </div>})}
+      </div>
+    };
+
+    // ═══ RENDER AVISOS ═══
+    var renderAvisos=function(){
+      return <div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+          <div style={{fontSize:15,fontWeight:700,color:textColor}}>📢 Central de Avisos</div>
+          {isSA&&<button className="bh" onClick={function(){setShowAvisoForm(!showAvisoForm)}} style={{padding:"6px 14px",borderRadius:8,background:"#C4707010",color:"#C47070",border:"1px solid #C4707025",cursor:"pointer",fontSize:13,fontWeight:600}}>+ Novo Aviso</button>}
+        </div>
+        {showAvisoForm&&isSA&&<div style={{padding:14,borderRadius:12,background:cardBg,border:"1px solid rgba(196,112,112,0.15)",marginBottom:14}}>
+          <input style={Object.assign({},mI,{fontSize:14,fontWeight:600})} value={avisoForm.titulo} onChange={function(e){setAvisoForm(Object.assign({},avisoForm,{titulo:e.target.value}))}} placeholder="Título do aviso"/>
+          <textarea style={Object.assign({},mI,{fontSize:13,minHeight:60})} value={avisoForm.conteudo} onChange={function(e){setAvisoForm(Object.assign({},avisoForm,{conteudo:e.target.value}))}} placeholder="Conteúdo"/>
+          <div style={{display:"flex",gap:8,marginBottom:6}}>
+            <select style={Object.assign({},mI,{flex:1,fontSize:13})} value={avisoForm.tipo} onChange={function(e){setAvisoForm(Object.assign({},avisoForm,{tipo:e.target.value}))}}>
+              <option value="geral">📢 Geral</option><option value="tabela">📊 Mudança de Tabela</option><option value="lancamento">🚀 Lançamento</option><option value="campanha">🎯 Campanha</option><option value="urgente">🔴 Urgente</option>
+            </select>
+            <select style={Object.assign({},mI,{flex:1,fontSize:13})} value={avisoForm.destinatarios} onChange={function(e){setAvisoForm(Object.assign({},avisoForm,{destinatarios:e.target.value}))}}>
+              <option value="todos">👁️ Todos</option><option value="corretores">🏢 Corretores</option><option value="equipe">🛡️ Equipe interna</option>
+            </select>
+          </div>
+          <div style={{display:"flex",gap:6}}>
+            <button className="bh" onClick={async function(){if(!avisoForm.titulo){wmsg("Preencha o título");return}await sb.from("avisos").insert({titulo:avisoForm.titulo,conteudo:avisoForm.conteudo,tipo:avisoForm.tipo,destinatarios:avisoForm.destinatarios,building_id:avisoForm.building_id||null});setAvisoForm({titulo:"",conteudo:"",tipo:"geral",destinatarios:"todos",building_id:""});setShowAvisoForm(false);await loadAvisos();wmsg("✅ Aviso publicado!")}} style={{padding:"8px 20px",borderRadius:8,background:"#C47070",color:"#fff",border:"none",cursor:"pointer",fontSize:13,fontWeight:600}}>📢 Publicar</button>
+            <button className="bh" onClick={function(){setShowAvisoForm(false)}} style={{padding:"8px 20px",borderRadius:8,background:"transparent",color:subColor,border:"1px solid "+borderColor,cursor:"pointer",fontSize:13}}>Cancelar</button>
+          </div>
+        </div>}
+        {avisos2.length===0&&<div style={{padding:30,textAlign:"center",color:subColor}}>Nenhum aviso publicado</div>}
+        {avisos2.map(function(a2){var tipoIcon={geral:"📢",tabela:"📊",lancamento:"🚀",campanha:"🎯",urgente:"🔴"};return <div key={a2.id} style={{padding:14,borderRadius:12,background:a2.tipo==="urgente"?"rgba(213,91,91,0.03)":cardBg,border:"1px solid "+(a2.tipo==="urgente"?"rgba(213,91,91,0.15)":borderColor),marginBottom:8}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+            <div>
+              <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:4}}>
+                <span style={{fontSize:16}}>{tipoIcon[a2.tipo]||"📢"}</span>
+                <span style={{fontWeight:700,fontSize:15,color:textColor}}>{a2.titulo}</span>
+                <span style={{fontSize:10,padding:"2px 6px",borderRadius:4,background:a2.destinatarios==="todos"?"#4CAF7D10":"#5B8FD410",color:a2.destinatarios==="todos"?"#4CAF7D":"#5B8FD4"}}>{a2.destinatarios}</span>
+              </div>
+              <div style={{fontSize:13,color:subColor,lineHeight:1.6}}>{a2.conteudo}</div>
+            </div>
+            {isSA&&<button className="bh" onClick={async function(){await sb.from("avisos").update({ativo:false}).eq("id",a2.id);await loadAvisos();wmsg("Removido")}} style={{width:24,height:24,borderRadius:6,background:"rgba(213,91,91,0.1)",color:"#D45B5B",border:"none",cursor:"pointer",fontSize:11,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>✕</button>}
+          </div>
+          <div style={{fontSize:11,color:subColor,marginTop:6}}>{new Date(a2.criado_em).toLocaleDateString("pt-BR")} · {new Date(a2.criado_em).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</div>
+        </div>})}
+      </div>
+    };
+
+    // ═══ DEDUPLICAÇÃO ═══
+    var checkDuplicado=async function(telefone){
+      var clean=telefone.replace(/\D/g,"");
+      var r=await sb.from("leads_whatsapp").select("id,nome,telefone").or("telefone.eq."+clean+",telefone.eq.55"+clean);
+      return r.data&&r.data.length>0?r.data[0]:null;
+    };
+
+    var createNewLead=async function(){
+      if(!newPhone.trim())return;
+      // Dedup check
+      var dup=await checkDuplicado(newPhone);
+      if(dup){wmsg("⚠️ Lead já existe: "+dup.nome);return}
+      var attId=await WA.distribuirLead();
+      var lead=await WA.createLead(newPhone,newName||newPhone,attId,"manual");
+      if(lead){setNewPhone("");setNewName("");setShowNew(false);await loadData();wmsg("✅ Lead criado!")}
     };
 
     var renderConfig=function(){
@@ -3374,13 +3601,16 @@ function App(){
       </div>
       {/* Tabs */}
       <div style={{display:"flex",gap:6,marginBottom:14}}>
-        {[{k:"inbox",l:"📥 Inbox",c:WA_GREEN},{k:"funil",l:"📊 Funil",c:"#E8A94E"},{k:"contatos",l:"📇 Contatos",c:"#8B6FBF"}].concat(isSA?[{k:"config",l:"⚙️ Config",c:"#5B8FD4"}]:[]).map(function(tb){
+        {[{k:"inbox",l:"📥 Inbox",c:WA_GREEN},{k:"funil",l:"📊 Funil",c:"#E8A94E"},{k:"contatos",l:"📇 Contatos",c:"#8B6FBF"},{k:"visitas",l:"📅 Visitas",c:"#5B8FD4"},{k:"propostas",l:"📄 Propostas",c:"#4CAF7D"},{k:"avisos",l:"📢 Avisos",c:"#C47070"}].concat(isSA?[{k:"config",l:"⚙️ Config",c:"#5B8FD4"}]:[]).map(function(tb){
           return <span key={tb.k} className="bh" onClick={function(){setWaTab(tb.k)}} style={{padding:"8px 18px",borderRadius:10,fontSize:14,fontWeight:600,cursor:"pointer",background:waTab===tb.k?tb.c+"15":"transparent",color:waTab===tb.k?tb.c:subColor,border:waTab===tb.k?"1px solid "+tb.c+"25":"1px solid "+borderColor,transition:"all 0.15s"}}>{tb.l}{tb.k==="inbox"&&totalUnread>0?" ("+totalUnread+")":""}</span>
         })}
       </div>
       {waTab==="inbox"&&renderInbox()}
       {waTab==="funil"&&renderFunil()}
       {waTab==="contatos"&&renderContatos()}
+      {waTab==="visitas"&&renderVisitas()}
+      {waTab==="propostas"&&renderPropostas()}
+      {waTab==="avisos"&&renderAvisos()}
       {waTab==="config"&&isSA&&renderConfig()}
       {/* Local toast */}
       {waToast&&<div style={{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",padding:"10px 24px",borderRadius:12,background:WA_GREEN,color:"#fff",fontSize:14,fontWeight:600,zIndex:9999,boxShadow:"0 4px 20px rgba(0,0,0,0.3)",animation:"fadeUp 0.2s"}}>{waToast}</div>}
