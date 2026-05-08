@@ -2226,190 +2226,269 @@ function App(){
   }
 
   // ═══ AI AGENT ═══
-  // ═══ TENANTS MANAGEMENT MODAL ═══
+  // ═══ TENANTS MANAGEMENT MODAL (SaaS Admin) ═══
   function TenantsM(){
-    var _tenants=useState([]);var tenants2=_tenants[0];var setTenants2=_tenants[1];
-    var _editT=useState(null);var editT=_editT[0];var setEditT=_editT[1];
-    var _newT=useState(false);var newT=_newT[0];var setNewT=_newT[1];
-    var _tForm=useState({slug:"",nome_empresa:"",logo_url:"",cor_primaria:"#C8A45C",plano:"trial",max_empreendimentos:10,max_corretores:50,ativo:true,expira_em:"",nome_portal:""});var tForm=_tForm[0];var setTF=_tForm[1];
+    var _tenants3=useState([]);var tenants3=_tenants3[0];var setTenants3=_tenants3[1];
+    var _tab2=useState("dash");var tab2=_tab2[0];var setTab2=_tab2[1];
+    var _selT=useState(null);var selT=_selT[0];var setSelT=_selT[1];
+    var _subs=useState([]);var subs=_subs[0];var setSubs=_subs[1];
+    var _pagtos=useState([]);var pagtos=_pagtos[0];var setPagtos=_pagtos[1];
+    var _inter=useState([]);var inter=_inter[0];var setInter=_inter[1];
+    var _showForm2=useState(false);var showForm2=_showForm2[0];var setShowForm2=_showForm2[1];
+    var _showPagForm=useState(false);var showPagForm=_showPagForm[0];var setShowPagForm=_showPagForm[1];
 
-    var loadTenants=async function(){var r=await sb.from("tenants").select("*").order("criado_em",{ascending:false});setTenants2(r.data||[])};
-    useEffect(function(){loadTenants()},[]);
+    var loadAll2=async function(){
+      var r=await sb.from("tenants").select("*").order("criado_em",{ascending:false});setTenants3(r.data||[]);
+      var s=await sb.from("assinaturas").select("*").order("criado_em",{ascending:false});setSubs(s.data||[]);
+      var p=await sb.from("pagamentos").select("*").order("vencimento",{ascending:false}).limit(100);setPagtos(p.data||[]);
+    };
+    useEffect(function(){loadAll2()},[]);
 
-    var saveTenant=async function(){
-      var nomeEl=document.getElementById("tenant_nome");
-      var slugEl=document.getElementById("tenant_slug");
-      var logoEl=document.getElementById("tenant_logo");
-      var nomePortalEl=document.getElementById("tenant_nome_portal");
-      var nome=nomeEl?nomeEl.value:"";
-      var slugVal=slugEl?slugEl.value:"";
-      var logoVal=logoEl?logoEl.value:"";
-      var nomePortal=nomePortalEl?nomePortalEl.value:"";
-      if(!slugVal||!nome){msg("⚠️ Preencha slug e nome");return}
-      var clean=slugVal.toLowerCase().replace(/[^a-z0-9\-]/g,"-").replace(/--+/g,"-");
-      var eid=editT||window._editTenantId;
+    var loadInteracoes=async function(tid){var r=await sb.from("interacoes_tenant").select("*").eq("tenant_id",tid).order("criado_em",{ascending:false}).limit(50);setInter(r.data||[])};
+
+    // Pipeline stages
+    var pipes=[{k:"lead",l:"Lead",c:"#5B8FD4",e:"🎯"},{k:"qualificado",l:"Qualificado",c:"#E8A94E",e:"⭐"},{k:"trial",l:"Trial",c:"#8B6FBF",e:"🧪"},{k:"negociacao",l:"Negociação",c:"#C47070",e:"💬"},{k:"ativo",l:"Ativo",c:"#4CAF7D",e:"✅"},{k:"cancelado",l:"Cancelado",c:"#D45B5B",e:"❌"}];
+    var pipeColor=function(p2){var f=pipes.find(function(x){return x.k===p2});return f?f.c:"#555"};
+
+    // KPIs
+    var ativos=tenants3.filter(function(t2){return t2.pipeline==="ativo"});
+    var trials=tenants3.filter(function(t2){return t2.pipeline==="trial"});
+    var mrr=ativos.reduce(function(s2,t2){return s2+(t2.valor_mensal||0)},0);
+    var cancelados=tenants3.filter(function(t2){return t2.pipeline==="cancelado"}).length;
+    var churnPct=tenants3.length>0?Math.round(cancelados/tenants3.length*100):0;
+    var pagosM=pagtos.filter(function(p2){var d=new Date();return p2.status==="pago"&&p2.pago_em&&p2.pago_em.substring(0,7)===d.toISOString().substring(0,7)}).reduce(function(s2,p2){return s2+(p2.valor||0)},0);
+
+    // Save tenant
+    var saveTenant2=async function(){
+      var n=document.getElementById("t_nome");var s2=document.getElementById("t_slug");var np=document.getElementById("t_nome_portal");
+      var ce=document.getElementById("t_contato_email");var cn=document.getElementById("t_contato_nome");var ct2=document.getElementById("t_contato_tel");
+      var ci=document.getElementById("t_cidade");var es=document.getElementById("t_estado");var cj=document.getElementById("t_cnpj");var ob=document.getElementById("t_obs");
+      var vm=document.getElementById("t_valor");var lg=document.getElementById("t_logo");
+      if(!n||!n.value||!s2||!s2.value){msg("Preencha nome e slug");return}
+      var clean=s2.value.toLowerCase().replace(/[^a-z0-9\-]/g,"-");
+      var data2={nome_empresa:n.value,slug:clean,nome_portal:np?np.value||null:null,contato_nome:cn?cn.value||null:null,contato_email:ce?ce.value||null:null,contato_telefone:ct2?ct2.value||null:null,cidade:ci?ci.value||null:null,estado:es?es.value||null:null,cnpj:cj?cj.value||null:null,observacoes:ob?ob.value||null:null,valor_mensal:vm?+vm.value||0:0,logo_url:lg?lg.value||null:null,pipeline:selT?selT.pipeline||"lead":"lead",ativo:true};
       try{
-        if(eid){
-          var res=await sb.from("tenants").update({slug:clean,nome_empresa:nome,nome_portal:nomePortal||null,logo_url:logoVal||null,cor_primaria:tForm.cor_primaria,plano:tForm.plano,max_empreendimentos:+tForm.max_empreendimentos||10,max_corretores:+tForm.max_corretores||50,ativo:tForm.ativo,expira_em:tForm.expira_em||null}).eq("id",eid);
-          if(res.error){msg("❌ Erro: "+res.error.message);return}
-          msg("✅ Atualizado!");
+        if(selT){
+          var res=await sb.from("tenants").update(data2).eq("id",selT.id);
+          if(res.error){msg("❌ "+res.error.message);return}
         }else{
-          var res=await sb.from("tenants").insert({id:clean,slug:clean,nome_empresa:nome,nome_portal:nomePortal||null,logo_url:logoVal||null,cor_primaria:tForm.cor_primaria,plano:tForm.plano,max_empreendimentos:+tForm.max_empreendimentos||10,max_corretores:+tForm.max_corretores||50,ativo:tForm.ativo!==false,expira_em:tForm.expira_em||null});
-          if(res.error){msg("❌ Erro: "+res.error.message);return}
-          msg("✅ Criado!");
+          data2.id=clean;
+          var res=await sb.from("tenants").insert(data2);
+          if(res.error){msg("❌ "+res.error.message);return}
+          await sb.from("assinaturas").insert({tenant_id:clean,plano:"trial",status:"trial",inicio:new Date().toISOString().split("T")[0]});
         }
-        window._editTenantId=null;setEditT(null);setNewT(false);setTF({slug:"",nome_empresa:"",logo_url:"",cor_primaria:"#C8A45C",plano:"trial",max_empreendimentos:10,max_corretores:50,ativo:true,expira_em:"",nome_portal:""});
-        await loadTenants();
-        // Refresh tenant display
-        var tr2=await sb.from("tenants").select("*").eq("id",eid||clean).single();
-        if(tr2.data){setTenant(tr2.data);document.title="Portal "+(tr2.data.nome_portal||tr2.data.nome_empresa.split(" ")[0])}
+        msg("✅ "+(selT?"Atualizado":"Criado")+"!");setShowForm2(false);setSelT(null);await loadAll2();
+        var tr3=await sb.from("tenants").select("*").eq("id",selT?selT.id:clean).single();
+        if(tr3.data&&(selT&&selT.id===(tenant?tenant.id:""))){setTenant(tr3.data);document.title="Portal "+(tr3.data.nome_portal||tr3.data.nome_empresa.split(" ")[0])}
       }catch(e){msg("❌ "+e.message)}
     };
 
-    var startEdit=function(t2){
-      setEditT(t2.id);window._editTenantId=t2.id;setNewT(true);
-      setTF({slug:t2.slug,nome_empresa:t2.nome_empresa,logo_url:t2.logo_url||"",cor_primaria:t2.cor_primaria||"#C8A45C",plano:t2.plano||"trial",max_empreendimentos:t2.max_empreendimentos||10,max_corretores:t2.max_corretores||50,ativo:t2.ativo!==false,expira_em:t2.expira_em?t2.expira_em.substring(0,10):"",nome_portal:t2.nome_portal||""});
+    var openEdit=function(t2){setSelT(t2);setShowForm2(true);loadInteracoes(t2.id);
       setTimeout(function(){
-        var n=document.getElementById("tenant_nome");if(n)n.value=t2.nome_empresa||"";
-        var s=document.getElementById("tenant_slug");if(s)s.value=t2.slug||"";
-        var l=document.getElementById("tenant_logo");if(l)l.value=t2.logo_url||"";
-        var p=document.getElementById("tenant_preview_name");if(p)p.textContent=t2.nome_portal||t2.nome_empresa&&t2.nome_empresa.split(" ")[0]||"...";var np=document.getElementById("tenant_nome_portal");if(np)np.value=t2.nome_portal||"";
-        var ps=document.getElementById("tenant_preview_slug");if(ps)ps.textContent=t2.slug||"...";
-      },100);
-    };
+        var fields={t_nome:t2.nome_empresa,t_slug:t2.slug,t_nome_portal:t2.nome_portal||"",t_contato_nome:t2.contato_nome||"",t_contato_email:t2.contato_email||"",t_contato_tel:t2.contato_telefone||"",t_cidade:t2.cidade||"",t_estado:t2.estado||"",t_cnpj:t2.cnpj||"",t_obs:t2.observacoes||"",t_valor:t2.valor_mensal||"",t_logo:t2.logo_url||""};
+        Object.keys(fields).forEach(function(k){var el=document.getElementById(k);if(el)el.value=fields[k]});
+      },150)};
 
-    var planoBadge=function(p){var cols={trial:"#E8A94E",basic:"#5B8FD4",premium:"#4CAF7D",enterprise:"#8B6FBF"};return <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:4,background:(cols[p]||"#555")+"15",color:cols[p]||"#555",textTransform:"uppercase"}}>{p}</span>};
+    var openNew=function(){setSelT(null);setShowForm2(true);setInter([]);
+      setTimeout(function(){["t_nome","t_slug","t_nome_portal","t_contato_nome","t_contato_email","t_contato_tel","t_cidade","t_estado","t_cnpj","t_obs","t_valor","t_logo"].forEach(function(k){var el=document.getElementById(k);if(el)el.value=""})},150)};
 
+    var addNota=async function(tid){var el=document.getElementById("nota_input");if(!el||!el.value.trim())return;
+      await sb.from("interacoes_tenant").insert({tenant_id:tid,tipo:"nota",conteudo:el.value,usuario:currentUser?currentUser.nome:"Admin"});
+      el.value="";await loadInteracoes(tid);msg("📝 Nota adicionada")};
+
+    var addPagamento=async function(){var v=document.getElementById("pag_valor");var venc=document.getElementById("pag_venc");var met=document.getElementById("pag_metodo");var obs2=document.getElementById("pag_obs");
+      if(!selT||!v||!v.value){msg("Preencha o valor");return}
+      var sub=subs.find(function(s2){return s2.tenant_id===selT.id});
+      await sb.from("pagamentos").insert({tenant_id:selT.id,assinatura_id:sub?sub.id:null,valor:+v.value,vencimento:venc?venc.value||null:null,metodo:met?met.value||null:null,observacoes:obs2?obs2.value||null:null,status:"pendente"});
+      setShowPagForm(false);await loadAll2();msg("💰 Pagamento registrado")};
+
+    // ═══ RENDER ═══
     return <div>
-      <div style={mT}>🏢 Gestão de Assinantes</div>
-
-      {/* Current tenant highlight */}
-      <div style={{padding:12,borderRadius:10,background:"rgba(76,175,125,0.06)",border:"1px solid rgba(76,175,125,0.12)",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <div>
-          <div style={{fontSize:13,fontWeight:600,color:"#4CAF7D"}}>✅ Tenant ativo nesta sessão</div>
-          <div style={{fontSize:18,fontWeight:700,color:textColor,marginTop:2}}>Portal <span style={{color:G}}>{portalDisplayName||slug}</span></div>
-          <div style={{fontSize:12,color:subColor}}>portal-corretor.com/<b>{slug}</b></div>
-        </div>
-        {tenant&&<div>{planoBadge(tenant.plano)}</div>}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+        <div style={{fontSize:22,fontWeight:700,color:textColor}}>🏢 Gestão de Assinantes</div>
+        <button className="bh" onClick={function(){setMdl(null)}} style={{width:32,height:32,borderRadius:8,background:"transparent",color:subColor,border:"none",cursor:"pointer",fontSize:16}}>✕</button>
       </div>
 
-      {/* New tenant button */}
-      <button className="bh" onClick={function(){setNewT(!newT);setEditT(null);setTF({slug:"",nome_empresa:"",logo_url:"",cor_primaria:"#C8A45C",plano:"trial",max_empreendimentos:10,max_corretores:50,ativo:true,expira_em:"",nome_portal:""})}} style={{width:"100%",padding:12,borderRadius:10,background:"#5B8FD408",color:"#5B8FD4",border:"1px dashed #5B8FD425",cursor:"pointer",fontSize:14,fontWeight:600,marginBottom:14}}>+ Novo Assinante</button>
-
-      {/* Form */}
-      {newT&&<div style={{padding:14,borderRadius:12,background:cardBg,border:"1px solid rgba(91,143,212,0.15)",marginBottom:14}}>
-        <div style={{fontSize:14,fontWeight:600,color:"#5B8FD4",marginBottom:10}}>{editT?"✏️ Editar":"➕ Novo"} Assinante</div>
-        <div style={{display:"flex",gap:8,marginBottom:6}}>
-          <div style={{flex:1}}>
-            <div style={{fontSize:11,color:subColor,marginBottom:3}}>Nome da empresa</div>
-            <textarea id="tenant_nome" rows="1" onKeyDown={function(e){e.stopPropagation();if(e.key==="Enter")e.preventDefault()}} style={{width:"100%",padding:"13px 16px",background:"#1a1a19",border:"1px solid rgba(255,255,255,0.06)",borderRadius:10,color:"#F0EBE3",fontSize:13,fontFamily:"inherit",outline:"none",marginBottom:10,resize:"none",overflow:"hidden"}} placeholder="Ex: MK Realty & D&SS Incorporação"></textarea>
-          </div>
-          <div style={{flex:1}}>
-            <div style={{fontSize:11,color:subColor,marginBottom:3}}>Nome no título do Portal</div>
-            <input id="tenant_nome_portal" onKeyDown={function(e){e.stopPropagation()}} style={{width:"100%",padding:"13px 16px",background:"#1a1a19",border:"1px solid rgba(200,164,92,0.15)",borderRadius:10,color:"#E8A94E",fontSize:15,fontWeight:700,fontFamily:"inherit",outline:"none",marginBottom:10}} placeholder="Ex: MK"/>
-          </div>
-        </div>
-        <div style={{display:"flex",gap:8,marginBottom:6}}>
-          <div style={{flex:1}}>
-            <div style={{fontSize:11,color:subColor,marginBottom:3}}>Slug (URL)</div>
-            <div style={{display:"flex",alignItems:"center",gap:0}}>
-              <span style={{fontSize:11,color:subColor,whiteSpace:"nowrap",padding:"10px 0 10px 12px",background:isDark?"#1a1a19":"#EFEBE4",borderRadius:"10px 0 0 10px",border:"1px solid "+borderColor,borderRight:"none"}}>/</span>
-              <input id="tenant_slug" onKeyDown={function(e){e.stopPropagation()}} style={{flex:1,padding:"13px 16px",background:"#1a1a19",border:"1px solid rgba(255,255,255,0.06)",borderRadius:"0 10px 10px 0",color:"#F0EBE3",fontSize:13,fontFamily:"inherit",outline:"none"}} placeholder="construtora-abc"/>
-            </div>
-          </div>
-        </div>
-        {/* Preview */}
-        {/* Portal name preview */}
-        <div style={{padding:12,borderRadius:10,background:"linear-gradient(135deg,#0a0a09,#15130d)",marginBottom:10,textAlign:"center",border:"1px solid rgba(200,164,92,0.15)"}}>
-          <div style={{fontSize:11,color:subColor,marginBottom:4}}>Aparece na tela inicial como:</div>
-          <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:28,fontWeight:500,color:textColor}}>Portal <span id="tenant_preview_name" style={{color:tForm.cor_primaria||G,fontWeight:600}}>{tForm.nome_portal||tForm.nome_empresa&&tForm.nome_empresa.split(" ")[0]||"..."}</span></div>
-          <div style={{fontSize:11,color:subColor,marginTop:4}}>portal-corretor.com/<b id="tenant_preview_slug">{tForm.slug||"..."}</b></div>
-        </div>
-        <div style={{display:"flex",gap:8,marginBottom:6}}>
-          <div style={{flex:1}}>
-            <div style={{fontSize:11,color:subColor,marginBottom:3}}>Logo (URL)</div>
-            <input id="tenant_logo" style={{width:"100%",padding:"13px 16px",background:"#1a1a19",border:"1px solid rgba(255,255,255,0.06)",borderRadius:10,color:"#F0EBE3",fontSize:13,fontFamily:"inherit",outline:"none",marginBottom:10}} placeholder="https://..."/>
-          </div>
-          <div style={{width:100}}>
-            <div style={{fontSize:11,color:subColor,marginBottom:3}}>Cor</div>
-            <input type="color" style={{width:"100%",height:38,borderRadius:10,border:"1px solid "+borderColor,cursor:"pointer"}} value={tForm.cor_primaria} onChange={function(e){setTF(function(p){return Object.assign({},p,{cor_primaria:e.target.value})})}}/>
-          </div>
-        </div>
-        <div style={{display:"flex",gap:8,marginBottom:6}}>
-          <div style={{flex:1}}>
-            <div style={{fontSize:11,color:subColor,marginBottom:3}}>Plano</div>
-            <select style={Object.assign({},mI,{fontSize:13})} value={tForm.plano} onChange={function(e){setTF(function(p){return Object.assign({},p,{plano:e.target.value})})}}>
-              <option value="trial">Trial (14 dias)</option>
-              <option value="basic">Basic</option>
-              <option value="premium">Premium</option>
-              <option value="enterprise">Enterprise</option>
-            </select>
-          </div>
-          <div style={{flex:1}}>
-            <div style={{fontSize:11,color:subColor,marginBottom:3}}>Expira em</div>
-            <input type="date" style={Object.assign({},mI,{fontSize:13})} value={tForm.expira_em} onChange={function(e){setTF(function(p){return Object.assign({},p,{expira_em:e.target.value})})}}/>
-          </div>
-        </div>
-        <div style={{display:"flex",gap:8,marginBottom:6}}>
-          <div style={{flex:1}}>
-            <div style={{fontSize:11,color:subColor,marginBottom:3}}>Máx empreendimentos</div>
-            <div style={{display:"flex",gap:6,alignItems:"center"}}>
-              {tForm.max_empreendimentos===-1?<div style={Object.assign({},mI,{flex:1,fontSize:13,display:"flex",alignItems:"center",color:"#4CAF7D",fontWeight:600})}>∞ Ilimitado</div>:<input type="number" style={Object.assign({},mI,{flex:1,fontSize:13})} value={tForm.max_empreendimentos} onChange={function(e){setTF(function(p){return Object.assign({},p,{max_empreendimentos:+e.target.value||0})})}}/>}
-              <button className="bh" onClick={function(){setTF(function(p){return Object.assign({},p,{max_empreendimentos:p.max_empreendimentos===-1?10:-1})})}} style={{padding:"6px 10px",borderRadius:8,fontSize:11,fontWeight:600,background:tForm.max_empreendimentos===-1?"#4CAF7D15":"transparent",color:tForm.max_empreendimentos===-1?"#4CAF7D":subColor,border:"1px solid "+borderColor,cursor:"pointer",whiteSpace:"nowrap"}}>∞</button>
-            </div>
-          </div>
-          <div style={{flex:1}}>
-            <div style={{fontSize:11,color:subColor,marginBottom:3}}>Máx corretores</div>
-            <div style={{display:"flex",gap:6,alignItems:"center"}}>
-              {tForm.max_corretores===-1?<div style={Object.assign({},mI,{flex:1,fontSize:13,display:"flex",alignItems:"center",color:"#4CAF7D",fontWeight:600})}>∞ Ilimitado</div>:<input type="number" style={Object.assign({},mI,{flex:1,fontSize:13})} value={tForm.max_corretores} onChange={function(e){setTF(function(p){return Object.assign({},p,{max_corretores:+e.target.value||0})})}}/>}
-              <button className="bh" onClick={function(){setTF(function(p){return Object.assign({},p,{max_corretores:p.max_corretores===-1?50:-1})})}} style={{padding:"6px 10px",borderRadius:8,fontSize:11,fontWeight:600,background:tForm.max_corretores===-1?"#4CAF7D15":"transparent",color:tForm.max_corretores===-1?"#4CAF7D":subColor,border:"1px solid "+borderColor,cursor:"pointer",whiteSpace:"nowrap"}}>∞</button>
-            </div>
-          </div>
-        </div>
-        <label style={{display:"flex",alignItems:"center",gap:6,fontSize:13,color:textColor,marginBottom:10,cursor:"pointer"}}>
-          <input type="checkbox" checked={tForm.ativo!==false} onChange={function(e){setTF(function(p){return Object.assign({},p,{ativo:e.target.checked})})}}/>
-          Ativo
-        </label>
-        <div style={{display:"flex",gap:6}}>
-          <button className="bh" onClick={saveTenant} style={{padding:"8px 20px",borderRadius:8,background:"#5B8FD4",color:"#fff",border:"none",cursor:"pointer",fontSize:13,fontWeight:600}}>💾 {editT?"Atualizar":"Criar"}</button>
-          <button className="bh" onClick={function(){setNewT(false);setEditT(null)}} style={{padding:"8px 20px",borderRadius:8,background:"transparent",color:subColor,border:"1px solid "+borderColor,cursor:"pointer",fontSize:13}}>Cancelar</button>
-        </div>
-      </div>}
-
-      {/* Tenants list */}
-      <div style={{maxHeight:"45vh",overflow:"auto"}}>
-        {tenants2.map(function(t2){
-          var isActive=t2.ativo&&(!t2.expira_em||new Date(t2.expira_em)>=new Date());
-          var isCurrent=t2.slug===slug;
-          return <div key={t2.id} style={{padding:14,borderRadius:12,background:isCurrent?"rgba(76,175,125,0.04)":cardBg,border:"1px solid "+(isCurrent?"rgba(76,175,125,0.15)":borderColor),marginBottom:8,opacity:isActive?1:0.5}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div style={{display:"flex",alignItems:"center",gap:10}}>
-                {t2.logo_url?<img src={t2.logo_url} style={{height:32,maxWidth:80,objectFit:"contain"}}/>:<div style={{width:36,height:36,borderRadius:10,background:t2.cor_primaria+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:700,color:t2.cor_primaria}}>{t2.nome_empresa[0]}</div>}
-                <div>
-                  <div style={{fontWeight:700,fontSize:16,color:textColor}}>{t2.nome_empresa}</div>
-                  <div style={{fontSize:12,color:subColor}}>portal-corretor.com/<b>{t2.slug}</b>{isCurrent&&<span style={{color:"#4CAF7D",marginLeft:6}}>← atual</span>}</div>
-                </div>
-              </div>
-              <div style={{display:"flex",gap:4,alignItems:"center"}}>
-                {planoBadge(t2.plano)}
-                <span style={{fontSize:10,padding:"2px 6px",borderRadius:4,background:isActive?"#4CAF7D15":"#D45B5B15",color:isActive?"#4CAF7D":"#D45B5B"}}>{isActive?"✅ Ativo":"❌ Inativo"}</span>
-              </div>
-            </div>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:8}}>
-              <div style={{fontSize:11,color:subColor}}>
-                📦 {t2.max_empreendimentos===-1?"∞":t2.max_empreendimentos} empreend. · 👥 {t2.max_corretores===-1?"∞":t2.max_corretores} corretores
-                {t2.expira_em&&<span> · ⏰ {new Date(t2.expira_em).toLocaleDateString("pt-BR")}</span>}
-              </div>
-              <div style={{display:"flex",gap:4}}>
-                <button className="bh" onClick={function(){startEdit(t2)}} style={{padding:"4px 10px",borderRadius:6,fontSize:11,background:"#5B8FD410",color:"#5B8FD4",border:"none",cursor:"pointer"}}>✏️ Editar</button>
-                <button className="bh" onClick={async function(){await sb.from("tenants").update({ativo:!t2.ativo}).eq("id",t2.id);await loadTenants();msg(t2.ativo?"Desativado":"Ativado")}} style={{padding:"4px 10px",borderRadius:6,fontSize:11,background:t2.ativo?"rgba(213,91,91,0.1)":"rgba(76,175,125,0.1)",color:t2.ativo?"#D45B5B":"#4CAF7D",border:"none",cursor:"pointer"}}>{t2.ativo?"⏸ Pausar":"▶️ Ativar"}</button>
-              </div>
-            </div>
-          </div>
+      {/* Tabs */}
+      <div style={{display:"flex",gap:4,marginBottom:16,borderBottom:"1px solid "+borderColor,paddingBottom:8}}>
+        {[{k:"dash",l:"📊 Dashboard"},{k:"pipe",l:"🔄 Pipeline"},{k:"list",l:"👥 Clientes"},{k:"pagtos",l:"💰 Pagamentos"}].map(function(tb){
+          return <span key={tb.k} className="bh" onClick={function(){setTab2(tb.k);if(tb.k!=="list"&&tb.k!=="pagtos")setShowForm2(false)}} style={{padding:"8px 16px",borderRadius:10,fontSize:14,fontWeight:600,cursor:"pointer",background:tab2===tb.k?"#5B8FD415":"transparent",color:tab2===tb.k?"#5B8FD4":subColor}}>{tb.l}</span>
         })}
       </div>
 
-      <button style={mC} onClick={function(){setMdl(null)}}>Fechar</button>
+      {/* ═══ DASHBOARD ═══ */}
+      {tab2==="dash"&&<div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:10,marginBottom:16}}>
+          {[{l:"MRR",v:"R$ "+fmt(mrr),c:"#4CAF7D"},{l:"Ativos",v:ativos.length,c:"#5B8FD4"},{l:"Trial",v:trials.length,c:"#8B6FBF"},{l:"Churn",v:churnPct+"%",c:"#D45B5B"}].map(function(k,i){
+            return <div key={i} style={{padding:16,borderRadius:12,background:k.c+"08",border:"1px solid "+k.c+"15",textAlign:"center"}}>
+              <div style={{fontSize:24,fontWeight:700,color:k.c}}>{k.v}</div>
+              <div style={{fontSize:12,color:subColor}}>{k.l}</div>
+            </div>
+          })}
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+          <div style={{padding:16,borderRadius:12,background:cardBg,border:"1px solid "+borderColor}}>
+            <div style={{fontSize:14,fontWeight:600,color:textColor,marginBottom:10}}>📊 Pipeline</div>
+            {pipes.map(function(p2){var cnt=tenants3.filter(function(t2){return t2.pipeline===p2.k}).length;return <div key={p2.k} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0"}}>
+              <span style={{fontSize:13,color:p2.c}}>{p2.e} {p2.l}</span>
+              <span style={{fontSize:15,fontWeight:700,color:p2.c}}>{cnt}</span>
+            </div>})}
+          </div>
+          <div style={{padding:16,borderRadius:12,background:cardBg,border:"1px solid "+borderColor}}>
+            <div style={{fontSize:14,fontWeight:600,color:textColor,marginBottom:10}}>💰 Recebido este mês</div>
+            <div style={{fontSize:28,fontWeight:700,color:"#4CAF7D",marginBottom:8}}>R$ {fmt(pagosM)}</div>
+            <div style={{fontSize:13,color:subColor}}>Total clientes: {tenants3.length}</div>
+            <div style={{fontSize:13,color:subColor}}>Ticket médio: R$ {ativos.length>0?fmt(Math.round(mrr/ativos.length)):"0"}</div>
+          </div>
+        </div>
+      </div>}
+
+      {/* ═══ PIPELINE KANBAN ═══ */}
+      {tab2==="pipe"&&<div style={{overflow:"auto"}}>
+        <div style={{display:"flex",gap:8,minWidth:pipes.length*160}}>
+          {pipes.map(function(p2){
+            var items=tenants3.filter(function(t2){return t2.pipeline===p2.k});
+            return <div key={p2.k} style={{flex:1,minWidth:150}}>
+              <div style={{padding:"8px 10px",borderRadius:"10px 10px 0 0",background:p2.c+"15",borderBottom:"2px solid "+p2.c,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <span style={{fontWeight:700,fontSize:12,color:p2.c}}>{p2.e} {p2.l}</span>
+                <span style={{fontSize:11,fontWeight:700,color:p2.c,background:p2.c+"15",padding:"2px 6px",borderRadius:8}}>{items.length}</span>
+              </div>
+              <div style={{minHeight:100,background:cardBg,borderRadius:"0 0 10px 10px",padding:4,border:"1px solid "+borderColor,borderTop:"none"}}>
+                {items.map(function(t2){return <div key={t2.id} className="bh" onClick={function(){setTab2("list");openEdit(t2)}} style={{padding:8,borderRadius:8,background:isDark?"#1a1a19":"#F8F5F0",marginBottom:4,cursor:"pointer",border:"1px solid "+borderColor}}>
+                  <div style={{fontWeight:600,fontSize:12,color:textColor}}>{t2.nome_empresa}</div>
+                  <div style={{fontSize:11,color:subColor}}>{t2.contato_nome||"—"}</div>
+                  {t2.valor_mensal>0&&<div style={{fontSize:11,fontWeight:600,color:"#4CAF7D"}}>R$ {fmt(t2.valor_mensal)}/mês</div>}
+                  <select value={t2.pipeline||"lead"} onClick={function(e){e.stopPropagation()}} onChange={async function(e){e.stopPropagation();await sb.from("tenants").update({pipeline:e.target.value}).eq("id",t2.id);await loadAll2();msg("Movido!")}} style={{width:"100%",marginTop:4,padding:"3px 4px",borderRadius:4,fontSize:10,background:cardBg,color:textColor,border:"1px solid "+borderColor,cursor:"pointer"}}>
+                    {pipes.map(function(pp){return <option key={pp.k} value={pp.k}>{pp.e} {pp.l}</option>})}
+                  </select>
+                </div>})}
+              </div>
+            </div>
+          })}
+        </div>
+      </div>}
+
+      {/* ═══ CLIENTES LIST + FORM ═══ */}
+      {tab2==="list"&&<div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+          <div style={{fontSize:15,fontWeight:600,color:textColor}}>{tenants3.length} clientes</div>
+          <button className="bh" onClick={openNew} style={{padding:"6px 14px",borderRadius:8,background:"#5B8FD410",color:"#5B8FD4",border:"1px solid #5B8FD425",cursor:"pointer",fontSize:13,fontWeight:600}}>+ Novo Cliente</button>
+        </div>
+        {showForm2&&<div style={{padding:16,borderRadius:14,background:cardBg,border:"1px solid rgba(91,143,212,0.15)",marginBottom:14}}>
+          <div style={{fontSize:15,fontWeight:700,color:"#5B8FD4",marginBottom:12}}>{selT?"✏️ Editar":"➕ Novo"} Cliente</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:2}}>Nome da empresa *</div><input id="t_nome" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},mI,{fontSize:13})} placeholder="Construtora ABC"/></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:2}}>Nome no Portal</div><input id="t_nome_portal" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},mI,{fontSize:13,color:"#E8A94E",fontWeight:600})} placeholder="ABC"/></div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:8}}>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:2}}>Slug (URL) *</div><input id="t_slug" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},mI,{fontSize:13})} placeholder="abc"/></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:2}}>CNPJ</div><input id="t_cnpj" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},mI,{fontSize:13})} placeholder="00.000.000/0001-00"/></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:2}}>Valor mensal (R$)</div><input id="t_valor" type="number" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},mI,{fontSize:13})} placeholder="497"/></div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:8}}>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:2}}>Contato</div><input id="t_contato_nome" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},mI,{fontSize:13})} placeholder="Nome"/></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:2}}>Email</div><input id="t_contato_email" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},mI,{fontSize:13})} placeholder="email@empresa.com"/></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:2}}>Telefone</div><input id="t_contato_tel" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},mI,{fontSize:13})} placeholder="47999999999"/></div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:8}}>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:2}}>Cidade</div><input id="t_cidade" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},mI,{fontSize:13})} placeholder="São Paulo"/></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:2}}>Estado</div><input id="t_estado" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},mI,{fontSize:13})} placeholder="SP"/></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:2}}>Logo (URL)</div><input id="t_logo" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},mI,{fontSize:13})} placeholder="https://..."/></div>
+          </div>
+          <div><div style={{fontSize:11,color:subColor,marginBottom:2}}>Observações</div><textarea id="t_obs" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},mI,{fontSize:13,minHeight:40})} placeholder="Notas internas..."></textarea></div>
+          <div style={{display:"flex",gap:6}}>
+            <button className="bh" onClick={saveTenant2} style={{padding:"8px 20px",borderRadius:8,background:"#5B8FD4",color:"#fff",border:"none",cursor:"pointer",fontSize:13,fontWeight:600}}>💾 {selT?"Atualizar":"Criar"}</button>
+            {selT&&<button className="bh" onClick={function(){setShowPagForm(true)}} style={{padding:"8px 20px",borderRadius:8,background:"#4CAF7D15",color:"#4CAF7D",border:"1px solid #4CAF7D25",cursor:"pointer",fontSize:13,fontWeight:600}}>💰 + Pagamento</button>}
+            <button className="bh" onClick={function(){setShowForm2(false);setSelT(null)}} style={{padding:"8px 20px",borderRadius:8,background:"transparent",color:subColor,border:"1px solid "+borderColor,cursor:"pointer",fontSize:13}}>Cancelar</button>
+          </div>
+          {/* Registrar pagamento inline */}
+          {showPagForm&&selT&&<div style={{marginTop:10,padding:12,borderRadius:10,background:"rgba(76,175,125,0.04)",border:"1px solid rgba(76,175,125,0.12)"}}>
+            <div style={{fontSize:13,fontWeight:600,color:"#4CAF7D",marginBottom:6}}>💰 Registrar Pagamento</div>
+            <div style={{display:"flex",gap:8}}>
+              <input id="pag_valor" type="number" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},mI,{flex:1,fontSize:13})} placeholder="Valor (R$)"/>
+              <input id="pag_venc" type="date" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},mI,{flex:1,fontSize:13})}/>
+              <select id="pag_metodo" style={Object.assign({},mI,{flex:1,fontSize:13})}>
+                <option value="pix">PIX</option><option value="boleto">Boleto</option><option value="cartao">Cartão</option><option value="ted">TED</option>
+              </select>
+            </div>
+            <input id="pag_obs" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},mI,{fontSize:13})} placeholder="Observação"/>
+            <div style={{display:"flex",gap:6}}>
+              <button className="bh" onClick={addPagamento} style={{padding:"6px 14px",borderRadius:8,background:"#4CAF7D",color:"#fff",border:"none",cursor:"pointer",fontSize:12,fontWeight:600}}>💾 Salvar</button>
+              <button className="bh" onClick={function(){setShowPagForm(false)}} style={{padding:"6px 14px",borderRadius:8,background:"transparent",color:subColor,border:"1px solid "+borderColor,cursor:"pointer",fontSize:12}}>Cancelar</button>
+            </div>
+          </div>}
+          {/* Notas/interações */}
+          {selT&&<div style={{marginTop:12,borderTop:"1px solid "+borderColor,paddingTop:10}}>
+            <div style={{fontSize:13,fontWeight:600,color:textColor,marginBottom:6}}>📝 Notas e Interações</div>
+            <div style={{display:"flex",gap:6,marginBottom:8}}>
+              <input id="nota_input" onKeyDown={function(e){e.stopPropagation();if(e.key==="Enter")addNota(selT.id)}} style={Object.assign({},mI,{flex:1,fontSize:13,marginBottom:0})} placeholder="Adicionar nota..."/>
+              <button className="bh" onClick={function(){addNota(selT.id)}} style={{padding:"8px 14px",borderRadius:8,background:"#E8A94E15",color:"#E8A94E",border:"none",cursor:"pointer",fontSize:12}}>📝</button>
+            </div>
+            <div style={{maxHeight:120,overflow:"auto"}}>
+              {inter.map(function(n2){return <div key={n2.id} style={{padding:"6px 8px",borderRadius:6,marginBottom:3,background:isDark?"#1a1a19":"#F8F5F0",fontSize:12}}>
+                <span style={{color:subColor}}>{new Date(n2.criado_em).toLocaleDateString("pt-BR")} · {n2.usuario}:</span> <span style={{color:textColor}}>{n2.conteudo}</span>
+              </div>})}
+            </div>
+          </div>}
+          {/* Pagamentos do cliente */}
+          {selT&&<div style={{marginTop:10,borderTop:"1px solid "+borderColor,paddingTop:8}}>
+            <div style={{fontSize:13,fontWeight:600,color:textColor,marginBottom:6}}>💰 Pagamentos</div>
+            {pagtos.filter(function(p2){return p2.tenant_id===selT.id}).length===0&&<div style={{fontSize:12,color:subColor}}>Nenhum pagamento registrado</div>}
+            {pagtos.filter(function(p2){return p2.tenant_id===selT.id}).map(function(p2){return <div key={p2.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 8px",borderRadius:6,marginBottom:3,background:isDark?"#1a1a19":"#F8F5F0"}}>
+              <div style={{fontSize:12}}>
+                <span style={{fontWeight:600,color:p2.status==="pago"?"#4CAF7D":"#E8A94E"}}>R$ {fmt(p2.valor)}</span>
+                <span style={{color:subColor}}> · {p2.metodo||"—"} · {p2.vencimento?new Date(p2.vencimento).toLocaleDateString("pt-BR"):"—"}</span>
+              </div>
+              <div style={{display:"flex",gap:3}}>
+                {p2.status!=="pago"&&<button className="bh" onClick={async function(){await sb.from("pagamentos").update({status:"pago",pago_em:new Date().toISOString().split("T")[0]}).eq("id",p2.id);await loadAll2();msg("✅ Pago!")}} style={{padding:"3px 8px",borderRadius:4,fontSize:10,background:"#4CAF7D15",color:"#4CAF7D",border:"none",cursor:"pointer"}}>✅ Pago</button>}
+                <span style={{fontSize:10,padding:"3px 6px",borderRadius:4,background:p2.status==="pago"?"#4CAF7D15":"#E8A94E15",color:p2.status==="pago"?"#4CAF7D":"#E8A94E"}}>{p2.status}</span>
+              </div>
+            </div>})}
+          </div>}
+        </div>}
+        {/* Client list */}
+        {!showForm2&&<div style={{maxHeight:"55vh",overflow:"auto"}}>
+          {tenants3.map(function(t2){
+            var sub=subs.find(function(s2){return s2.tenant_id===t2.id});
+            var pagCount=pagtos.filter(function(p2){return p2.tenant_id===t2.id}).length;
+            return <div key={t2.id} className="bh" onClick={function(){openEdit(t2)}} style={{display:"flex",alignItems:"center",gap:12,padding:12,borderRadius:12,background:cardBg,border:"1px solid "+borderColor,marginBottom:6,cursor:"pointer"}}>
+              {t2.logo_url?<img src={t2.logo_url} style={{height:36,maxWidth:60,objectFit:"contain"}}/>:<div style={{width:40,height:40,borderRadius:10,background:pipeColor(t2.pipeline)+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:700,color:pipeColor(t2.pipeline)}}>{(t2.nome_empresa||"?")[0]}</div>}
+              <div style={{flex:1}}>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <span style={{fontWeight:700,fontSize:15,color:textColor}}>{t2.nome_empresa}</span>
+                  <span style={{fontSize:10,padding:"2px 6px",borderRadius:4,background:pipeColor(t2.pipeline)+"15",color:pipeColor(t2.pipeline),fontWeight:600}}>{t2.pipeline||"lead"}</span>
+                  {sub&&<span style={{fontSize:10,padding:"2px 6px",borderRadius:4,background:"#8B6FBF15",color:"#8B6FBF"}}>{sub.plano}</span>}
+                </div>
+                <div style={{fontSize:12,color:subColor}}>{t2.contato_nome||"—"} · {t2.contato_email||"—"} · {t2.cidade||""}{t2.estado?"/"+t2.estado:""}</div>
+              </div>
+              <div style={{textAlign:"right",flexShrink:0}}>
+                {t2.valor_mensal>0&&<div style={{fontSize:16,fontWeight:700,color:"#4CAF7D"}}>R$ {fmt(t2.valor_mensal)}<span style={{fontSize:10,color:subColor}}>/mês</span></div>}
+                <div style={{fontSize:11,color:subColor}}>{pagCount} pagtos</div>
+              </div>
+            </div>
+          })}
+        </div>}
+      </div>}
+
+      {/* ═══ PAGAMENTOS ═══ */}
+      {tab2==="pagtos"&&<div>
+        <div style={{fontSize:15,fontWeight:600,color:textColor,marginBottom:12}}>💰 Histórico de Pagamentos</div>
+        <div style={{display:"flex",gap:8,marginBottom:12}}>
+          {["pendente","pago","atrasado"].map(function(s2){var cnt=pagtos.filter(function(p2){return p2.status===s2}).length;var cols={pendente:"#E8A94E",pago:"#4CAF7D",atrasado:"#D45B5B"};return <span key={s2} style={{padding:"4px 10px",borderRadius:8,fontSize:12,background:(cols[s2]||"#555")+"10",color:cols[s2]||"#555",fontWeight:600}}>{s2} ({cnt})</span>})}
+        </div>
+        {pagtos.length===0&&<div style={{padding:30,textAlign:"center",color:subColor}}>Nenhum pagamento</div>}
+        {pagtos.map(function(p2){var t2=tenants3.find(function(x){return x.id===p2.tenant_id});return <div key={p2.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:12,borderRadius:10,background:cardBg,border:"1px solid "+borderColor,marginBottom:6}}>
+          <div>
+            <div style={{fontWeight:600,fontSize:14,color:textColor}}>{t2?t2.nome_empresa:"—"}</div>
+            <div style={{fontSize:12,color:subColor}}>{p2.metodo||"—"} · {p2.vencimento?new Date(p2.vencimento).toLocaleDateString("pt-BR"):"—"}{p2.observacoes?" · "+p2.observacoes:""}</div>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <div style={{fontSize:18,fontWeight:700,color:p2.status==="pago"?"#4CAF7D":"#E8A94E"}}>R$ {fmt(p2.valor)}</div>
+            {p2.status!=="pago"&&<button className="bh" onClick={async function(){await sb.from("pagamentos").update({status:"pago",pago_em:new Date().toISOString().split("T")[0]}).eq("id",p2.id);await loadAll2();msg("✅ Pago!")}} style={{padding:"6px 12px",borderRadius:6,fontSize:12,background:"#4CAF7D15",color:"#4CAF7D",border:"none",cursor:"pointer"}}>✅</button>}
+            <span style={{fontSize:11,padding:"3px 8px",borderRadius:6,background:(p2.status==="pago"?"#4CAF7D":"#E8A94E")+"12",color:p2.status==="pago"?"#4CAF7D":"#E8A94E",fontWeight:600}}>{p2.status}{p2.pago_em?" · "+new Date(p2.pago_em).toLocaleDateString("pt-BR"):""}</span>
+          </div>
+        </div>})}
+      </div>}
     </div>
   }
 
@@ -4355,16 +4434,23 @@ function App(){
       </div>
 
       {/* MODAL */}
-      {mdl && mdl.t!=="waInbox" && <div onClick={function(){setMdl(null)}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",backdropFilter:"blur(8px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+      {mdl && mdl.t!=="waInbox" && mdl.t!=="tenants" && <div onClick={function(){setMdl(null)}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",backdropFilter:"blur(8px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
         <div onClick={function(e){e.stopPropagation()}} style={{background:cardBg,borderRadius:20,padding:24,width:"100%",maxWidth:440,maxHeight:"90vh",overflow:"auto",border:"1px solid "+borderColor}}>
           <ModalContent/>
         </div>
       </div>}
 
-      {/* WHATSAPP MODAL (separate to prevent state loss) */}
+      {/* CRM MODAL */}
       {mdl && mdl.t==="waInbox" && <div onClick={function(e){e.target===e.currentTarget&&setMdl(null)}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",backdropFilter:"blur(8px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
         <div onClick={function(e){e.stopPropagation()}} style={{background:cardBg,borderRadius:20,padding:24,width:"100%",maxWidth:900,maxHeight:"90vh",overflow:"auto",border:"1px solid "+borderColor}}>
           <WAInboxM/>
+        </div>
+      </div>}
+
+      {/* TENANTS MODAL (full-screen) */}
+      {mdl && mdl.t==="tenants" && <div onClick={function(e){e.target===e.currentTarget&&setMdl(null)}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",backdropFilter:"blur(8px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
+        <div onClick={function(e){e.stopPropagation()}} style={{background:cardBg,borderRadius:20,padding:24,width:"100%",maxWidth:960,maxHeight:"90vh",overflow:"auto",border:"1px solid "+borderColor}}>
+          <TenantsM/>
         </div>
       </div>}
 
