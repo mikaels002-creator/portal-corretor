@@ -958,9 +958,9 @@ function App(){
                     {linkedUnit && photoUnit==="all" && <div style={{position:"absolute",top:6,left:photo.is_cover?60:6,padding:"3px 8px",borderRadius:6,fontSize:12,fontWeight:600,background:"rgba(0,0,0,0.7)",color:"#fff",backdropFilter:"blur(4px)"}}>{linkedUnit.name}</div>}
                     <div style={{position:"absolute",bottom:0,left:0,right:0,background:"linear-gradient(transparent,rgba(0,0,0,0.8))",padding:"10px 10px 8px"}}>
                       {adm?<input value={photo.label||""} onChange={function(e){
-                        DB.updatePhoto(photo.id,{label:e.target.value});
                         setAllPhotos(function(prev){return prev.map(function(p){return p.id===photo.id?Object.assign({},p,{label:e.target.value}):p})});
-                      }} onClick={function(e){e.stopPropagation()}} style={{width:"100%",background:"transparent",border:"none",color:"#fff",fontSize:13,fontWeight:600,outline:"none",padding:0}} placeholder="Nomear foto..."/>
+                      }} onBlur={function(e){DB.updatePhoto(photo.id,{label:e.target.value})}}
+                       onClick={function(e){e.stopPropagation()}} style={{width:"100%",background:"transparent",border:"none",color:"#fff",fontSize:13,fontWeight:600,outline:"none",padding:0}} placeholder="Nomear foto..."/>
                       :<div style={{fontSize:12,color:"#fff",fontWeight:500}}>{photo.label||"Foto "+(i+1)}</div>}
                     </div>
                     {adm && <div style={{position:"absolute",top:6,right:6,display:"flex",gap:3}} onClick={function(e){e.stopPropagation()}}>
@@ -1126,7 +1126,7 @@ function App(){
                 </div>:<div style={{padding:20,textAlign:"center",color:subColor}}>{lang==="en"?"No address registered":"Endereço não cadastrado"}{adm&&" — edite o empreendimento para adicionar"}</div>}
                 {adm&&<div style={{marginTop:12,padding:12,borderRadius:10,background:cardBg,border:"1px solid "+borderColor}}>
                   <div style={{fontSize:13,fontWeight:600,color:textColor,marginBottom:6}}>✏️ Editar Endereço</div>
-                  <input style={Object.assign({},mI,{fontSize:13})} value={bld.endereco||""} onChange={async function(e){await sb.from("buildings").update({endereco:e.target.value}).eq("id",bld.id);await refreshBuildings()}} placeholder="Endereço completo"/>
+                  <input style={Object.assign({},mI,{fontSize:13})} defaultValue={bld.endereco||""} onBlur={async function(e){await sb.from("buildings").update({endereco:e.target.value}).eq("id",bld.id);await refreshBuildings()}} placeholder="Endereço completo"/>
                 </div>}
               </div>
             }
