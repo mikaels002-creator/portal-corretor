@@ -4042,25 +4042,28 @@ function App(){
 
       {/* NAV */}
       <div style={{position:"sticky",top:0,zIndex:100,background:isDark?bgColor+"ee":"rgba(245,242,237,0.95)",backdropFilter:"blur(16px)",WebkitBackdropFilter:"blur(16px)",padding:"10px 16px 0",borderBottom:"1px solid "+borderColor}}>
-        {/* Row 1: Main actions + user */}
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+        {/* Row 1: Início + Empreendimentos */}
+        <div style={{display:"flex",flexWrap:"wrap",gap:5,paddingBottom:adm?6:10}}>
+          <TabBtn active={vw==="home"} onClick={function(){setVw("home")}}>{t.home}</TabBtn>
+          {vis.map(function(b){return <TabBtn key={b.id} active={vw==="detail"&&sel===b.id} onClick={function(){go(b.id)}}>{b.name.replace("Ed. ","").replace("Res. ","").replace("Imóveis de ","")}</TabBtn>})}
+        </div>
+        {/* Row 2: Admin tools (only when logged) */}
+        {adm&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:8,borderTop:"1px solid "+borderColor,paddingTop:6}}>
           <div style={{display:"flex",gap:6,alignItems:"center"}}>
-            <TabBtn active={vw==="home"} onClick={function(){setVw("home")}}>{t.home}</TabBtn>
-            {adm && <TabBtn active={vw==="manage"} green onClick={function(){setVw("manage")}}>Gerenciar</TabBtn>}
-            {adm && <span className="bh" onClick={function(){setMdl({t:"waInbox"})}} style={{flexShrink:0,padding:"10px 18px",borderRadius:12,fontSize:16,fontWeight:600,cursor:"pointer",background:"#25D366"+"12",color:"#25D366",border:"1px solid #25D36625",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:6,position:"relative"}}>💼 CRM{waUnreadTotal>0&&<span style={{background:"#D45B5B",color:"#fff",fontSize:11,fontWeight:700,padding:"2px 7px",borderRadius:10,animation:"pulse 2s infinite"}}>{waUnreadTotal}</span>}</span>}
+            <TabBtn active={vw==="manage"} green onClick={function(){setVw("manage")}}>Gerenciar</TabBtn>
+            <span className="bh" onClick={function(){setMdl({t:"waInbox"})}} style={{padding:"8px 16px",borderRadius:10,fontSize:15,fontWeight:600,cursor:"pointer",background:"#25D366"+"12",color:"#25D366",border:"1px solid #25D36625",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:6,position:"relative"}}>💼 CRM{waUnreadTotal>0&&<span style={{background:"#D45B5B",color:"#fff",fontSize:11,fontWeight:700,padding:"2px 7px",borderRadius:10,animation:"pulse 2s infinite"}}>{waUnreadTotal}</span>}</span>
           </div>
           <div style={{display:"flex",gap:6,alignItems:"center"}}>
-            {broker && <span className="bh" onClick={function(){setMdl({t:"brokerDash"})}} style={{padding:"7px 14px",borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",background:"rgba(91,143,212,0.08)",color:"#5B8FD4",border:"1px solid rgba(91,143,212,0.12)",display:"flex",alignItems:"center",gap:4}}>👤 {broker.nome.split(" ")[0]}</span>}
-            {adm && currentUser && (function(){
+            {currentUser && (function(){
               var myPendTasks=tasks.filter(function(t3){return t3.assigned_to===currentUser.id&&t3.status!=="done"}).length;
               return <span className="bh" onClick={function(){if(myPendTasks>0){setMdl({t:"taskManager"})}else{logAction("logout");setAdm(false);setCurrentUser(null);msg("Deslogado")}}} style={{padding:"7px 14px",borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",background:"rgba(200,164,92,0.08)",color:G,border:"1px solid rgba(200,164,92,0.12)",display:"flex",alignItems:"center",gap:4,position:"relative"}}>{currentUser.role==="super_admin"?"👑":currentUser.role==="atendente"?"📞":"🔐"} {currentUser.nome.split(" ")[0]} {myPendTasks>0&&<span style={{background:"#D45B5B",color:"#fff",fontSize:12,fontWeight:700,padding:"1px 5px",borderRadius:8,marginLeft:2}}>{myPendTasks}</span>} {myPendTasks===0&&<span onClick={function(e2){e2.stopPropagation();logAction("logout");setAdm(false);setCurrentUser(null);msg("Deslogado")}} style={{color:subColor}}>· Sair</span>}</span>;
             })()}
           </div>
-        </div>
-        {/* Row 2: Empreendimentos (wraps into multiple lines) */}
-        <div style={{display:"flex",flexWrap:"wrap",gap:5,paddingBottom:10}}>
-          {vis.map(function(b){return <TabBtn key={b.id} active={vw==="detail"&&sel===b.id} onClick={function(){go(b.id)}}>{b.name.replace("Ed. ","").replace("Res. ","").replace("Imóveis de ","")}</TabBtn>})}
-        </div>
+        </div>}
+        {/* Broker user */}
+        {broker&&!adm&&<div style={{display:"flex",justifyContent:"flex-end",paddingBottom:8}}>
+          <span className="bh" onClick={function(){setMdl({t:"brokerDash"})}} style={{padding:"7px 14px",borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",background:"rgba(91,143,212,0.08)",color:"#5B8FD4",border:"1px solid rgba(91,143,212,0.12)",display:"flex",alignItems:"center",gap:4}}>👤 {broker.nome.split(" ")[0]}</span>
+        </div>}
       </div>
 
       {/* VIEWS */}
