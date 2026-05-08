@@ -908,11 +908,11 @@ function App(){
           {/* Export Buttons */}
           <div style={{display:"flex",gap:8,marginTop:14}}>
             <div style={{flex:1,position:"relative"}}>
-              <button className="bh" onClick={function(){setDtab(dtab==="pdfMenu"?"table":"pdfMenu")}} style={{width:"100%",padding:"12px",borderRadius:10,fontSize:14,fontWeight:600,background:bld.color+"10",color:bld.color,border:"1px solid "+bld.color+"20",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>🖨️ PDF</button>
-              {dtab==="pdfMenu"&&<div style={{position:"absolute",top:"100%",left:0,right:0,marginTop:4,background:cardBg,borderRadius:10,border:"1px solid "+borderColor,padding:6,zIndex:10,boxShadow:"0 8px 24px rgba(0,0,0,0.3)"}}>
-                <button className="bh" onClick={function(){printBld(bld.id,"available");setDtab("table")}} style={{width:"100%",padding:"10px",borderRadius:8,fontSize:13,fontWeight:600,background:"rgba(76,175,125,0.08)",color:"#4CAF7D",border:"none",cursor:"pointer",marginBottom:4,textAlign:"left"}}>✅ Só disponíveis</button>
-                <button className="bh" onClick={function(){printBld(bld.id,"all");setDtab("table")}} style={{width:"100%",padding:"10px",borderRadius:8,fontSize:13,fontWeight:600,background:"rgba(91,143,212,0.08)",color:"#5B8FD4",border:"none",cursor:"pointer",textAlign:"left"}}>📋 Todas as unidades</button>
-              </div>}
+              <button className="bh" onClick={function(){var el=document.getElementById("pdfDropdown");if(el)el.style.display=el.style.display==="block"?"none":"block"}} style={{width:"100%",padding:"12px",borderRadius:10,fontSize:14,fontWeight:600,background:bld.color+"10",color:bld.color,border:"1px solid "+bld.color+"20",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>🖨️ PDF</button>
+              <div id="pdfDropdown" style={{display:"none",position:"absolute",top:"100%",left:0,right:0,marginTop:4,background:cardBg,borderRadius:10,border:"1px solid "+borderColor,padding:6,zIndex:10,boxShadow:"0 8px 24px rgba(0,0,0,0.3)"}}>
+                <button className="bh" onClick={function(){printBld(bld.id,"available");document.getElementById("pdfDropdown").style.display="none"}} style={{width:"100%",padding:"10px",borderRadius:8,fontSize:13,fontWeight:600,background:"rgba(76,175,125,0.08)",color:"#4CAF7D",border:"none",cursor:"pointer",marginBottom:4,textAlign:"left"}}>✅ Só disponíveis</button>
+                <button className="bh" onClick={function(){printBld(bld.id,"all");document.getElementById("pdfDropdown").style.display="none"}} style={{width:"100%",padding:"10px",borderRadius:8,fontSize:13,fontWeight:600,background:"rgba(91,143,212,0.08)",color:"#5B8FD4",border:"none",cursor:"pointer",textAlign:"left"}}>📋 Todas as unidades</button>
+              </div>
             </div>
             <button className="bh" onClick={function(){exportExcel(bld.id)}} style={{flex:1,padding:"12px",borderRadius:10,fontSize:14,fontWeight:600,background:"rgba(76,175,125,0.06)",color:"#6BAF8D",border:"1px solid rgba(76,175,125,0.12)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>📊 Excel</button>
           </div>
