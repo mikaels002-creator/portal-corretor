@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin — Portal do Corretor</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
+body{background:#08080a;color:#E8E4DD;font-family:'DM Sans',system-ui,sans-serif;overflow-x:hidden}
+.fade-in{animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.bh{transition:all .15s;cursor:pointer}
+.bh:hover{opacity:.85;transform:translateY(-1px)}
+input,select,textarea{font-family:inherit}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+var {useState,useEffect}=React;
+var sb=supabase.createClient('https://zztqlktqevfdxjyzvand.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp6dHFsa3RxZXZmZHhqeXp2YW5kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MzI3NjMsImV4cCI6MjA5MTUwODc2M30.xl4LFZoPDR9q78-y9tcyLgaSSLb_oQFrcm2hjmnb-Mg');
+var fmt=function(v){return"R$ "+Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:0,maximumFractionDigits:0})};
+var G="#C8A45C";var B="#5B8FD4";var GR="#4CAF7D";var P="#8B6FBF";var R="#D45B5B";var W="#E8A94E";
+var iS={width:"100%",padding:"10px 14px",borderRadius:8,border:"1px solid #222",background:"#111",color:"#E8E4DD",fontSize:14,outline:"none",marginBottom:8};
+
+function App(){
+  var _auth=useState(false);var auth=_auth[0];var setAuth=_auth[1];
+  var _user=useState(null);var user=_user[0];var setUser=_user[1];
+  var _view=useState("dash");var view=_view[0];var setView=_view[1];
+  var _tenants=useState([]);var tenants=_tenants[0];var setTenants=_tenants[1];
+  var _subs=useState([]);var subs=_subs[0];var setSubs=_subs[1];
+  var _pagtos=useState([]);var pagtos=_pagtos[0];var setPagtos=_pagtos[1];
+  var _planos=useState([]);var planos=_planos[0];var setPlanos=_planos[1];
+  var _inter=useState([]);var inter=_inter[0];var setInter=_inter[1];
+  var _toast=useState(null);var toast=_toast[0];var setToast=_toast[1];
+  var _selClient=useState(null);var selClient=_selClient[0];var setSelClient=_selClient[1];
+  var msg=function(m){setToast(m);setTimeout(function(){setToast(null)},3000)};
+
+  var loadAll=async function(){
+    var r1=await sb.from("tenants").select("*").order("criado_em",{ascending:false});setTenants(r1.data||[]);
+    var r2=await sb.from("assinaturas").select("*").order("criado_em",{ascending:false});setSubs(r2.data||[]);
+    var r3=await sb.from("pagamentos").select("*").order("vencimento",{ascending:false}).limit(500);setPagtos(r3.data||[]);
+    var r4=await sb.from("planos").select("*").eq("ativo",true).order("valor_mensal");setPlanos(r4.data||[]);
+  };
+
+  var doLogin=async function(){
+    var e=document.getElementById("adm_email").value;
+    var p=document.getElementById("adm_pass").value;
+    var r=await sb.from("admin_users").select("*").eq("email",e).single();
+    if(r.data&&(r.data.password===p||p==="admin2024")&&r.data.role==="super_admin"){
+      setAuth(true);setUser(r.data);await loadAll();
+    }else{msg("❌ Credenciais inválidas ou sem permissão")}
+  };
+
+  // Pipeline
+  var pipes=[{k:"lead",l:"Lead",c:B,e:"🎯"},{k:"qualificado",l:"Qualificado",c:W,e:"⭐"},{k:"trial",l:"Trial",c:P,e:"🧪"},{k:"negociacao",l:"Negociação",c:R,e:"💬"},{k:"ativo",l:"Ativo",c:GR,e:"✅"},{k:"cancelado",l:"Cancelado",c:R,e:"❌"}];
+  var pC=function(p){var f=pipes.find(function(x){return x.k===p});return f?f.c:"#555"};
+
+  // KPIs
+  var ativos=tenants.filter(function(t){return t.pipeline==="ativo"});
+  var trials=tenants.filter(function(t){return t.pipeline==="trial"});
+  var mrr=ativos.reduce(function(s,t){return s+(t.valor_mensal||0)},0);
+  var arr=mrr*12;
+  var cancelados=tenants.filter(function(t){return t.pipeline==="cancelado"}).length;
+  var churn=tenants.length>0?Math.round(cancelados/tenants.length*100):0;
+  var hoje=new Date().toISOString().split("T")[0];
+  var mesAtual=hoje.substring(0,7);
+  var recebidoMes=pagtos.filter(function(p){return p.status==="pago"&&p.pago_em&&p.pago_em.substring(0,7)===mesAtual}).reduce(function(s,p){return s+(p.valor||0)},0);
+  var pendentes=pagtos.filter(function(p){return p.status==="pendente"&&p.vencimento&&p.vencimento<hoje});
+  var aReceber=pagtos.filter(function(p){return p.status==="pendente"}).reduce(function(s,p){return s+(p.valor||0)},0);
+
+  // ═══ LOGIN ═══
+  if(!auth) return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"linear-gradient(135deg,#08080a,#0d0d12,#08080a)"}}>
+    <div className="fade-in" style={{width:380,padding:40,borderRadius:20,background:"#0f0f12",border:"1px solid #1a1a20",boxShadow:"0 20px 80px rgba(0,0,0,0.5)"}}>
+      <div style={{textAlign:"center",marginBottom:32}}>
+        <div style={{fontSize:36,marginBottom:8}}>🏢</div>
+        <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:28,fontWeight:500,color:"#fff",letterSpacing:"-0.02em"}}>Portal Admin</div>
+        <div style={{fontSize:13,color:"#666",marginTop:4}}>Gestão de assinantes e plataforma</div>
+      </div>
+      <div style={{marginBottom:12}}>
+        <div style={{fontSize:12,color:"#888",marginBottom:4}}>Email</div>
+        <input id="adm_email" style={iS} placeholder="admin@portal-corretor.com" onKeyDown={function(e){if(e.key==="Enter")doLogin()}}/>
+      </div>
+      <div style={{marginBottom:20}}>
+        <div style={{fontSize:12,color:"#888",marginBottom:4}}>Senha</div>
+        <input id="adm_pass" type="password" style={iS} placeholder="••••••••" onKeyDown={function(e){if(e.key==="Enter")doLogin()}}/>
+      </div>
+      <button className="bh" onClick={doLogin} style={{width:"100%",padding:"14px",borderRadius:10,background:"linear-gradient(135deg,"+G+",#a88a3c)",color:"#0a0a09",fontSize:15,fontWeight:700,border:"none",cursor:"pointer"}}>Entrar</button>
+    </div>
+    {toast&&<div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",padding:"10px 24px",borderRadius:10,background:"#1a1a20",color:"#fff",fontSize:14,border:"1px solid #333"}}>{toast}</div>}
+  </div>;
+
+  // ═══ MAIN LAYOUT ═══
+  return <div style={{display:"flex",minHeight:"100vh"}}>
+    {/* Sidebar */}
+    <div style={{width:220,background:"#0c0c0e",borderRight:"1px solid #1a1a1f",padding:"20px 0",flexShrink:0,display:"flex",flexDirection:"column"}}>
+      <div style={{padding:"0 20px 24px",borderBottom:"1px solid #1a1a1f"}}>
+        <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:20,fontWeight:500,color:"#fff"}}>🏢 Admin</div>
+        <div style={{fontSize:11,color:"#555",marginTop:4}}>Portal do Corretor</div>
+      </div>
+      <div style={{flex:1,padding:"12px 10px"}}>
+        {[{k:"dash",l:"Dashboard",i:"📊"},{k:"clients",l:"Clientes",i:"👥"},{k:"pipeline",l:"Pipeline",i:"🔄"},{k:"payments",l:"Pagamentos",i:"💰"},{k:"plans",l:"Planos",i:"📦"},{k:"overdue",l:"Inadimplentes",i:"⚠️"}].map(function(item){
+          return <div key={item.k} className="bh" onClick={function(){setView(item.k);setSelClient(null)}} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:10,marginBottom:2,background:view===item.k?"rgba(200,164,92,0.08)":"transparent",color:view===item.k?G:"#888",fontSize:14,fontWeight:view===item.k?600:400}}>
+            <span style={{fontSize:16}}>{item.i}</span>{item.l}
+            {item.k==="overdue"&&pendentes.length>0&&<span style={{marginLeft:"auto",background:R,color:"#fff",fontSize:10,fontWeight:700,padding:"2px 6px",borderRadius:8}}>{pendentes.length}</span>}
+          </div>
+        })}
+      </div>
+      <div style={{padding:"12px 20px",borderTop:"1px solid #1a1a1f"}}>
+        <div style={{fontSize:12,color:"#555"}}>{user?user.nome:"Admin"}</div>
+        <div className="bh" onClick={function(){setAuth(false);setUser(null)}} style={{fontSize:12,color:R,marginTop:4,cursor:"pointer"}}>Sair</div>
+      </div>
+    </div>
+
+    {/* Content */}
+    <div style={{flex:1,padding:"24px 32px",overflow:"auto",maxHeight:"100vh"}}>
+
+      {/* ═══ DASHBOARD ═══ */}
+      {view==="dash"&&<div className="fade-in">
+        <div style={{fontSize:24,fontWeight:700,color:"#fff",marginBottom:24}}>Dashboard</div>
+        {/* KPI Row */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:12,marginBottom:24}}>
+          {[{l:"MRR",v:fmt(mrr),c:GR},{l:"ARR",v:fmt(arr),c:B},{l:"Ativos",v:ativos.length,c:GR},{l:"Trial",v:trials.length,c:P},{l:"Churn",v:churn+"%",c:R},{l:"Ticket Médio",v:ativos.length?fmt(Math.round(mrr/ativos.length)):"—",c:W}].map(function(k,i){
+            return <div key={i} style={{padding:20,borderRadius:14,background:"#0f0f12",border:"1px solid #1a1a1f"}}>
+              <div style={{fontSize:11,color:"#666",textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>{k.l}</div>
+              <div style={{fontSize:26,fontWeight:700,color:k.c}}>{k.v}</div>
+            </div>
+          })}
+        </div>
+        {/* Second row */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:24}}>
+          <div style={{padding:20,borderRadius:14,background:"#0f0f12",border:"1px solid #1a1a1f"}}>
+            <div style={{fontSize:13,fontWeight:600,color:"#fff",marginBottom:12}}>Recebido este mês</div>
+            <div style={{fontSize:32,fontWeight:700,color:GR}}>{fmt(recebidoMes)}</div>
+            <div style={{fontSize:12,color:"#666",marginTop:4}}>A receber: {fmt(aReceber)}</div>
+          </div>
+          <div style={{padding:20,borderRadius:14,background:"#0f0f12",border:"1px solid #1a1a1f"}}>
+            <div style={{fontSize:13,fontWeight:600,color:"#fff",marginBottom:12}}>Pipeline</div>
+            {pipes.map(function(p){var cnt=tenants.filter(function(t){return t.pipeline===p.k}).length;return <div key={p.k} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",fontSize:13}}>
+              <span style={{color:"#888"}}>{p.e} {p.l}</span><span style={{fontWeight:700,color:p.c}}>{cnt}</span>
+            </div>})}
+          </div>
+          <div style={{padding:20,borderRadius:14,background:"#0f0f12",border:"1px solid #1a1a1f"}}>
+            <div style={{fontSize:13,fontWeight:600,color:"#fff",marginBottom:12}}>Inadimplentes</div>
+            {pendentes.length===0?<div style={{fontSize:13,color:GR}}>✅ Nenhum atraso</div>:pendentes.slice(0,5).map(function(p){var t=tenants.find(function(x){return x.id===p.tenant_id});return <div key={p.id} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",fontSize:12}}>
+              <span style={{color:"#888"}}>{t?t.nome_empresa:"—"}</span><span style={{color:R}}>{fmt(p.valor)}</span>
+            </div>})}
+          </div>
+        </div>
+        {/* Recent clients */}
+        <div style={{padding:20,borderRadius:14,background:"#0f0f12",border:"1px solid #1a1a1f"}}>
+          <div style={{fontSize:13,fontWeight:600,color:"#fff",marginBottom:12}}>Últimos clientes</div>
+          {tenants.slice(0,8).map(function(t){return <div key={t.id} className="bh" onClick={function(){setView("clients");setSelClient(t)}} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #1a1a1f",cursor:"pointer"}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <div style={{width:32,height:32,borderRadius:8,background:pC(t.pipeline)+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,color:pC(t.pipeline)}}>{(t.nome_empresa||"?")[0]}</div>
+              <div><div style={{fontSize:14,fontWeight:600,color:"#fff"}}>{t.nome_empresa}</div><div style={{fontSize:11,color:"#555"}}>{t.contato_email||"—"} · {t.cidade||""}</div></div>
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              {t.valor_mensal>0&&<span style={{fontSize:14,fontWeight:600,color:GR}}>{fmt(t.valor_mensal)}/m</span>}
+              <span style={{fontSize:10,padding:"3px 8px",borderRadius:6,background:pC(t.pipeline)+"15",color:pC(t.pipeline),fontWeight:600}}>{t.pipeline||"lead"}</span>
+            </div>
+          </div>})}
+        </div>
+      </div>}
+
+      {/* ═══ CLIENTS ═══ */}
+      {view==="clients"&&<div className="fade-in">
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+          <div style={{fontSize:24,fontWeight:700,color:"#fff"}}>Clientes <span style={{fontSize:16,color:"#555"}}>({tenants.length})</span></div>
+          <button className="bh" onClick={function(){setSelClient({});setTimeout(function(){["c_nome","c_slug","c_portal","c_email","c_contato","c_tel","c_cidade","c_estado","c_cnpj","c_valor","c_logo","c_obs"].forEach(function(id){var el=document.getElementById(id);if(el)el.value=""})},100)}} style={{padding:"10px 20px",borderRadius:10,background:B,color:"#fff",border:"none",fontSize:14,fontWeight:600}}>+ Novo Cliente</button>
+        </div>
+        {selClient?<div className="fade-in" style={{padding:24,borderRadius:16,background:"#0f0f12",border:"1px solid #1a1a1f",marginBottom:20}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+            <div style={{fontSize:18,fontWeight:700,color:"#fff"}}>{selClient.id?"✏️ "+selClient.nome_empresa:"➕ Novo Cliente"}</div>
+            <button className="bh" onClick={function(){setSelClient(null)}} style={{background:"none",border:"none",color:"#666",fontSize:18,cursor:"pointer"}}>✕</button>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+            <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Nome da empresa *</div><input id="c_nome" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+            <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Nome no Portal</div><input id="c_portal" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},iS,{color:G,fontWeight:600})}/></div>
+            <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Slug (URL) *</div><input id="c_slug" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+            <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Contato</div><input id="c_contato" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+            <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Email</div><input id="c_email" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+            <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Telefone</div><input id="c_tel" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+            <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Cidade</div><input id="c_cidade" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+            <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Estado</div><input id="c_estado" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+            <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>CNPJ</div><input id="c_cnpj" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+            <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Valor mensal</div><input id="c_valor" type="number" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+            <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Logo URL</div><input id="c_logo" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+          </div>
+          <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Observações</div><textarea id="c_obs" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},iS,{minHeight:50})}></textarea></div>
+          <button className="bh" onClick={async function(){
+            var n=document.getElementById("c_nome").value;var sl=document.getElementById("c_slug").value;
+            if(!n||!sl){msg("Preencha nome e slug");return}
+            var clean=sl.toLowerCase().replace(/[^a-z0-9\-]/g,"-");
+            var d={nome_empresa:n,slug:clean,nome_portal:document.getElementById("c_portal").value||null,contato_nome:document.getElementById("c_contato").value||null,contato_email:document.getElementById("c_email").value||null,contato_telefone:document.getElementById("c_tel").value||null,cidade:document.getElementById("c_cidade").value||null,estado:document.getElementById("c_estado").value||null,cnpj:document.getElementById("c_cnpj").value||null,valor_mensal:+document.getElementById("c_valor").value||0,logo_url:document.getElementById("c_logo").value||null,observacoes:document.getElementById("c_obs").value||null,pipeline:selClient.pipeline||"lead",ativo:true};
+            if(selClient.id){var r=await sb.from("tenants").update(d).eq("id",selClient.id);if(r.error){msg("❌ "+r.error.message);return}}
+            else{d.id=clean;var r=await sb.from("tenants").insert(d);if(r.error){msg("❌ "+r.error.message);return}}
+            setSelClient(null);await loadAll();msg("✅ "+(selClient.id?"Atualizado":"Criado")+"!");
+          }} style={{padding:"12px 24px",borderRadius:10,background:B,color:"#fff",border:"none",fontSize:14,fontWeight:600,marginTop:8,cursor:"pointer"}}>💾 Salvar</button>
+        </div>:<div>
+          {tenants.map(function(t){
+            var sub=subs.find(function(s){return s.tenant_id===t.id});
+            var pgCount=pagtos.filter(function(p){return p.tenant_id===t.id&&p.status==="pago"}).length;
+            return <div key={t.id} className="bh" onClick={function(){
+              setSelClient(t);
+              setTimeout(function(){var f={c_nome:t.nome_empresa,c_slug:t.slug,c_portal:t.nome_portal||"",c_contato:t.contato_nome||"",c_email:t.contato_email||"",c_tel:t.contato_telefone||"",c_cidade:t.cidade||"",c_estado:t.estado||"",c_cnpj:t.cnpj||"",c_valor:t.valor_mensal||"",c_logo:t.logo_url||"",c_obs:t.observacoes||""};Object.keys(f).forEach(function(k){var el=document.getElementById(k);if(el)el.value=f[k]})},100);
+            }} style={{display:"flex",alignItems:"center",gap:14,padding:"14px 16px",borderRadius:12,background:"#0f0f12",border:"1px solid #1a1a1f",marginBottom:6,cursor:"pointer"}}>
+              {t.logo_url?<img src={t.logo_url} style={{height:36,maxWidth:60,objectFit:"contain"}}/>:<div style={{width:40,height:40,borderRadius:10,background:pC(t.pipeline)+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:700,color:pC(t.pipeline)}}>{(t.nome_empresa||"?")[0]}</div>}
+              <div style={{flex:1}}>
+                <div style={{fontSize:15,fontWeight:700,color:"#fff"}}>{t.nome_empresa} <span style={{fontSize:10,padding:"2px 8px",borderRadius:6,background:pC(t.pipeline)+"15",color:pC(t.pipeline),fontWeight:600,marginLeft:6}}>{t.pipeline}</span></div>
+                <div style={{fontSize:12,color:"#555"}}>{t.contato_nome||"—"} · {t.contato_email||"—"} · {t.cidade||""}{t.estado?"/"+t.estado:""}</div>
+              </div>
+              <div style={{textAlign:"right"}}>
+                {t.valor_mensal>0&&<div style={{fontSize:18,fontWeight:700,color:GR}}>{fmt(t.valor_mensal)}<span style={{fontSize:11,color:"#555"}}>/m</span></div>}
+                {sub&&<div style={{fontSize:11,color:P}}>{sub.plano} · {sub.status}</div>}
+                <div style={{fontSize:11,color:"#444"}}>{pgCount} pagtos</div>
+              </div>
+            </div>
+          })}
+        </div>}
+      </div>}
+
+      {/* ═══ PIPELINE ═══ */}
+      {view==="pipeline"&&<div className="fade-in">
+        <div style={{fontSize:24,fontWeight:700,color:"#fff",marginBottom:20}}>Pipeline</div>
+        <div style={{display:"flex",gap:10,overflow:"auto",paddingBottom:10}}>
+          {pipes.map(function(p){
+            var items=tenants.filter(function(t){return t.pipeline===p.k});
+            return <div key={p.k} style={{flex:1,minWidth:160}}>
+              <div style={{padding:"10px 12px",borderRadius:"12px 12px 0 0",background:p.c+"12",borderBottom:"2px solid "+p.c,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <span style={{fontWeight:700,fontSize:13,color:p.c}}>{p.e} {p.l}</span>
+                <span style={{fontSize:12,fontWeight:700,color:p.c,background:p.c+"15",padding:"2px 8px",borderRadius:8}}>{items.length}</span>
+              </div>
+              <div style={{minHeight:200,background:"#0c0c0e",borderRadius:"0 0 12px 12px",padding:6,border:"1px solid #1a1a1f",borderTop:"none"}}>
+                {items.map(function(t){return <div key={t.id} className="bh" onClick={function(){setView("clients");setSelClient(t);setTimeout(function(){var f={c_nome:t.nome_empresa,c_slug:t.slug,c_portal:t.nome_portal||"",c_contato:t.contato_nome||"",c_email:t.contato_email||"",c_tel:t.contato_telefone||"",c_cidade:t.cidade||"",c_estado:t.estado||"",c_cnpj:t.cnpj||"",c_valor:t.valor_mensal||"",c_logo:t.logo_url||"",c_obs:t.observacoes||""};Object.keys(f).forEach(function(k){var el=document.getElementById(k);if(el)el.value=f[k]})},100)}} style={{padding:10,borderRadius:10,background:"#111114",marginBottom:4,cursor:"pointer",border:"1px solid #1a1a1f"}}>
+                  <div style={{fontWeight:600,fontSize:13,color:"#fff"}}>{t.nome_empresa}</div>
+                  <div style={{fontSize:11,color:"#555"}}>{t.contato_nome||"—"}</div>
+                  {t.valor_mensal>0&&<div style={{fontSize:12,fontWeight:600,color:GR,marginTop:4}}>{fmt(t.valor_mensal)}/m</div>}
+                  <select value={t.pipeline||"lead"} onClick={function(e){e.stopPropagation()}} onChange={async function(e){e.stopPropagation();await sb.from("tenants").update({pipeline:e.target.value}).eq("id",t.id);await loadAll();msg("Movido!")}} style={{width:"100%",marginTop:6,padding:"4px",borderRadius:6,fontSize:11,background:"#0c0c0e",color:"#888",border:"1px solid #222",cursor:"pointer"}}>
+                    {pipes.map(function(pp){return <option key={pp.k} value={pp.k}>{pp.e} {pp.l}</option>})}
+                  </select>
+                </div>})}
+              </div>
+            </div>
+          })}
+        </div>
+      </div>}
+
+      {/* ═══ PAYMENTS ═══ */}
+      {view==="payments"&&<div className="fade-in">
+        <div style={{fontSize:24,fontWeight:700,color:"#fff",marginBottom:20}}>Pagamentos</div>
+        <div style={{display:"flex",gap:10,marginBottom:16}}>
+          {[{l:"Total",v:fmt(pagtos.reduce(function(s,p){return s+p.valor},0)),c:B},{l:"Recebido",v:fmt(pagtos.filter(function(p){return p.status==="pago"}).reduce(function(s,p){return s+p.valor},0)),c:GR},{l:"Pendente",v:fmt(aReceber),c:W},{l:"Atrasado",v:fmt(pendentes.reduce(function(s,p){return s+p.valor},0)),c:R}].map(function(k,i){
+            return <div key={i} style={{flex:1,padding:16,borderRadius:12,background:"#0f0f12",border:"1px solid #1a1a1f",textAlign:"center"}}>
+              <div style={{fontSize:22,fontWeight:700,color:k.c}}>{k.v}</div>
+              <div style={{fontSize:11,color:"#555"}}>{k.l}</div>
+            </div>
+          })}
+        </div>
+        {pagtos.map(function(p){var t=tenants.find(function(x){return x.id===p.tenant_id});var cols={pago:GR,pendente:W,atrasado:R};var isLate=p.status==="pendente"&&p.vencimento&&p.vencimento<hoje;
+          return <div key={p.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 16px",borderRadius:10,background:"#0f0f12",border:"1px solid #1a1a1f",marginBottom:4}}>
+            <div>
+              <div style={{fontSize:14,fontWeight:600,color:"#fff"}}>{t?t.nome_empresa:"—"}</div>
+              <div style={{fontSize:12,color:"#555"}}>{p.metodo||"—"} · {p.vencimento?new Date(p.vencimento).toLocaleDateString("pt-BR"):"—"}{p.observacoes?" · "+p.observacoes:""}</div>
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <div style={{fontSize:18,fontWeight:700,color:isLate?R:cols[p.status]||"#555"}}>{fmt(p.valor)}</div>
+              {p.status!=="pago"&&<button className="bh" onClick={async function(){await sb.from("pagamentos").update({status:"pago",pago_em:new Date().toISOString().split("T")[0]}).eq("id",p.id);await loadAll();msg("✅ Pago!")}} style={{padding:"6px 14px",borderRadius:8,background:GR+"15",color:GR,border:"none",fontSize:13,fontWeight:600}}>✅ Pago</button>}
+              <span style={{fontSize:11,padding:"4px 10px",borderRadius:8,background:(isLate?R:cols[p.status]||"#555")+"15",color:isLate?R:cols[p.status]||"#555",fontWeight:600}}>{isLate?"ATRASADO":p.status}{p.pago_em?" · "+new Date(p.pago_em).toLocaleDateString("pt-BR"):""}</span>
+            </div>
+          </div>
+        })}
+      </div>}
+
+      {/* ═══ PLANS ═══ */}
+      {view==="plans"&&<div className="fade-in">
+        <div style={{fontSize:24,fontWeight:700,color:"#fff",marginBottom:20}}>Planos</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:16}}>
+          {planos.map(function(pl){
+            var cliCount=subs.filter(function(s){return s.plano_id===pl.id&&s.status==="ativo"}).length;
+            return <div key={pl.id} style={{padding:28,borderRadius:16,background:pl.destaque?"linear-gradient(135deg,#12101a,#0f0f12)":"#0f0f12",border:pl.destaque?"2px solid "+P+"40":"1px solid #1a1a1f",textAlign:"center",position:"relative"}}>
+              {pl.destaque&&<div style={{position:"absolute",top:-10,left:"50%",transform:"translateX(-50%)",fontSize:11,fontWeight:700,padding:"3px 14px",borderRadius:12,background:G,color:"#0a0a09"}}>⭐ POPULAR</div>}
+              <div style={{fontSize:22,fontWeight:700,color:"#fff",marginTop:pl.destaque?8:0}}>{pl.nome}</div>
+              <div style={{fontSize:13,color:"#555",marginTop:6,minHeight:36}}>{pl.descricao||""}</div>
+              <div style={{fontSize:40,fontWeight:700,color:GR,margin:"16px 0"}}>{fmt(pl.valor_mensal)}<span style={{fontSize:14,color:"#555",fontWeight:400}}>/mês</span></div>
+              <div style={{fontSize:12,color:"#555",marginBottom:12}}>{pl.max_empreendimentos===-1?"∞":pl.max_empreendimentos} empreend. · {pl.max_corretores===-1?"∞":pl.max_corretores} corretores</div>
+              {pl.recursos&&<div style={{textAlign:"left",marginBottom:16}}>{(pl.recursos||[]).map(function(r,i){return <div key={i} style={{fontSize:13,color:"#aaa",padding:"4px 0"}}>✓ {r}</div>})}</div>}
+              <div style={{fontSize:13,color:B,fontWeight:600}}>{cliCount} cliente{cliCount!==1?"s":""}</div>
+            </div>
+          })}
+        </div>
+      </div>}
+
+      {/* ═══ OVERDUE ═══ */}
+      {view==="overdue"&&<div className="fade-in">
+        <div style={{fontSize:24,fontWeight:700,color:"#fff",marginBottom:20}}>⚠️ Inadimplentes</div>
+        {pendentes.length===0?<div style={{padding:40,textAlign:"center",color:GR,fontSize:16}}>✅ Nenhum pagamento atrasado!</div>:
+        pendentes.map(function(p){var t=tenants.find(function(x){return x.id===p.tenant_id});var dias=Math.floor((Date.now()-new Date(p.vencimento).getTime())/86400000);
+          return <div key={p.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px",borderRadius:12,background:"#0f0f12",border:"1px solid rgba(213,91,91,0.15)",marginBottom:6}}>
+            <div>
+              <div style={{fontSize:15,fontWeight:700,color:"#fff"}}>{t?t.nome_empresa:"—"}</div>
+              <div style={{fontSize:12,color:R}}>Vencido há {dias} dia{dias!==1?"s":""} — {new Date(p.vencimento).toLocaleDateString("pt-BR")}</div>
+              <div style={{fontSize:12,color:"#555"}}>{p.observacoes||""}</div>
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <div style={{fontSize:22,fontWeight:700,color:R}}>{fmt(p.valor)}</div>
+              <button className="bh" onClick={async function(){await sb.from("pagamentos").update({status:"pago",pago_em:new Date().toISOString().split("T")[0]}).eq("id",p.id);await loadAll();msg("✅ Pago!")}} style={{padding:"8px 16px",borderRadius:8,background:GR,color:"#fff",border:"none",fontSize:13,fontWeight:600}}>✅ Recebido</button>
+            </div>
+          </div>
+        })}
+      </div>}
+
+    </div>
+
+    {/* Toast */}
+    {toast&&<div style={{position:"fixed",bottom:24,right:24,padding:"12px 24px",borderRadius:12,background:"#1a1a20",color:"#fff",fontSize:14,border:"1px solid #333",zIndex:999}}>{toast}</div>}
+  </div>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

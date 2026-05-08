@@ -116,6 +116,10 @@ body.light [style*="rgba(139, 111, 191, 0.0"]{background:rgba(139,111,191,0.06)!
 <script>if(window.pdfjsLib)window.pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";</script>
 </head>
 <body>
+<script>
+  var tp=sessionStorage.getItem('tenant_path');
+  if(tp){sessionStorage.removeItem('tenant_path');history.replaceState(null,'',tp)}
+</script>
 <div id="root"></div>
 <script type="text/babel" data-type="module">
 var defined = "defined";
