@@ -456,6 +456,7 @@ function App(){
   var _dtab = useState("table"); var dtab = _dtab[0]; var setDtab = _dtab[1];
   var _adm = useState(false); var adm = _adm[0]; var setAdm = _adm[1];
   var _mdl = useState(null); var mdl = _mdl[0]; var setMdl = _mdl[1];
+  useEffect(function(){window._modalOpen=!!mdl},[mdl]);
   var _toast = useState(null); var toast = _toast[0]; var setToast = _toast[1];
   var _filter = useState("all"); var filter = _filter[0]; var setFilter = _filter[1];
   var _search = useState(""); var search = _search[0]; var setSearch = _search[1];
@@ -490,7 +491,7 @@ function App(){
   // Poll WhatsApp unread count
   useEffect(function(){
     if(!adm)return;
-    var check=async function(){try{var r=await WA.getAllUnread();setWaUnreadTotal(r)}catch(e){}};
+    var check=async function(){if(window._modalOpen)return;try{var r=await WA.getAllUnread();setWaUnreadTotal(r)}catch(e){}};
     check();var iv=setInterval(check,10000);return function(){clearInterval(iv)};
   },[adm]);
 
@@ -525,6 +526,7 @@ function App(){
   useEffect(function(){
     if(!window._pollData) window._pollData={taskCount:-1,msgId:-1,ready:false};
     var check=async function(){
+      if(window._modalOpen)return;
       try{
         var uid=currentUser?currentUser.id:null;
         var bid=broker?broker.id:null;
