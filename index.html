@@ -438,7 +438,8 @@ function App(){
   var _tenant = useState(null); var tenant = _tenant[0]; var setTenant = _tenant[1];
   var slug = window.location.pathname.replace(/^\//,"").replace(/\/$/,"").split("/")[0] || "mk";
   var tenantName = tenant ? tenant.nome_empresa : "";
-  var portalTitle = tenant ? "Portal " + tenantName.split(" ")[0] : "Portal do Corretor";
+  var portalDisplayName = tenant ? (tenant.nome_portal || tenant.nome_empresa.split(" ")[0]) : "";
+  var portalTitle = tenant ? "Portal " + portalDisplayName : "Portal do Corretor";
 
   var _rdy = useState(false); var rdy = _rdy[0]; var setRdy = _rdy[1];
   var _buildings = useState([]); var buildings = _buildings[0]; var setBuildings = _buildings[1];
@@ -576,7 +577,7 @@ function App(){
       // Load tenant first
       var tr=await sb.from("tenants").select("*").eq("slug",slug).eq("ativo",true).single();
       if(!tr.data){tr=await sb.from("tenants").select("*").eq("ativo",true).order("criado_em").limit(1).single()}
-      if(tr.data){setTenant(tr.data);document.title="Portal "+tr.data.nome_empresa.split(" ")[0]}
+      if(tr.data){setTenant(tr.data);document.title="Portal "+(tr.data.nome_portal||tr.data.nome_empresa.split(" ")[0])}
       var results = await Promise.all([DB.loadConfig(),DB.loadBuildings(),DB.loadAllUnits(),DB.loadPhotos(),DB.loadPlants(),DB.loadDocuments(),DB.loadNotices(),DB.loadBrokers(),DB.loadSales(),DB.loadAdminUsers(),DB.loadTasks()]);
       setCfg(results[0]);setBuildings(results[1]);setAllUnits(results[2]);setAllPhotos(results[3]);setAllPlants(results[4]);setAllDocs(results[5]);setAllNotices(results[6]);setBrokers(results[7]);setSales(results[8]);setAdminUsers(results[9]);setTasks(results[10]);
     } catch(e){ console.log("Load error:", e); }
@@ -2230,7 +2231,7 @@ function App(){
     var _tenants=useState([]);var tenants2=_tenants[0];var setTenants2=_tenants[1];
     var _editT=useState(null);var editT=_editT[0];var setEditT=_editT[1];
     var _newT=useState(false);var newT=_newT[0];var setNewT=_newT[1];
-    var _tForm=useState({slug:"",nome_empresa:"",logo_url:"",cor_primaria:"#C8A45C",plano:"trial",max_empreendimentos:10,max_corretores:50,ativo:true,expira_em:""});var tForm=_tForm[0];var setTF=_tForm[1];
+    var _tForm=useState({slug:"",nome_empresa:"",logo_url:"",cor_primaria:"#C8A45C",plano:"trial",max_empreendimentos:10,max_corretores:50,ativo:true,expira_em:"",nome_portal:""});var tForm=_tForm[0];var setTF=_tForm[1];
 
     var loadTenants=async function(){var r=await sb.from("tenants").select("*").order("criado_em",{ascending:false});setTenants2(r.data||[])};
     useEffect(function(){loadTenants()},[]);
@@ -2239,36 +2240,38 @@ function App(){
       var nomeEl=document.getElementById("tenant_nome");
       var slugEl=document.getElementById("tenant_slug");
       var logoEl=document.getElementById("tenant_logo");
+      var nomePortalEl=document.getElementById("tenant_nome_portal");
       var nome=nomeEl?nomeEl.value:"";
       var slugVal=slugEl?slugEl.value:"";
       var logoVal=logoEl?logoEl.value:"";
+      var nomePortal=nomePortalEl?nomePortalEl.value:"";
       if(!slugVal||!nome){msg("Preencha slug e nome");return}
       var clean=slugVal.toLowerCase().replace(/[^a-z0-9\-]/g,"-").replace(/--+/g,"-");
       try{
         if(editT){
-          await sb.from("tenants").update({slug:clean,nome_empresa:nome,logo_url:logoVal||null,cor_primaria:tForm.cor_primaria,plano:tForm.plano,max_empreendimentos:+tForm.max_empreendimentos||10,max_corretores:+tForm.max_corretores||50,ativo:tForm.ativo,expira_em:tForm.expira_em||null}).eq("id",editT);
+          await sb.from("tenants").update({slug:clean,nome_empresa:nome,nome_portal:nomePortal||null,logo_url:logoVal||null,cor_primaria:tForm.cor_primaria,plano:tForm.plano,max_empreendimentos:+tForm.max_empreendimentos||10,max_corretores:+tForm.max_corretores||50,ativo:tForm.ativo,expira_em:tForm.expira_em||null}).eq("id",editT);
           msg("✅ Assinante atualizado!");
         }else{
-          await sb.from("tenants").insert({id:clean,slug:clean,nome_empresa:nome,logo_url:logoVal||null,cor_primaria:tForm.cor_primaria,plano:tForm.plano,max_empreendimentos:+tForm.max_empreendimentos||10,max_corretores:+tForm.max_corretores||50,ativo:tForm.ativo!==false,expira_em:tForm.expira_em||null});
+          await sb.from("tenants").insert({id:clean,slug:clean,nome_empresa:nome,nome_portal:nomePortal||null,logo_url:logoVal||null,cor_primaria:tForm.cor_primaria,plano:tForm.plano,max_empreendimentos:+tForm.max_empreendimentos||10,max_corretores:+tForm.max_corretores||50,ativo:tForm.ativo!==false,expira_em:tForm.expira_em||null});
           msg("✅ Assinante criado!");
         }
-        setEditT(null);setNewT(false);setTF({slug:"",nome_empresa:"",logo_url:"",cor_primaria:"#C8A45C",plano:"trial",max_empreendimentos:10,max_corretores:50,ativo:true,expira_em:""});
+        setEditT(null);setNewT(false);setTF({slug:"",nome_empresa:"",logo_url:"",cor_primaria:"#C8A45C",plano:"trial",max_empreendimentos:10,max_corretores:50,ativo:true,expira_em:"",nome_portal:""});
         await loadTenants();
         // Always refresh current tenant display
         var tr2=await sb.from("tenants").select("*").eq("slug",tenant?tenant.slug:slug).single();
         if(!tr2.data)tr2=await sb.from("tenants").select("*").eq("id",editT||clean).single();
-        if(tr2.data){setTenant(tr2.data);document.title="Portal "+tr2.data.nome_empresa.split(" ")[0]}
+        if(tr2.data){setTenant(tr2.data);document.title="Portal "+(tr2.data.nome_portal||tr2.data.nome_empresa.split(" ")[0])}
       }catch(e){msg("❌ "+e.message)}
     };
 
     var startEdit=function(t2){
       setEditT(t2.id);setNewT(true);
-      setTF({slug:t2.slug,nome_empresa:t2.nome_empresa,logo_url:t2.logo_url||"",cor_primaria:t2.cor_primaria||"#C8A45C",plano:t2.plano||"trial",max_empreendimentos:t2.max_empreendimentos||10,max_corretores:t2.max_corretores||50,ativo:t2.ativo!==false,expira_em:t2.expira_em?t2.expira_em.substring(0,10):""});
+      setTF({slug:t2.slug,nome_empresa:t2.nome_empresa,logo_url:t2.logo_url||"",cor_primaria:t2.cor_primaria||"#C8A45C",plano:t2.plano||"trial",max_empreendimentos:t2.max_empreendimentos||10,max_corretores:t2.max_corretores||50,ativo:t2.ativo!==false,expira_em:t2.expira_em?t2.expira_em.substring(0,10):"",nome_portal:t2.nome_portal||""});
       setTimeout(function(){
         var n=document.getElementById("tenant_nome");if(n)n.value=t2.nome_empresa||"";
         var s=document.getElementById("tenant_slug");if(s)s.value=t2.slug||"";
         var l=document.getElementById("tenant_logo");if(l)l.value=t2.logo_url||"";
-        var p=document.getElementById("tenant_preview_name");if(p)p.textContent=(t2.nome_empresa||"").split(" ")[0]||"...";
+        var p=document.getElementById("tenant_preview_name");if(p)p.textContent=t2.nome_portal||t2.nome_empresa&&t2.nome_empresa.split(" ")[0]||"...";var np=document.getElementById("tenant_nome_portal");if(np)np.value=t2.nome_portal||"";
         var ps=document.getElementById("tenant_preview_slug");if(ps)ps.textContent=t2.slug||"...";
       },100);
     };
@@ -2282,14 +2285,14 @@ function App(){
       <div style={{padding:12,borderRadius:10,background:"rgba(76,175,125,0.06)",border:"1px solid rgba(76,175,125,0.12)",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div>
           <div style={{fontSize:13,fontWeight:600,color:"#4CAF7D"}}>✅ Tenant ativo nesta sessão</div>
-          <div style={{fontSize:18,fontWeight:700,color:textColor,marginTop:2}}>Portal <span style={{color:G}}>{tenant?tenant.nome_empresa.split(" ")[0]:slug}</span></div>
+          <div style={{fontSize:18,fontWeight:700,color:textColor,marginTop:2}}>Portal <span style={{color:G}}>{portalDisplayName||slug}</span></div>
           <div style={{fontSize:12,color:subColor}}>portal-corretor.com/<b>{slug}</b></div>
         </div>
         {tenant&&<div>{planoBadge(tenant.plano)}</div>}
       </div>
 
       {/* New tenant button */}
-      <button className="bh" onClick={function(){setNewT(!newT);setEditT(null);setTF({slug:"",nome_empresa:"",logo_url:"",cor_primaria:"#C8A45C",plano:"trial",max_empreendimentos:10,max_corretores:50,ativo:true,expira_em:""})}} style={{width:"100%",padding:12,borderRadius:10,background:"#5B8FD408",color:"#5B8FD4",border:"1px dashed #5B8FD425",cursor:"pointer",fontSize:14,fontWeight:600,marginBottom:14}}>+ Novo Assinante</button>
+      <button className="bh" onClick={function(){setNewT(!newT);setEditT(null);setTF({slug:"",nome_empresa:"",logo_url:"",cor_primaria:"#C8A45C",plano:"trial",max_empreendimentos:10,max_corretores:50,ativo:true,expira_em:"",nome_portal:""})}} style={{width:"100%",padding:12,borderRadius:10,background:"#5B8FD408",color:"#5B8FD4",border:"1px dashed #5B8FD425",cursor:"pointer",fontSize:14,fontWeight:600,marginBottom:14}}>+ Novo Assinante</button>
 
       {/* Form */}
       {newT&&<div style={{padding:14,borderRadius:12,background:cardBg,border:"1px solid rgba(91,143,212,0.15)",marginBottom:14}}>
@@ -2297,13 +2300,19 @@ function App(){
         <div style={{display:"flex",gap:8,marginBottom:6}}>
           <div style={{flex:1}}>
             <div style={{fontSize:11,color:subColor,marginBottom:3}}>Nome da empresa</div>
-            <textarea id="tenant_nome" rows="1" onKeyDown={function(e){e.stopPropagation();if(e.key==="Enter")e.preventDefault()}} style={{width:"100%",padding:"13px 16px",background:"#1a1a19",border:"1px solid rgba(255,255,255,0.06)",borderRadius:10,color:"#F0EBE3",fontSize:13,fontFamily:"inherit",outline:"none",marginBottom:10,resize:"none",overflow:"hidden"}} placeholder="Ex: Construtora ABC"></textarea>
+            <textarea id="tenant_nome" rows="1" onKeyDown={function(e){e.stopPropagation();if(e.key==="Enter")e.preventDefault()}} style={{width:"100%",padding:"13px 16px",background:"#1a1a19",border:"1px solid rgba(255,255,255,0.06)",borderRadius:10,color:"#F0EBE3",fontSize:13,fontFamily:"inherit",outline:"none",marginBottom:10,resize:"none",overflow:"hidden"}} placeholder="Ex: MK Realty & D&SS Incorporação"></textarea>
           </div>
+          <div style={{flex:1}}>
+            <div style={{fontSize:11,color:subColor,marginBottom:3}}>Nome no título do Portal</div>
+            <input id="tenant_nome_portal" onKeyDown={function(e){e.stopPropagation()}} style={{width:"100%",padding:"13px 16px",background:"#1a1a19",border:"1px solid rgba(200,164,92,0.15)",borderRadius:10,color:"#E8A94E",fontSize:15,fontWeight:700,fontFamily:"inherit",outline:"none",marginBottom:10}} placeholder="Ex: MK"/>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:8,marginBottom:6}}>
           <div style={{flex:1}}>
             <div style={{fontSize:11,color:subColor,marginBottom:3}}>Slug (URL)</div>
             <div style={{display:"flex",alignItems:"center",gap:0}}>
               <span style={{fontSize:11,color:subColor,whiteSpace:"nowrap",padding:"10px 0 10px 12px",background:isDark?"#1a1a19":"#EFEBE4",borderRadius:"10px 0 0 10px",border:"1px solid "+borderColor,borderRight:"none"}}>/</span>
-              <input id="tenant_slug" style={{flex:1,padding:"13px 16px",background:"#1a1a19",border:"1px solid rgba(255,255,255,0.06)",borderRadius:"0 10px 10px 0",color:"#F0EBE3",fontSize:13,fontFamily:"inherit",outline:"none"}} placeholder="construtora-abc"/>
+              <input id="tenant_slug" onKeyDown={function(e){e.stopPropagation()}} style={{flex:1,padding:"13px 16px",background:"#1a1a19",border:"1px solid rgba(255,255,255,0.06)",borderRadius:"0 10px 10px 0",color:"#F0EBE3",fontSize:13,fontFamily:"inherit",outline:"none"}} placeholder="construtora-abc"/>
             </div>
           </div>
         </div>
@@ -2311,7 +2320,7 @@ function App(){
         {/* Portal name preview */}
         <div style={{padding:12,borderRadius:10,background:"linear-gradient(135deg,#0a0a09,#15130d)",marginBottom:10,textAlign:"center",border:"1px solid rgba(200,164,92,0.15)"}}>
           <div style={{fontSize:11,color:subColor,marginBottom:4}}>Aparece na tela inicial como:</div>
-          <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:28,fontWeight:500,color:textColor}}>Portal <span id="tenant_preview_name" style={{color:tForm.cor_primaria||G,fontWeight:600}}>{tForm.nome_empresa?tForm.nome_empresa.split(" ")[0]:"..."}</span></div>
+          <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:28,fontWeight:500,color:textColor}}>Portal <span id="tenant_preview_name" style={{color:tForm.cor_primaria||G,fontWeight:600}}>{tForm.nome_portal||tForm.nome_empresa&&tForm.nome_empresa.split(" ")[0]||"..."}</span></div>
           <div style={{fontSize:11,color:subColor,marginTop:4}}>portal-corretor.com/<b id="tenant_preview_slug">{tForm.slug||"..."}</b></div>
         </div>
         <div style={{display:"flex",gap:8,marginBottom:6}}>
@@ -4210,7 +4219,7 @@ function App(){
         <div style={{position:"absolute",top:"-50%",left:"-30%",width:"160%",height:"200%",background:"radial-gradient(ellipse at 50% 40%,rgba(200,164,92,0.04) 0%,transparent 50%)",pointerEvents:"none"}}/>
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:"1px",background:"linear-gradient(90deg,transparent,rgba(200,164,92,0.15),transparent)"}}/>
         <div className="au" style={{display:"inline-flex",alignItems:"center",gap:8,background:"rgba(200,164,92,0.06)",border:"1px solid rgba(200,164,92,0.12)",padding:"8px 20px",borderRadius:50,fontSize:12,fontWeight:600,letterSpacing:3,textTransform:"uppercase",color:G,marginBottom:20,position:"relative"}}><span style={{width:5,height:5,background:"#4CAF7D",borderRadius:"50%",animation:"pulse 2s infinite"}}/>{lang==="en"?"Exclusive Portal":lang==="es"?"Portal Exclusivo":"Portal Exclusivo"}</div>
-        <h1 className="au" style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:"clamp(36px, 7vw, 64px)",fontWeight:500,lineHeight:1.05,marginBottom:12,position:"relative",letterSpacing:"-0.02em",animationDelay:"80ms",color:textColor}}>Portal <span style={{color:G,fontWeight:600}}>{tenantName?tenantName.split(" ")[0]:"do Corretor"}</span></h1>
+        <h1 className="au" style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:"clamp(36px, 7vw, 64px)",fontWeight:500,lineHeight:1.05,marginBottom:12,position:"relative",letterSpacing:"-0.02em",animationDelay:"80ms",color:textColor}}>Portal <span style={{color:G,fontWeight:600}}>{portalDisplayName||"do Corretor"}</span></h1>
         <p className="au" style={{fontSize:"clamp(12px, 1.6vw, 17px)",color:subColor,maxWidth:480,margin:"0 auto",lineHeight:1.7,position:"relative",fontWeight:300,animationDelay:"160ms"}}>{lang==="en"?"Properties, CUB/SC-adjusted tables, simulator and exclusive materials.":lang==="es"?"Emprendimientos, tablas con corrección CUB/SC, simulador y materiales exclusivos.":"Empreendimentos, tabelas com correção CUB/SC, simulador e materiais exclusivos."}</p>
         <div className="au" style={{marginTop:18,display:"flex",justifyContent:"center",gap:8,position:"relative",animationDelay:"240ms"}}>
           <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap",justifyContent:"center"}}>
