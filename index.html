@@ -503,6 +503,11 @@ function App(){
 
   var msg = function(m){setToast(m);setTimeout(function(){setToast(null)},2500)};
 
+  // Audit log
+  var logAction=async function(acao,tabela,registroId,dadosAntes,dadosDepois){
+    try{await sb.from("audit_log").insert({usuario:currentUser?currentUser.nome:"visitante",acao:acao,tabela:tabela||null,registro_id:registroId||null,dados_antes:dadosAntes||null,dados_depois:dadosDepois||null})}catch(e){}
+  };
+
   // Notification helper
   var addNotif=function(text,type,action){
     var id=Date.now();
@@ -605,7 +610,7 @@ function App(){
   var vis = buildings.filter(function(b){return adm||b.active});
 
   // === NAVIGATION ===
-  var go = function(id){setSel(id);setVw("detail");var defaultTab=(cfg.restrict_tables==="true"&&!adm&&!broker)?"photos":"table";setDtab(defaultTab);setFilter("all");setSearch("");setPhotoUnit("all");setCompare([]);DB.trackEvent("view_building",{building_id:id})};
+  var go = function(id){setSel(id);setVw("detail");var defaultTab=(cfg.restrict_tables==="true"&&!adm&&!broker)?"photos":"table";setDtab(defaultTab);setFilter("all");setSearch("");setPhotoUnit("all");setCompare([]);DB.trackEvent("view_building",{building_id:id});logAction("visualizou_empreendimento","buildings",id)};
 
   useEffect(function(){
     document.body.style.background=bgColor;document.body.style.color=textColor;
@@ -876,7 +881,7 @@ function App(){
                   <td style={tdS}><div style={{display:"inline-flex",alignItems:"center",gap:5,fontSize:13,fontWeight:600,color:sC[u.status],padding:"4px 10px",background:sC[u.status]+"0a",borderRadius:6}}><span style={{width:6,height:6,borderRadius:"50%",background:sC[u.status]}}/>{sl[u.status]}</div></td>
                   <td style={Object.assign({},tdS,{padding:"8px 6px"})}>
                     <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
-                      {u.status==="available" && <button className="bh" onClick={function(e){e.stopPropagation();setSimUnit({u:u,b:bld});DB.trackEvent("simulator",{building:bld.name,unit:u.name})}} style={{padding:"6px 10px",borderRadius:8,fontSize:12,fontWeight:700,background:bld.color+"18",color:bld.color,border:"1px solid "+bld.color+"30",cursor:"pointer",display:"inline-flex",alignItems:"center",gap:3,whiteSpace:"nowrap"}}>🏦 Simular</button>}
+                      {u.status==="available" && <button className="bh" onClick={function(e){e.stopPropagation();setSimUnit({u:u,b:bld});DB.trackEvent("simulator",{building:bld.name,unit:u.name});logAction("simulacao","units",u.id,null,{empreendimento:bld.name,unidade:u.name})}} style={{padding:"6px 10px",borderRadius:8,fontSize:12,fontWeight:700,background:bld.color+"18",color:bld.color,border:"1px solid "+bld.color+"30",cursor:"pointer",display:"inline-flex",alignItems:"center",gap:3,whiteSpace:"nowrap"}}>🏦 Simular</button>}
                       {u.status==="available" && <button className="bh" onClick={function(e){e.stopPropagation();shareUnit(u,bld)}} style={{padding:"6px 8px",borderRadius:8,fontSize:12,fontWeight:600,background:"#25D36612",color:"#25D366",border:"1px solid #25D36625",cursor:"pointer",display:"inline-flex",alignItems:"center"}}><WaIcon size={12}/></button>}
                       {adm && <button className="bh" onClick={function(){setMdl({t:"editUnit",bid:bld.id,u:Object.assign({},u)})}} style={{padding:"6px 8px",borderRadius:8,fontSize:12,background:bld.color+"12",color:bld.color,border:"1px solid "+bld.color+"25",cursor:"pointer"}}>✏️</button>}
                       {adm && <button className="bh" onClick={async function(){await DB.deleteUnit(u.id);await refreshUnits();msg("Removida")}} style={{padding:"6px 8px",borderRadius:8,fontSize:12,background:"#D45B5B12",color:"#D45B5B",border:"1px solid #D45B5B25",cursor:"pointer"}}>🗑️</button>}
@@ -1297,6 +1302,7 @@ function App(){
           {can("manage_sales") && <button className="bh ch" onClick={function(){setMdl({t:"adminSales"})}} style={{padding:16,borderRadius:14,fontSize:15,fontWeight:500,background:cardBg,color:"#E8A94E",border:"1px solid rgba(232,169,78,0.1)",cursor:"pointer",textAlign:"center"}}>📋 Vendas</button>}
           <button className="bh ch" onClick={function(){setMdl({t:"aiAgent"})}} style={{padding:16,borderRadius:14,fontSize:15,fontWeight:500,background:"linear-gradient(135deg,#111110,#15131d)",color:"#8B6FBF",border:"1px solid rgba(139,111,191,0.15)",cursor:"pointer",textAlign:"center"}}>🤖 Agente IA</button>
           <button className="bh ch" onClick={function(){setMdl({t:"waInbox"})}} style={{padding:16,borderRadius:14,fontSize:15,fontWeight:500,background:"linear-gradient(135deg,#111110,#0d1a13)",color:"#25D366",border:"1px solid rgba(37,211,102,0.15)",cursor:"pointer",textAlign:"center"}}>💼 CRM</button>
+          {currentUser&&currentUser.role==="super_admin"&&<button className="bh ch" onClick={function(){setMdl({t:"auditLog"})}} style={{padding:16,borderRadius:14,fontSize:15,fontWeight:500,background:"linear-gradient(135deg,#111110,#1a1510)",color:"#E8A94E",border:"1px solid rgba(232,169,78,0.15)",cursor:"pointer",textAlign:"center"}}>📋 Logs</button>}
           <button className="bh ch" onClick={function(){setMdl({t:"taskManager"})}} style={{padding:16,borderRadius:14,fontSize:15,fontWeight:500,background:cardBg,color:"#E8A94E",border:"1px solid rgba(232,169,78,0.1)",cursor:"pointer",textAlign:"center",position:"relative"}}>📋 Tarefas {tasks.filter(function(t2){return t2.status==="pending"}).length>0?" · "+tasks.filter(function(t2){return t2.status==="pending"}).length:""}</button>
           <button className="bh ch" onClick={function(){setMiniChat({channel:"admin_team",title:"Chat Equipe"})}} style={{padding:16,borderRadius:14,fontSize:15,fontWeight:500,background:cardBg,color:"#4CAF7D",border:"1px solid rgba(76,175,125,0.1)",cursor:"pointer",textAlign:"center"}}>💬 Chat Equipe</button>
         </div>
@@ -1422,6 +1428,7 @@ function App(){
     if(mdl.t==="manageUsers") return <ManageUsersM/>;
     if(mdl.t==="aiAgent") return <AIAgentM/>;
     if(mdl.t==="waInbox") return <WAInboxM/>;
+    if(mdl.t==="auditLog") return <AuditLogM/>;
     if(mdl.t==="taskManager") return <TaskManagerM/>;
     if(mdl.t==="adminChat") return <AdminChatM/>;
     if(mdl.t==="brokerChat") return <BrokerChatM/>;
@@ -1442,7 +1449,7 @@ function App(){
       }
       // Check admin users
       var admin=adminUsers.find(function(u){return u.email&&u.email.toLowerCase()===email&&u.senha===p&&u.ativo!==false});
-      if(admin){setCurrentUser(admin);setAdm(true);setBroker(null);sb.from("admin_users").update({last_login:new Date().toLocaleString("pt-BR")}).eq("id",admin.id);
+      if(admin){setCurrentUser(admin);setAdm(true);setBroker(null);sb.from("admin_users").update({last_login:new Date().toLocaleString("pt-BR")}).eq("id",admin.id);logAction("login_admin","admin_users",String(admin.id),null,{nome:admin.nome,role:admin.role});
         // Reset polling state
         window._pollData={taskCount:-1,msgId:-1,ready:false};
         // Query tasks directly
@@ -1454,7 +1461,7 @@ function App(){
         return}
       // Check brokers
       var bk=brokers.find(function(b){return b.email&&b.email.toLowerCase()===email&&b.senha===p});
-      if(bk){setBroker(bk);setAdm(false);setCurrentUser(null);setMdl({t:"brokerDash"});msg("Bem-vindo, "+bk.nome+"!");return}
+      if(bk){setBroker(bk);setAdm(false);setCurrentUser(null);setMdl({t:"brokerDash"});logAction("login_corretor","brokers",String(bk.id),null,{nome:bk.nome});msg("Bem-vindo, "+bk.nome+"!");return}
       // Check if maybe admin_users table doesn't exist yet
       if(adminUsers.length===0&&p===PIN){
         setCurrentUser({id:0,nome:"Admin",email:email,role:"super_admin",permissions:{}});
@@ -2156,6 +2163,129 @@ function App(){
   }
 
   // ═══ AI AGENT ═══
+  // ═══ AUDIT LOG MODAL ═══
+  function AuditLogM(){
+    var _logs=useState([]);var logs=_logs[0];var setLogs=_logs[1];
+    var _logFilter=useState("all");var logFilter=_logFilter[0];var setLogFilter=_logFilter[1];
+    var _logSearch=useState("");var logSearch=_logSearch[0];var setLogSearch=_logSearch[1];
+    var _logLimit=useState(100);var logLimit=_logLimit[0];var setLogLimit=_logLimit[1];
+    var _loading2=useState(true);var loading2=_loading2[0];var setLoading2=_loading2[1];
+
+    var loadLogs=async function(){
+      setLoading2(true);
+      try{
+        var q=sb.from("audit_log").select("*").order("criado_em",{ascending:false}).limit(logLimit);
+        if(logFilter!=="all")q=q.eq("acao",logFilter);
+        var r=await q;setLogs(r.data||[]);
+      }catch(e){}
+      setLoading2(false);
+    };
+    useEffect(function(){loadLogs()},[logFilter,logLimit]);
+
+    var acaoIcon=function(a){
+      if(a&&a.indexOf("login")!==-1)return "🔑";
+      if(a&&a.indexOf("logout")!==-1)return "🚪";
+      if(a&&a.indexOf("simul")!==-1)return "🏦";
+      if(a&&a.indexOf("mensag")!==-1)return "💬";
+      if(a&&a.indexOf("lead")!==-1)return "📞";
+      if(a&&a.indexOf("etapa")!==-1)return "📊";
+      if(a&&a.indexOf("promo")!==-1)return "🏷️";
+      if(a&&a.indexOf("proposta")!==-1)return "📄";
+      if(a&&a.indexOf("visita")!==-1)return "📅";
+      if(a&&a.indexOf("aviso")!==-1)return "📢";
+      if(a&&a.indexOf("contato")!==-1)return "📇";
+      if(a&&a.indexOf("foto")!==-1)return "📸";
+      if(a&&a.indexOf("config")!==-1)return "⚙️";
+      if(a&&a.indexOf("empreen")!==-1)return "🏢";
+      if(a&&a.indexOf("corretor")!==-1)return "👤";
+      if(a&&a.indexOf("export")!==-1)return "📤";
+      if(a&&a.indexOf("massa")!==-1)return "📤";
+      return "📋";
+    };
+    var acaoColor=function(a){
+      if(a&&a.indexOf("login")!==-1)return "#4CAF7D";
+      if(a&&a.indexOf("logout")!==-1)return "#D45B5B";
+      if(a&&a.indexOf("exclu")!==-1)return "#D45B5B";
+      if(a&&a.indexOf("mensag")!==-1)return "#25D366";
+      if(a&&a.indexOf("lead")!==-1)return "#5B8FD4";
+      return "#E8A94E";
+    };
+
+    // Unique actions for filter
+    var uniqueAcoes=[];logs.forEach(function(l){if(l.acao&&uniqueAcoes.indexOf(l.acao)===-1)uniqueAcoes.push(l.acao)});
+
+    var filteredLogs=logs.filter(function(l){
+      if(logSearch){var s=logSearch.toLowerCase();return(l.usuario||"").toLowerCase().indexOf(s)!==-1||(l.acao||"").toLowerCase().indexOf(s)!==-1||(l.tabela||"").toLowerCase().indexOf(s)!==-1}
+      return true;
+    });
+
+    // Stats
+    var hoje=new Date().toISOString().split("T")[0];
+    var logsHoje=logs.filter(function(l){return l.criado_em&&l.criado_em.split("T")[0]===hoje});
+    var usuarios={};logs.forEach(function(l){usuarios[l.usuario||"?"]=(usuarios[l.usuario||"?"]||0)+1});
+
+    return <div>
+      <div style={mT}>📋 Logs de Atividade</div>
+
+      {/* Stats */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:14}}>
+        <div style={{padding:12,borderRadius:10,background:"rgba(232,169,78,0.06)",textAlign:"center",border:"1px solid rgba(232,169,78,0.1)"}}>
+          <div style={{fontSize:22,fontWeight:700,color:"#E8A94E"}}>{logs.length}</div>
+          <div style={{fontSize:11,color:subColor}}>Total</div>
+        </div>
+        <div style={{padding:12,borderRadius:10,background:"rgba(76,175,125,0.06)",textAlign:"center",border:"1px solid rgba(76,175,125,0.1)"}}>
+          <div style={{fontSize:22,fontWeight:700,color:"#4CAF7D"}}>{logsHoje.length}</div>
+          <div style={{fontSize:11,color:subColor}}>Hoje</div>
+        </div>
+        <div style={{padding:12,borderRadius:10,background:"rgba(91,143,212,0.06)",textAlign:"center",border:"1px solid rgba(91,143,212,0.1)"}}>
+          <div style={{fontSize:22,fontWeight:700,color:"#5B8FD4"}}>{Object.keys(usuarios).length}</div>
+          <div style={{fontSize:11,color:subColor}}>Usuários</div>
+        </div>
+      </div>
+
+      {/* Per user breakdown */}
+      <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:10}}>
+        {Object.keys(usuarios).sort(function(a,b){return usuarios[b]-usuarios[a]}).map(function(u){
+          return <span key={u} className="bh" onClick={function(){setLogSearch(u)}} style={{padding:"3px 8px",borderRadius:6,fontSize:11,background:"rgba(200,164,92,0.06)",color:G,border:"1px solid rgba(200,164,92,0.1)",cursor:"pointer"}}>{u}: {usuarios[u]}</span>
+        })}
+      </div>
+
+      {/* Search + Filter */}
+      <div style={{display:"flex",gap:6,marginBottom:10}}>
+        <input style={{flex:1,padding:"8px 12px",borderRadius:10,border:"1px solid "+borderColor,background:isDark?"#1a1a19":"#EFEBE4",color:textColor,fontSize:13,outline:"none"}} value={logSearch} onChange={function(e){setLogSearch(e.target.value)}} placeholder="🔍 Buscar usuário ou ação..."/>
+        <select value={logFilter} onChange={function(e){setLogFilter(e.target.value)}} style={{padding:"6px 10px",borderRadius:8,fontSize:12,background:cardBg,color:textColor,border:"1px solid "+borderColor}}>
+          <option value="all">Todas as ações</option>
+          {uniqueAcoes.sort().map(function(a){return <option key={a} value={a}>{a}</option>})}
+        </select>
+        <select value={logLimit} onChange={function(e){setLogLimit(+e.target.value)}} style={{padding:"6px 10px",borderRadius:8,fontSize:12,background:cardBg,color:textColor,border:"1px solid "+borderColor}}>
+          <option value="50">50</option><option value="100">100</option><option value="250">250</option><option value="500">500</option>
+        </select>
+      </div>
+
+      {/* Log list */}
+      <div style={{maxHeight:"55vh",overflow:"auto"}}>
+        {loading2&&<div style={{padding:20,textAlign:"center",color:subColor}}>Carregando...</div>}
+        {!loading2&&filteredLogs.length===0&&<div style={{padding:20,textAlign:"center",color:subColor}}>Nenhum log encontrado</div>}
+        {filteredLogs.map(function(l){
+          return <div key={l.id} style={{display:"flex",gap:10,padding:"8px 10px",borderRadius:8,marginBottom:3,borderLeft:"3px solid "+acaoColor(l.acao),background:isDark?"#1a1a19":"#F8F5F0"}}>
+            <div style={{fontSize:16,flexShrink:0,marginTop:2}}>{acaoIcon(l.acao)}</div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{fontWeight:600,fontSize:13,color:textColor}}>{l.usuario||"?"}</div>
+                <div style={{fontSize:10,color:subColor}}>{l.criado_em?new Date(l.criado_em).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit"}):""}</div>
+              </div>
+              <div style={{fontSize:12,color:acaoColor(l.acao),fontWeight:500}}>{l.acao}</div>
+              {l.tabela&&<div style={{fontSize:11,color:subColor}}>{l.tabela}{l.registro_id?" · "+l.registro_id:""}</div>}
+              {l.dados_depois&&<div style={{fontSize:10,color:subColor,marginTop:2,maxHeight:40,overflow:"hidden"}}>{JSON.stringify(l.dados_depois).substring(0,120)}</div>}
+            </div>
+          </div>
+        })}
+      </div>
+
+      <button style={mC} onClick={function(){setMdl(null)}}>Fechar</button>
+    </div>
+  }
+
   function AIAgentM(){
     var _tab=useState("dash");var tab=_tab[0];var setTab=_tab[1];
     var _analytics=useState([]);var analytics=_analytics[0];var setAnalytics=_analytics[1];
@@ -3873,7 +4003,7 @@ function App(){
           {broker && <span className="bh" onClick={function(){setMdl({t:"brokerDash"})}} style={{flexShrink:0,padding:"7px 14px",borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",background:"rgba(91,143,212,0.08)",color:"#5B8FD4",border:"1px solid rgba(91,143,212,0.12)",display:"flex",alignItems:"center",gap:4}}>👤 {broker.nome.split(" ")[0]}</span>}
           {adm && currentUser && (function(){
             var myPendTasks=tasks.filter(function(t3){return t3.assigned_to===currentUser.id&&t3.status!=="done"}).length;
-            return <span className="bh" onClick={function(){if(myPendTasks>0){setMdl({t:"taskManager"})}else{setAdm(false);setCurrentUser(null);msg("Deslogado")}}} style={{flexShrink:0,padding:"7px 14px",borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",background:"rgba(200,164,92,0.08)",color:G,border:"1px solid rgba(200,164,92,0.12)",display:"flex",alignItems:"center",gap:4,position:"relative"}}>{currentUser.role==="super_admin"?"👑":currentUser.role==="atendente"?"📞":"🔐"} {currentUser.nome.split(" ")[0]} {myPendTasks>0&&<span style={{background:"#D45B5B",color:"#fff",fontSize:12,fontWeight:700,padding:"1px 5px",borderRadius:8,marginLeft:2}}>{myPendTasks}</span>} {myPendTasks===0&&<span onClick={function(e2){e2.stopPropagation();setAdm(false);setCurrentUser(null);msg("Deslogado")}} style={{color:subColor}}>· Sair</span>}</span>;
+            return <span className="bh" onClick={function(){if(myPendTasks>0){setMdl({t:"taskManager"})}else{logAction("logout");setAdm(false);setCurrentUser(null);msg("Deslogado")}}} style={{flexShrink:0,padding:"7px 14px",borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",background:"rgba(200,164,92,0.08)",color:G,border:"1px solid rgba(200,164,92,0.12)",display:"flex",alignItems:"center",gap:4,position:"relative"}}>{currentUser.role==="super_admin"?"👑":currentUser.role==="atendente"?"📞":"🔐"} {currentUser.nome.split(" ")[0]} {myPendTasks>0&&<span style={{background:"#D45B5B",color:"#fff",fontSize:12,fontWeight:700,padding:"1px 5px",borderRadius:8,marginLeft:2}}>{myPendTasks}</span>} {myPendTasks===0&&<span onClick={function(e2){e2.stopPropagation();logAction("logout");setAdm(false);setCurrentUser(null);msg("Deslogado")}} style={{color:subColor}}>· Sair</span>}</span>;
           })()}
         </div>
       </div>
