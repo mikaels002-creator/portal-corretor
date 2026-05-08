@@ -4225,18 +4225,59 @@ function App(){
           {vis.map(function(b){return <TabBtn key={b.id} active={vw==="detail"&&sel===b.id} onClick={function(){go(b.id)}}>{b.name.replace("Ed. ","").replace("Res. ","").replace("Imóveis de ","")}</TabBtn>})}
         </div>
         {/* Row 2: Admin tools (only when logged) */}
-        {adm&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:8,borderTop:"1px solid "+borderColor,paddingTop:6}}>
-          <div style={{display:"flex",gap:6,alignItems:"center"}}>
-            <TabBtn active={vw==="manage"} green onClick={function(){setVw("manage")}}>Gerenciar</TabBtn>
-            <span className="bh" onClick={function(){setMdl({t:"waInbox"})}} style={{padding:"8px 16px",borderRadius:10,fontSize:15,fontWeight:600,cursor:"pointer",background:"#25D366"+"12",color:"#25D366",border:"1px solid #25D36625",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:6,position:"relative"}}>💼 CRM{waUnreadTotal>0&&<span style={{background:"#D45B5B",color:"#fff",fontSize:11,fontWeight:700,padding:"2px 7px",borderRadius:10,animation:"pulse 2s infinite"}}>{waUnreadTotal}</span>}</span>
+        {adm&&(function(){
+          var allShortcuts=[
+            {k:"manage",l:"Gerenciar",i:"⚙️",c:"#4CAF7D",action:function(){setVw("manage")}},
+            {k:"crm",l:"CRM",i:"💼",c:"#25D366",action:function(){setMdl({t:"waInbox"})}},
+            {k:"aiAgent",l:"Agente IA",i:"🤖",c:"#8B6FBF",action:function(){setMdl({t:"aiAgent"})}},
+            {k:"auditLog",l:"Logs",i:"📋",c:"#E8A94E",action:function(){setMdl({t:"auditLog"})}},
+            {k:"tenants",l:"Assinantes",i:"🏢",c:"#5B8FD4",action:function(){setMdl({t:"tenants"})}},
+            {k:"taskManager",l:"Tarefas",i:"✅",c:"#C47070",action:function(){setMdl({t:"taskManager"})}},
+            {k:"config",l:"Configurações",i:"🛠️",c:"#9A9590",action:function(){setMdl({t:"config"})}},
+            {k:"backup",l:"Backup",i:"💾",c:"#5B8FD4",action:function(){exportBackup()}},
+            {k:"brokerList",l:"Equipe",i:"👥",c:"#8B6FBF",action:function(){setMdl({t:"brokerList"})}}
+          ];
+          var savedKeys=JSON.parse(localStorage.getItem("admin_shortcuts_"+(currentUser?currentUser.id:"0"))||'["manage","crm"]');
+          var activeShortcuts=allShortcuts.filter(function(s){return savedKeys.indexOf(s.k)!==-1});
+          return <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:8,borderTop:"1px solid "+borderColor,paddingTop:6,position:"relative"}}>
+            <div style={{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap",flex:1}}>
+              {activeShortcuts.map(function(s){
+                var isActive=(s.k==="manage"&&vw==="manage");
+                return <span key={s.k} className="bh" onClick={s.action} style={{padding:"8px 14px",borderRadius:10,fontSize:14,fontWeight:600,cursor:"pointer",background:isActive?s.c:s.c+"12",color:isActive?"#0a0a09":s.c,border:"1px solid "+s.c+"25",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:5,position:"relative"}}>{s.i} {s.l}{s.k==="crm"&&waUnreadTotal>0?<span style={{background:"#D45B5B",color:"#fff",fontSize:10,fontWeight:700,padding:"1px 6px",borderRadius:10,animation:"pulse 2s infinite"}}>{waUnreadTotal}</span>:null}</span>
+              })}
+              {/* Config shortcuts button */}
+              <span className="bh" onClick={function(){
+                var el=document.getElementById("shortcutPicker");
+                if(el)el.style.display=el.style.display==="block"?"none":"block";
+              }} style={{width:30,height:30,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,cursor:"pointer",background:"transparent",color:subColor,border:"1px dashed "+borderColor}} title="Personalizar atalhos">＋</span>
+              {/* Shortcuts picker dropdown */}
+              <div id="shortcutPicker" style={{display:"none",position:"absolute",top:"100%",left:0,marginTop:4,background:cardBg,borderRadius:12,border:"1px solid "+borderColor,padding:10,zIndex:50,boxShadow:"0 8px 32px rgba(0,0,0,0.4)",minWidth:260}}>
+                <div style={{fontSize:13,fontWeight:600,color:textColor,marginBottom:8}}>Personalizar atalhos</div>
+                <div style={{fontSize:11,color:subColor,marginBottom:8}}>Selecione o que aparece na barra de admin:</div>
+                {allShortcuts.map(function(s){
+                  var isOn=savedKeys.indexOf(s.k)!==-1;
+                  return <label key={s.k} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 8px",borderRadius:8,cursor:"pointer",marginBottom:2,background:isOn?s.c+"08":"transparent"}}>
+                    <input type="checkbox" checked={isOn} onChange={function(){
+                      var nk=isOn?savedKeys.filter(function(x){return x!==s.k}):savedKeys.concat([s.k]);
+                      localStorage.setItem("admin_shortcuts_"+(currentUser?currentUser.id:"0"),JSON.stringify(nk));
+                      document.getElementById("shortcutPicker").style.display="none";
+                      setVw(vw);// force re-render
+                    }}/>
+                    <span style={{fontSize:14}}>{s.i}</span>
+                    <span style={{fontSize:13,color:isOn?textColor:subColor,fontWeight:isOn?600:400}}>{s.l}</span>
+                  </label>
+                })}
+                <div style={{marginTop:8,fontSize:11,color:subColor}}>Alterações salvas por usuário</div>
+              </div>
+            </div>
+            <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
+              {currentUser && (function(){
+                var myPendTasks=tasks.filter(function(t3){return t3.assigned_to===currentUser.id&&t3.status!=="done"}).length;
+                return <span className="bh" onClick={function(){if(myPendTasks>0){setMdl({t:"taskManager"})}else{logAction("logout");setAdm(false);setCurrentUser(null);msg("Deslogado")}}} style={{padding:"7px 14px",borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",background:"rgba(200,164,92,0.08)",color:G,border:"1px solid rgba(200,164,92,0.12)",display:"flex",alignItems:"center",gap:4,position:"relative"}}>{currentUser.role==="super_admin"?"👑":currentUser.role==="atendente"?"📞":"🔐"} {currentUser.nome.split(" ")[0]} {myPendTasks>0&&<span style={{background:"#D45B5B",color:"#fff",fontSize:12,fontWeight:700,padding:"1px 5px",borderRadius:8,marginLeft:2}}>{myPendTasks}</span>} {myPendTasks===0&&<span onClick={function(e2){e2.stopPropagation();logAction("logout");setAdm(false);setCurrentUser(null);msg("Deslogado")}} style={{color:subColor}}>· Sair</span>}</span>;
+              })()}
+            </div>
           </div>
-          <div style={{display:"flex",gap:6,alignItems:"center"}}>
-            {currentUser && (function(){
-              var myPendTasks=tasks.filter(function(t3){return t3.assigned_to===currentUser.id&&t3.status!=="done"}).length;
-              return <span className="bh" onClick={function(){if(myPendTasks>0){setMdl({t:"taskManager"})}else{logAction("logout");setAdm(false);setCurrentUser(null);msg("Deslogado")}}} style={{padding:"7px 14px",borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",background:"rgba(200,164,92,0.08)",color:G,border:"1px solid rgba(200,164,92,0.12)",display:"flex",alignItems:"center",gap:4,position:"relative"}}>{currentUser.role==="super_admin"?"👑":currentUser.role==="atendente"?"📞":"🔐"} {currentUser.nome.split(" ")[0]} {myPendTasks>0&&<span style={{background:"#D45B5B",color:"#fff",fontSize:12,fontWeight:700,padding:"1px 5px",borderRadius:8,marginLeft:2}}>{myPendTasks}</span>} {myPendTasks===0&&<span onClick={function(e2){e2.stopPropagation();logAction("logout");setAdm(false);setCurrentUser(null);msg("Deslogado")}} style={{color:subColor}}>· Sair</span>}</span>;
-            })()}
-          </div>
-        </div>}
+        })()}
         {/* Broker user */}
         {broker&&!adm&&<div style={{display:"flex",justifyContent:"flex-end",paddingBottom:8}}>
           <span className="bh" onClick={function(){setMdl({t:"brokerDash"})}} style={{padding:"7px 14px",borderRadius:10,fontSize:13,fontWeight:500,cursor:"pointer",background:"rgba(91,143,212,0.08)",color:"#5B8FD4",border:"1px solid rgba(91,143,212,0.12)",display:"flex",alignItems:"center",gap:4}}>👤 {broker.nome.split(" ")[0]}</span>
