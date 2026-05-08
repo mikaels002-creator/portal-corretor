@@ -2245,6 +2245,8 @@ function App(){
         }
         setEditT(null);setNewT(false);setTF({slug:"",nome_empresa:"",logo_url:"",cor_primaria:"#C8A45C",plano:"trial",max_empreendimentos:10,max_corretores:50,ativo:true,expira_em:""});
         await loadTenants();
+        // If editing current tenant, update display immediately
+        if(editT===slug||clean===slug){var tr2=await sb.from("tenants").select("*").eq("slug",slug).single();if(tr2.data){setTenant(tr2.data);document.title="Portal "+tr2.data.nome_empresa.split(" ")[0]}}
       }catch(e){msg("❌ "+e.message)}
     };
 
@@ -2287,8 +2289,11 @@ function App(){
             </div>
           </div>
         </div>
-        <div style={{padding:8,borderRadius:8,background:"rgba(91,143,212,0.04)",marginBottom:8,fontSize:12,color:subColor}}>
-          Preview: <b style={{color:textColor}}>portal-corretor.com/{tForm.slug||"..."}</b> → <b style={{color:G}}>Portal {tForm.nome_empresa?tForm.nome_empresa.split(" ")[0]:"..."}</b>
+        {/* Portal name preview */}
+        <div style={{padding:12,borderRadius:10,background:"linear-gradient(135deg,#0a0a09,#15130d)",marginBottom:10,textAlign:"center",border:"1px solid rgba(200,164,92,0.15)"}}>
+          <div style={{fontSize:11,color:subColor,marginBottom:4}}>Aparece na tela inicial como:</div>
+          <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:28,fontWeight:500,color:textColor}}>Portal <span style={{color:tForm.cor_primaria||G,fontWeight:600}}>{tForm.nome_empresa?tForm.nome_empresa.split(" ")[0]:"..."}</span></div>
+          <div style={{fontSize:11,color:subColor,marginTop:4}}>portal-corretor.com/<b>{tForm.slug||"..."}</b></div>
         </div>
         <div style={{display:"flex",gap:8,marginBottom:6}}>
           <div style={{flex:1}}>
@@ -2318,19 +2323,23 @@ function App(){
         <div style={{display:"flex",gap:8,marginBottom:6}}>
           <div style={{flex:1}}>
             <div style={{fontSize:11,color:subColor,marginBottom:3}}>Máx empreendimentos</div>
-            <input type="number" style={Object.assign({},mI,{fontSize:13})} value={tForm.max_empreendimentos} onChange={function(e){setTF(Object.assign({},tForm,{max_empreendimentos:e.target.value}))}}/>
+            <div style={{display:"flex",gap:6,alignItems:"center"}}>
+              {tForm.max_empreendimentos===-1?<div style={Object.assign({},mI,{flex:1,fontSize:13,display:"flex",alignItems:"center",color:"#4CAF7D",fontWeight:600})}>∞ Ilimitado</div>:<input type="number" style={Object.assign({},mI,{flex:1,fontSize:13})} value={tForm.max_empreendimentos} onChange={function(e){setTF(Object.assign({},tForm,{max_empreendimentos:+e.target.value||0}))}}/>}
+              <button className="bh" onClick={function(){setTF(Object.assign({},tForm,{max_empreendimentos:tForm.max_empreendimentos===-1?10:-1}))}} style={{padding:"6px 10px",borderRadius:8,fontSize:11,fontWeight:600,background:tForm.max_empreendimentos===-1?"#4CAF7D15":"transparent",color:tForm.max_empreendimentos===-1?"#4CAF7D":subColor,border:"1px solid "+borderColor,cursor:"pointer",whiteSpace:"nowrap"}}>∞</button>
+            </div>
           </div>
           <div style={{flex:1}}>
             <div style={{fontSize:11,color:subColor,marginBottom:3}}>Máx corretores</div>
-            <input type="number" style={Object.assign({},mI,{fontSize:13})} value={tForm.max_corretores} onChange={function(e){setTF(Object.assign({},tForm,{max_corretores:e.target.value}))}}/>
-          </div>
-          <div style={{display:"flex",alignItems:"flex-end",paddingBottom:8}}>
-            <label style={{display:"flex",alignItems:"center",gap:6,fontSize:13,color:textColor,cursor:"pointer"}}>
-              <input type="checkbox" checked={tForm.ativo!==false} onChange={function(e){setTF(Object.assign({},tForm,{ativo:e.target.checked}))}}/>
-              Ativo
-            </label>
+            <div style={{display:"flex",gap:6,alignItems:"center"}}>
+              {tForm.max_corretores===-1?<div style={Object.assign({},mI,{flex:1,fontSize:13,display:"flex",alignItems:"center",color:"#4CAF7D",fontWeight:600})}>∞ Ilimitado</div>:<input type="number" style={Object.assign({},mI,{flex:1,fontSize:13})} value={tForm.max_corretores} onChange={function(e){setTF(Object.assign({},tForm,{max_corretores:+e.target.value||0}))}}/>}
+              <button className="bh" onClick={function(){setTF(Object.assign({},tForm,{max_corretores:tForm.max_corretores===-1?50:-1}))}} style={{padding:"6px 10px",borderRadius:8,fontSize:11,fontWeight:600,background:tForm.max_corretores===-1?"#4CAF7D15":"transparent",color:tForm.max_corretores===-1?"#4CAF7D":subColor,border:"1px solid "+borderColor,cursor:"pointer",whiteSpace:"nowrap"}}>∞</button>
+            </div>
           </div>
         </div>
+        <label style={{display:"flex",alignItems:"center",gap:6,fontSize:13,color:textColor,marginBottom:10,cursor:"pointer"}}>
+          <input type="checkbox" checked={tForm.ativo!==false} onChange={function(e){setTF(Object.assign({},tForm,{ativo:e.target.checked}))}}/>
+          Ativo
+        </label>
         <div style={{display:"flex",gap:6}}>
           <button className="bh" onClick={saveTenant} style={{padding:"8px 20px",borderRadius:8,background:"#5B8FD4",color:"#fff",border:"none",cursor:"pointer",fontSize:13,fontWeight:600}}>💾 {editT?"Atualizar":"Criar"}</button>
           <button className="bh" onClick={function(){setNewT(false);setEditT(null)}} style={{padding:"8px 20px",borderRadius:8,background:"transparent",color:subColor,border:"1px solid "+borderColor,cursor:"pointer",fontSize:13}}>Cancelar</button>
@@ -2358,7 +2367,7 @@ function App(){
             </div>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:8}}>
               <div style={{fontSize:11,color:subColor}}>
-                📦 {t2.max_empreendimentos} empreend. · 👥 {t2.max_corretores} corretores
+                📦 {t2.max_empreendimentos===-1?"∞":t2.max_empreendimentos} empreend. · 👥 {t2.max_corretores===-1?"∞":t2.max_corretores} corretores
                 {t2.expira_em&&<span> · ⏰ {new Date(t2.expira_em).toLocaleDateString("pt-BR")}</span>}
               </div>
               <div style={{display:"flex",gap:4}}>
