@@ -2245,27 +2245,29 @@ function App(){
       var slugVal=slugEl?slugEl.value:"";
       var logoVal=logoEl?logoEl.value:"";
       var nomePortal=nomePortalEl?nomePortalEl.value:"";
-      if(!slugVal||!nome){msg("Preencha slug e nome");return}
+      if(!slugVal||!nome){msg("⚠️ Preencha slug e nome");return}
       var clean=slugVal.toLowerCase().replace(/[^a-z0-9\-]/g,"-").replace(/--+/g,"-");
+      var eid=editT||window._editTenantId;
       try{
-        if(editT){
-          await sb.from("tenants").update({slug:clean,nome_empresa:nome,nome_portal:nomePortal||null,logo_url:logoVal||null,cor_primaria:tForm.cor_primaria,plano:tForm.plano,max_empreendimentos:+tForm.max_empreendimentos||10,max_corretores:+tForm.max_corretores||50,ativo:tForm.ativo,expira_em:tForm.expira_em||null}).eq("id",editT);
-          msg("✅ Assinante atualizado!");
+        if(eid){
+          var res=await sb.from("tenants").update({slug:clean,nome_empresa:nome,nome_portal:nomePortal||null,logo_url:logoVal||null,cor_primaria:tForm.cor_primaria,plano:tForm.plano,max_empreendimentos:+tForm.max_empreendimentos||10,max_corretores:+tForm.max_corretores||50,ativo:tForm.ativo,expira_em:tForm.expira_em||null}).eq("id",eid);
+          if(res.error){msg("❌ Erro: "+res.error.message);return}
+          msg("✅ Atualizado!");
         }else{
-          await sb.from("tenants").insert({id:clean,slug:clean,nome_empresa:nome,nome_portal:nomePortal||null,logo_url:logoVal||null,cor_primaria:tForm.cor_primaria,plano:tForm.plano,max_empreendimentos:+tForm.max_empreendimentos||10,max_corretores:+tForm.max_corretores||50,ativo:tForm.ativo!==false,expira_em:tForm.expira_em||null});
-          msg("✅ Assinante criado!");
+          var res=await sb.from("tenants").insert({id:clean,slug:clean,nome_empresa:nome,nome_portal:nomePortal||null,logo_url:logoVal||null,cor_primaria:tForm.cor_primaria,plano:tForm.plano,max_empreendimentos:+tForm.max_empreendimentos||10,max_corretores:+tForm.max_corretores||50,ativo:tForm.ativo!==false,expira_em:tForm.expira_em||null});
+          if(res.error){msg("❌ Erro: "+res.error.message);return}
+          msg("✅ Criado!");
         }
-        setEditT(null);setNewT(false);setTF({slug:"",nome_empresa:"",logo_url:"",cor_primaria:"#C8A45C",plano:"trial",max_empreendimentos:10,max_corretores:50,ativo:true,expira_em:"",nome_portal:""});
+        window._editTenantId=null;setEditT(null);setNewT(false);setTF({slug:"",nome_empresa:"",logo_url:"",cor_primaria:"#C8A45C",plano:"trial",max_empreendimentos:10,max_corretores:50,ativo:true,expira_em:"",nome_portal:""});
         await loadTenants();
-        // Always refresh current tenant display
-        var tr2=await sb.from("tenants").select("*").eq("slug",tenant?tenant.slug:slug).single();
-        if(!tr2.data)tr2=await sb.from("tenants").select("*").eq("id",editT||clean).single();
+        // Refresh tenant display
+        var tr2=await sb.from("tenants").select("*").eq("id",eid||clean).single();
         if(tr2.data){setTenant(tr2.data);document.title="Portal "+(tr2.data.nome_portal||tr2.data.nome_empresa.split(" ")[0])}
       }catch(e){msg("❌ "+e.message)}
     };
 
     var startEdit=function(t2){
-      setEditT(t2.id);setNewT(true);
+      setEditT(t2.id);window._editTenantId=t2.id;setNewT(true);
       setTF({slug:t2.slug,nome_empresa:t2.nome_empresa,logo_url:t2.logo_url||"",cor_primaria:t2.cor_primaria||"#C8A45C",plano:t2.plano||"trial",max_empreendimentos:t2.max_empreendimentos||10,max_corretores:t2.max_corretores||50,ativo:t2.ativo!==false,expira_em:t2.expira_em?t2.expira_em.substring(0,10):"",nome_portal:t2.nome_portal||""});
       setTimeout(function(){
         var n=document.getElementById("tenant_nome");if(n)n.value=t2.nome_empresa||"";
