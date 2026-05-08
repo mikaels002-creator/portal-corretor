@@ -2235,19 +2235,20 @@ function App(){
     useEffect(function(){loadTenants()},[]);
 
     var saveTenant=async function(){
-      // Read from DOM for uncontrolled inputs
       var nomeEl=document.getElementById("tenant_nome");
       var slugEl=document.getElementById("tenant_slug");
-      var nome=nomeEl?nomeEl.value:tForm.nome_empresa;
-      var slugVal=slugEl?slugEl.value:tForm.slug;
+      var logoEl=document.getElementById("tenant_logo");
+      var nome=nomeEl?nomeEl.value:"";
+      var slugVal=slugEl?slugEl.value:"";
+      var logoVal=logoEl?logoEl.value:"";
       if(!slugVal||!nome){msg("Preencha slug e nome");return}
       var clean=slugVal.toLowerCase().replace(/[^a-z0-9\-]/g,"-").replace(/--+/g,"-");
       try{
         if(editT){
-          await sb.from("tenants").update({slug:clean,nome_empresa:nome,logo_url:tForm.logo_url||null,cor_primaria:tForm.cor_primaria,plano:tForm.plano,max_empreendimentos:+tForm.max_empreendimentos||10,max_corretores:+tForm.max_corretores||50,ativo:tForm.ativo,expira_em:tForm.expira_em||null}).eq("id",editT);
+          await sb.from("tenants").update({slug:clean,nome_empresa:nome,logo_url:logoVal||null,cor_primaria:tForm.cor_primaria,plano:tForm.plano,max_empreendimentos:+tForm.max_empreendimentos||10,max_corretores:+tForm.max_corretores||50,ativo:tForm.ativo,expira_em:tForm.expira_em||null}).eq("id",editT);
           msg("✅ Assinante atualizado!");
         }else{
-          await sb.from("tenants").insert({id:clean,slug:clean,nome_empresa:nome,logo_url:tForm.logo_url||null,cor_primaria:tForm.cor_primaria,plano:tForm.plano,max_empreendimentos:+tForm.max_empreendimentos||10,max_corretores:+tForm.max_corretores||50,ativo:tForm.ativo!==false,expira_em:tForm.expira_em||null});
+          await sb.from("tenants").insert({id:clean,slug:clean,nome_empresa:nome,logo_url:logoVal||null,cor_primaria:tForm.cor_primaria,plano:tForm.plano,max_empreendimentos:+tForm.max_empreendimentos||10,max_corretores:+tForm.max_corretores||50,ativo:tForm.ativo!==false,expira_em:tForm.expira_em||null});
           msg("✅ Assinante criado!");
         }
         setEditT(null);setNewT(false);setTF({slug:"",nome_empresa:"",logo_url:"",cor_primaria:"#C8A45C",plano:"trial",max_empreendimentos:10,max_corretores:50,ativo:true,expira_em:""});
@@ -2286,13 +2287,13 @@ function App(){
         <div style={{display:"flex",gap:8,marginBottom:6}}>
           <div style={{flex:1}}>
             <div style={{fontSize:11,color:subColor,marginBottom:3}}>Nome da empresa</div>
-            <input id="tenant_nome" style={Object.assign({},mI,{fontSize:13})} defaultValue={tForm.nome_empresa} onInput={function(e){var el=document.getElementById("tenant_preview_name");if(el)el.textContent=e.target.value?e.target.value.split(" ")[0]:"..."}} onBlur={function(e){setTF(function(p){return Object.assign({},p,{nome_empresa:e.target.value})})}} placeholder="Ex: Construtora ABC"/>
+            <input id="tenant_nome" key={"tn_"+(editT||"new")} ref={function(el){if(el&&!el._set){el.value=tForm.nome_empresa||"";el._set=true}}} style={Object.assign({},mI,{fontSize:13})} onInput={function(e){var el=document.getElementById("tenant_preview_name");if(el)el.textContent=e.target.value?e.target.value.split(" ")[0]:"..."}} placeholder="Ex: Construtora ABC"/>
           </div>
           <div style={{flex:1}}>
             <div style={{fontSize:11,color:subColor,marginBottom:3}}>Slug (URL)</div>
             <div style={{display:"flex",alignItems:"center",gap:0}}>
               <span style={{fontSize:11,color:subColor,whiteSpace:"nowrap",padding:"10px 0 10px 12px",background:isDark?"#1a1a19":"#EFEBE4",borderRadius:"10px 0 0 10px",border:"1px solid "+borderColor,borderRight:"none"}}>/</span>
-              <input id="tenant_slug" style={Object.assign({},mI,{fontSize:13,borderRadius:"0 10px 10px 0",flex:1})} defaultValue={tForm.slug} onInput={function(e){var v=e.target.value.toLowerCase().replace(/[^a-z0-9\-]/g,"");e.target.value=v;var el=document.getElementById("tenant_preview_slug");if(el)el.textContent=v||"..."}} onBlur={function(e){setTF(function(p){return Object.assign({},p,{slug:e.target.value.toLowerCase().replace(/[^a-z0-9\-]/g,"")})})}} placeholder="construtora-abc"/>
+              <input id="tenant_slug" key={"ts_"+(editT||"new")} ref={function(el){if(el&&!el._set){el.value=tForm.slug||"";el._set=true}}} style={Object.assign({},mI,{fontSize:13,borderRadius:"0 10px 10px 0",flex:1})} onInput={function(e){e.target.value=e.target.value.toLowerCase().replace(/[^a-z0-9\-]/g,"");var el=document.getElementById("tenant_preview_slug");if(el)el.textContent=e.target.value||"..."}} placeholder="construtora-abc"/>
             </div>
           </div>
         </div>
@@ -2305,7 +2306,7 @@ function App(){
         <div style={{display:"flex",gap:8,marginBottom:6}}>
           <div style={{flex:1}}>
             <div style={{fontSize:11,color:subColor,marginBottom:3}}>Logo (URL)</div>
-            <input style={Object.assign({},mI,{fontSize:13})} defaultValue={tForm.logo_url} onBlur={function(e){setTF(function(p){return Object.assign({},p,{logo_url:e.target.value})})}} placeholder="https://..."/>
+            <input id="tenant_logo" key={"tl_"+(editT||"new")} ref={function(el){if(el&&!el._set){el.value=tForm.logo_url||"";el._set=true}}} style={Object.assign({},mI,{fontSize:13})} placeholder="https://..."/>
           </div>
           <div style={{width:100}}>
             <div style={{fontSize:11,color:subColor,marginBottom:3}}>Cor</div>
