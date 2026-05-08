@@ -2261,6 +2261,13 @@ function App(){
     var startEdit=function(t2){
       setEditT(t2.id);setNewT(true);
       setTF({slug:t2.slug,nome_empresa:t2.nome_empresa,logo_url:t2.logo_url||"",cor_primaria:t2.cor_primaria||"#C8A45C",plano:t2.plano||"trial",max_empreendimentos:t2.max_empreendimentos||10,max_corretores:t2.max_corretores||50,ativo:t2.ativo!==false,expira_em:t2.expira_em?t2.expira_em.substring(0,10):""});
+      setTimeout(function(){
+        var n=document.getElementById("tenant_nome");if(n)n.value=t2.nome_empresa||"";
+        var s=document.getElementById("tenant_slug");if(s)s.value=t2.slug||"";
+        var l=document.getElementById("tenant_logo");if(l)l.value=t2.logo_url||"";
+        var p=document.getElementById("tenant_preview_name");if(p)p.textContent=(t2.nome_empresa||"").split(" ")[0]||"...";
+        var ps=document.getElementById("tenant_preview_slug");if(ps)ps.textContent=t2.slug||"...";
+      },100);
     };
 
     var planoBadge=function(p){var cols={trial:"#E8A94E",basic:"#5B8FD4",premium:"#4CAF7D",enterprise:"#8B6FBF"};return <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:4,background:(cols[p]||"#555")+"15",color:cols[p]||"#555",textTransform:"uppercase"}}>{p}</span>};
@@ -2287,16 +2294,17 @@ function App(){
         <div style={{display:"flex",gap:8,marginBottom:6}}>
           <div style={{flex:1}}>
             <div style={{fontSize:11,color:subColor,marginBottom:3}}>Nome da empresa</div>
-            <input id="tenant_nome" key={"tn_"+(editT||"new")} ref={function(el){if(el&&!el._set){el.value=tForm.nome_empresa||"";el._set=true}}} style={Object.assign({},mI,{fontSize:13})} onInput={function(e){var el=document.getElementById("tenant_preview_name");if(el)el.textContent=e.target.value?e.target.value.split(" ")[0]:"..."}} placeholder="Ex: Construtora ABC"/>
+            <input id="tenant_nome" style={{width:"100%",padding:"13px 16px",background:"#1a1a19",border:"1px solid rgba(255,255,255,0.06)",borderRadius:10,color:"#F0EBE3",fontSize:13,fontFamily:"inherit",outline:"none",marginBottom:10}} placeholder="Ex: Construtora ABC"/>
           </div>
           <div style={{flex:1}}>
             <div style={{fontSize:11,color:subColor,marginBottom:3}}>Slug (URL)</div>
             <div style={{display:"flex",alignItems:"center",gap:0}}>
               <span style={{fontSize:11,color:subColor,whiteSpace:"nowrap",padding:"10px 0 10px 12px",background:isDark?"#1a1a19":"#EFEBE4",borderRadius:"10px 0 0 10px",border:"1px solid "+borderColor,borderRight:"none"}}>/</span>
-              <input id="tenant_slug" key={"ts_"+(editT||"new")} ref={function(el){if(el&&!el._set){el.value=tForm.slug||"";el._set=true}}} style={Object.assign({},mI,{fontSize:13,borderRadius:"0 10px 10px 0",flex:1})} onInput={function(e){e.target.value=e.target.value.toLowerCase().replace(/[^a-z0-9\-]/g,"");var el=document.getElementById("tenant_preview_slug");if(el)el.textContent=e.target.value||"..."}} placeholder="construtora-abc"/>
+              <input id="tenant_slug" style={{flex:1,padding:"13px 16px",background:"#1a1a19",border:"1px solid rgba(255,255,255,0.06)",borderRadius:"0 10px 10px 0",color:"#F0EBE3",fontSize:13,fontFamily:"inherit",outline:"none"}} placeholder="construtora-abc"/>
             </div>
           </div>
         </div>
+        {/* Preview */}
         {/* Portal name preview */}
         <div style={{padding:12,borderRadius:10,background:"linear-gradient(135deg,#0a0a09,#15130d)",marginBottom:10,textAlign:"center",border:"1px solid rgba(200,164,92,0.15)"}}>
           <div style={{fontSize:11,color:subColor,marginBottom:4}}>Aparece na tela inicial como:</div>
@@ -2306,7 +2314,7 @@ function App(){
         <div style={{display:"flex",gap:8,marginBottom:6}}>
           <div style={{flex:1}}>
             <div style={{fontSize:11,color:subColor,marginBottom:3}}>Logo (URL)</div>
-            <input id="tenant_logo" key={"tl_"+(editT||"new")} ref={function(el){if(el&&!el._set){el.value=tForm.logo_url||"";el._set=true}}} style={Object.assign({},mI,{fontSize:13})} placeholder="https://..."/>
+            <input id="tenant_logo" style={{width:"100%",padding:"13px 16px",background:"#1a1a19",border:"1px solid rgba(255,255,255,0.06)",borderRadius:10,color:"#F0EBE3",fontSize:13,fontFamily:"inherit",outline:"none",marginBottom:10}} placeholder="https://..."/>
           </div>
           <div style={{width:100}}>
             <div style={{fontSize:11,color:subColor,marginBottom:3}}>Cor</div>
