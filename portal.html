@@ -598,7 +598,14 @@ function App(){
       // Load tenant first
       var tr=await sb.from("tenants").select("*").eq("slug",slug).eq("ativo",true).single();
       if(!tr.data){tr=await sb.from("tenants").select("*").eq("ativo",true).order("criado_em").limit(1).single()}
-      if(tr.data){setTenant(tr.data);DB._tid=tr.data.slug||tr.data.id;document.title="Portal "+(tr.data.nome_portal||tr.data.nome_empresa.split(" ")[0])}
+      if(tr.data){
+        setTenant(tr.data);
+        DB._tid=tr.data.slug||tr.data.id;
+        document.title="Portal "+(tr.data.nome_portal||tr.data.nome_empresa.split(" ")[0]);
+      } else {
+        // Fallback - no tenant found, use mk as default
+        DB._tid="mk";
+      }
       var results = await Promise.all([DB.loadConfig(),DB.loadBuildings(),DB.loadAllUnits(),DB.loadPhotos(),DB.loadPlants(),DB.loadDocuments(),DB.loadNotices(),DB.loadBrokers(),DB.loadSales(),DB.loadAdminUsers(),DB.loadTasks()]);
       setCfg(results[0]);setBuildings(results[1]);setAllUnits(results[2]);setAllPhotos(results[3]);setAllPlants(results[4]);setAllDocs(results[5]);setAllNotices(results[6]);setBrokers(results[7]);setSales(results[8]);setAdminUsers(results[9]);setTasks(results[10]);
     } catch(e){ console.log("Load error:", e); }
@@ -698,7 +705,7 @@ function App(){
 
   // ═══ SETUP WIZARD (new tenants) ═══
   var _setupStep=useState(tenant?tenant.setup_step||0:0);var setupStep=_setupStep[0];var setSetupStep=_setupStep[1];
-  if(tenant&&tenant.setup_completo===false&&adm&&currentUser){
+  if(tenant&&tenant.setup_completo===false&&tenant.setup_step!==undefined&&tenant.setup_step!==null&&adm&&currentUser){
     var stepLabels=["Empresa","Contato","Empreendimento","Tabela","Finalizar"];
     var saveSetupStep=async function(step){await sb.from("tenants").update({setup_step:step}).eq("id",tenant.id);setSetupStep(step)};
     var finishSetup=async function(){await sb.from("tenants").update({setup_completo:true,setup_step:5}).eq("id",tenant.id);window.location.reload()};
