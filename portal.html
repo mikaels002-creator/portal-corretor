@@ -501,6 +501,7 @@ function App(){
   var lbNext = function(){if(lightbox!==null&&lightbox<lbPhotos.length-1)setLightbox(lightbox+1)};
   var lbPrev = function(){if(lightbox!==null&&lightbox>0)setLightbox(lightbox-1)};
   var _broker = useState(null); var broker = _broker[0]; var setBroker = _broker[1];
+  var _setupStep=useState(0);var setupStep=_setupStep[0];var setSetupStep=_setupStep[1];
   var _sales = useState([]); var sales = _sales[0]; var setSales = _sales[1];
   var _adminUsers = useState([]); var adminUsers = _adminUsers[0]; var setAdminUsers = _adminUsers[1];
   var _currentUser = useState(null); var currentUser = _currentUser[0]; var setCurrentUser = _currentUser[1];
@@ -601,6 +602,7 @@ function App(){
       if(tr.data){
         setTenant(tr.data);
         DB._tid=tr.data.slug||tr.data.id;
+        setSetupStep(tr.data.setup_step||0);
         document.title="Portal "+(tr.data.nome_portal||tr.data.nome_empresa.split(" ")[0]);
       } else {
         DB._tid="mk";
@@ -740,7 +742,6 @@ function App(){
   }
 
   // ═══ SETUP WIZARD (new tenants) ═══
-  var _setupStep=useState(tenant?tenant.setup_step||0:0);var setupStep=_setupStep[0];var setSetupStep=_setupStep[1];
   if(tenant&&tenant.setup_completo===false&&tenant.setup_step!==undefined&&tenant.setup_step!==null&&adm&&currentUser){
     var stepLabels=["Empresa","Contato","Empreendimento","Tabela","Finalizar"];
     var saveSetupStep=async function(step){await sb.from("tenants").update({setup_step:step}).eq("id",tenant.id);setSetupStep(step)};
