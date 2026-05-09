@@ -42,6 +42,7 @@ function App(){
   var _inter=useState([]);var inter=_inter[0];var setInter=_inter[1];
   var _toast=useState(null);var toast=_toast[0];var setToast=_toast[1];
   var _selClient=useState(null);var selClient=_selClient[0];var setSelClient=_selClient[1];
+  var _landingOn=useState(false);var landingOn=_landingOn[0];var setLandingOn=_landingOn[1];
   var msg=function(m){setToast(m);setTimeout(function(){setToast(null)},3000)};
 
   var loadAll=async function(){
@@ -49,6 +50,15 @@ function App(){
     var r2=await sb.from("assinaturas").select("*").order("criado_em",{ascending:false});setSubs(r2.data||[]);
     var r3=await sb.from("pagamentos").select("*").order("vencimento",{ascending:false}).limit(500);setPagtos(r3.data||[]);
     var r4=await sb.from("planos").select("*").eq("ativo",true).order("valor_mensal");setPlanos(r4.data||[]);
+    var r5=await sb.from("config_whatsapp").select("valor").eq("chave","landing_ativa").single();
+    if(r5.data)setLandingOn(r5.data.valor==="true");
+  };
+
+  var toggleLanding=async function(){
+    var novo=!landingOn;
+    await sb.from("config_whatsapp").update({valor:novo?"true":"false"}).eq("chave","landing_ativa");
+    setLandingOn(novo);
+    msg(novo?"🟢 Landing page ativada":"🔴 Landing desativada — redireciona para o portal");
   };
 
   var doLogin=async function(){
@@ -114,7 +124,13 @@ function App(){
           </div>
         })}
       </div>
-      <div style={{padding:"12px 20px",borderTop:"1px solid #1a1a1f"}}>
+      <div style={{padding:"12px 14px",borderTop:"1px solid #1a1a1f"}}>
+        <div className="bh" onClick={toggleLanding} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",borderRadius:8,background:landingOn?"rgba(76,175,125,0.06)":"rgba(213,91,91,0.06)",cursor:"pointer",marginBottom:8}}>
+          <div style={{width:8,height:8,borderRadius:"50%",background:landingOn?GR:R}}/>
+          <span style={{fontSize:12,color:landingOn?GR:R,fontWeight:500}}>Landing {landingOn?"ON":"OFF"}</span>
+        </div>
+      </div>
+      <div style={{padding:"8px 20px 12px",borderTop:"1px solid #1a1a1f"}}>
         <div style={{fontSize:12,color:"#555"}}>{user?user.nome:"Admin"}</div>
         <div className="bh" onClick={function(){setAuth(false);setUser(null)}} style={{fontSize:12,color:R,marginTop:4,cursor:"pointer"}}>Sair</div>
       </div>
@@ -125,7 +141,15 @@ function App(){
 
       {/* ═══ DASHBOARD ═══ */}
       {view==="dash"&&<div className="fade-in">
-        <div style={{fontSize:24,fontWeight:700,color:"#fff",marginBottom:24}}>Dashboard</div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
+          <div style={{fontSize:24,fontWeight:700,color:"#fff"}}>Dashboard</div>
+          <div className="bh" onClick={toggleLanding} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 16px",borderRadius:10,background:landingOn?"rgba(76,175,125,0.08)":"rgba(213,91,91,0.08)",border:"1px solid "+(landingOn?"rgba(76,175,125,0.15)":"rgba(213,91,91,0.15)"),cursor:"pointer"}}>
+            <div style={{width:38,height:20,borderRadius:10,background:landingOn?GR:R,position:"relative",transition:"all .2s"}}>
+              <div style={{width:16,height:16,borderRadius:"50%",background:"#fff",position:"absolute",top:2,left:landingOn?20:2,transition:"all .2s"}}/>
+            </div>
+            <span style={{fontSize:13,fontWeight:600,color:landingOn?GR:R}}>{landingOn?"Landing ativa":"Landing off"}</span>
+          </div>
+        </div>
         {/* KPI Row */}
         <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:12,marginBottom:24}}>
           {[{l:"MRR",v:fmt(mrr),c:GR},{l:"ARR",v:fmt(arr),c:B},{l:"Ativos",v:ativos.length,c:GR},{l:"Trial",v:trials.length,c:P},{l:"Churn",v:churn+"%",c:R},{l:"Ticket Médio",v:ativos.length?fmt(Math.round(mrr/ativos.length)):"—",c:W}].map(function(k,i){

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Redirecionando...</title>
+<script>
+  var path = window.location.pathname.replace(/^\//,"").replace(/\/$/,"");
+  if(path === 'admin' || path === 'admin.html') {
+    window.location.replace(window.location.origin + '/admin.html');
+  } else if(path && path !== 'index.html' && path !== 'landing.html' && path !== 'portal.html') {
+    sessionStorage.setItem('tenant_slug', path);
+    window.location.replace(window.location.origin + '/portal.html');
+  } else {
+    window.location.replace(window.location.origin + '/');
+  }
+</script>
+</head>
+<body style="background:#06060a;color:#E8E4DD;display:flex;align-items:center;justify-content:center;height:100vh;font-family:system-ui">
+  <div style="text-align:center">
+    <div style="font-size:32px;margin-bottom:12px">🏢</div>
+    <div>Redirecionando...</div>
+  </div>
+</body>
+</html>
