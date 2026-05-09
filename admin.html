@@ -59,49 +59,20 @@ function App(){
 
   var deployPortal=async function(tenant){
     if(!tenant||!tenant.slug){msg("❌ Salve o cliente primeiro");return}
-    if(!GH_TOKEN){await loadGH();if(!GH_TOKEN){msg("❌ Token GitHub não configurado");return}}
-    setDeploying(true);msg("⏳ Criando portal para "+tenant.nome_empresa+"...");
-    var repoName="portal-"+tenant.slug;
+    setDeploying(true);msg("⏳ Ativando portal para "+tenant.nome_empresa+"...");
     try{
-      // 1. Create repo
-      var createRes=await fetch("https://api.github.com/user/repos",{method:"POST",headers:{"Authorization":"token "+GH_TOKEN,"Content-Type":"application/json"},body:JSON.stringify({name:repoName,description:"Portal do Corretor — "+tenant.nome_empresa,homepage:"https://"+GH_USER+".github.io/"+repoName,auto_init:true,private:false})});
-      var repoData=await createRes.json();
-      if(createRes.status===422){msg("ℹ️ Repositório já existe — atualizando...");
-      }else if(!createRes.ok){msg("❌ Erro: "+repoData.message);setDeploying(false);return}
-
-      // 2. Get template portal.html
-      var tplRes=await fetch("https://api.github.com/repos/"+GH_USER+"/"+GH_TEMPLATE+"/contents/portal.html",{headers:{"Authorization":"token "+GH_TOKEN}});
-      var tplData=await tplRes.json();
-      if(!tplData.content){msg("❌ Template portal.html não encontrado");setDeploying(false);return}
-
-      // 3. Modify content — inject tenant_id
-      var content=atob(tplData.content.replace(/\n/g,""));
-      content=content.replace(/var slug = window\.location\.pathname[^;]+;/,"var slug='"+tenant.slug+"';");
-
-      // 4. Upload portal.html as index.html
-      var putRes=await fetch("https://api.github.com/repos/"+GH_USER+"/"+repoName+"/contents/index.html",{method:"PUT",headers:{"Authorization":"token "+GH_TOKEN,"Content-Type":"application/json"},body:JSON.stringify({message:"Deploy portal — "+tenant.nome_empresa,content:btoa(unescape(encodeURIComponent(content)))})});
-      if(!putRes.ok){var existing=await fetch("https://api.github.com/repos/"+GH_USER+"/"+repoName+"/contents/index.html",{headers:{"Authorization":"token "+GH_TOKEN}});var exData=await existing.json();if(exData.sha){putRes=await fetch("https://api.github.com/repos/"+GH_USER+"/"+repoName+"/contents/index.html",{method:"PUT",headers:{"Authorization":"token "+GH_TOKEN,"Content-Type":"application/json"},body:JSON.stringify({message:"Update portal — "+tenant.nome_empresa,content:btoa(unescape(encodeURIComponent(content))),sha:exData.sha})})}}
-
-      // 5. Upload 404.html
-      var f404Res=await fetch("https://api.github.com/repos/"+GH_USER+"/"+GH_TEMPLATE+"/contents/404.html",{headers:{"Authorization":"token "+GH_TOKEN}});
-      var f404=await f404Res.json();
-      if(f404.content){await fetch("https://api.github.com/repos/"+GH_USER+"/"+repoName+"/contents/404.html",{method:"PUT",headers:{"Authorization":"token "+GH_TOKEN,"Content-Type":"application/json"},body:JSON.stringify({message:"Add 404",content:f404.content.replace(/\n/g,"")})})}
-
-      // 6. Enable GitHub Pages
-      await fetch("https://api.github.com/repos/"+GH_USER+"/"+repoName+"/pages",{method:"POST",headers:{"Authorization":"token "+GH_TOKEN,"Content-Type":"application/json"},body:JSON.stringify({source:{branch:"main",path:"/"}})});
-
-      // 7. Create admin user for tenant
-      await sb.from("admin_users").insert({nome:tenant.contato_nome||tenant.nome_empresa,email:tenant.contato_email||tenant.slug+"@portal-corretor.com",password:"portal2024",role:"super_admin",tenant_id:tenant.slug});
-
-      // 8. Update tenant
-      var portalUrl="https://"+GH_USER+".github.io/"+repoName;
+      var portalUrl="https://portal-corretor.com/"+tenant.slug;
+      // Create admin user for tenant
+      var existsAdmin=await sb.from("admin_users").select("id").eq("tenant_id",tenant.slug).limit(1);
+      if(!existsAdmin.data||existsAdmin.data.length===0){
+        await sb.from("admin_users").insert({nome:tenant.contato_nome||tenant.nome_empresa,email:tenant.contato_email||tenant.slug+"@portal-corretor.com",password:"portal2024",role:"super_admin",tenant_id:tenant.slug});
+      }
+      // Update tenant
       await sb.from("tenants").update({ativo:true,setup_completo:false,setup_step:0,portal_url:portalUrl}).eq("id",tenant.id);
-      await sb.from("interacoes_tenant").insert({tenant_id:tenant.id,tipo:"deploy",conteudo:"Portal deployado: "+portalUrl,usuario:user?user.nome:"Admin"});
-
+      await sb.from("interacoes_tenant").insert({tenant_id:tenant.id,tipo:"deploy",conteudo:"Portal ativado: "+portalUrl+"\nLogin: "+(tenant.contato_email||tenant.slug+"@portal-corretor.com")+" / portal2024",usuario:user?user.nome:"Admin"});
       await loadAll();setDeploying(false);
-      // Update selClient with portal URL
       var updated=Object.assign({},tenant,{portal_url:portalUrl});setSelClient(updated);
-      msg("✅ Portal criado! URL: "+portalUrl+" (ativa em ~2min)");
+      msg("✅ Portal ativado! "+portalUrl);
     }catch(e){setDeploying(false);msg("❌ "+e.message)}
   };
 
