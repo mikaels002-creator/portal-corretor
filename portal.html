@@ -1786,55 +1786,133 @@ function App(){
   // ═══ BROKER DASHBOARD ═══
   function BrokerDashM(){
     if(!broker) return <div>Faça login primeiro</div>;
+    var _bTab=useState("dash");var bTab=_bTab[0];var setBTab=_bTab[1];
     var mySales=sales.filter(function(s){return s.broker_id===broker.id});
     var confirmed=mySales.filter(function(s){return s.status==="confirmed"});
     var pending=mySales.filter(function(s){return s.status==="pending"});
     var totalComm=confirmed.reduce(function(t,s){return t+(s.commission_value||0)},0);
+    var totalVal=confirmed.reduce(function(t,s){return t+(s.sale_value||0)},0);
+
+    // Ranking
+    var brokerRank=brokers.map(function(b2){var bs=sales.filter(function(s){return s.broker_id===b2.id&&s.status==="confirmed"});return{id:b2.id,nome:b2.nome,vendas:bs.length,valor:bs.reduce(function(t,s){return t+(s.sale_value||0)},0)}}).sort(function(a,b){return b.vendas-a.vendas});
+    var myPos=brokerRank.findIndex(function(r){return r.id===broker.id})+1;
+
+    // Engagement stats
+    var myViews=summary.bldViews||0;
+    var mySims=summary.sims||0;
+
     return <div>
+      {/* Header */}
       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
-        <div style={{width:44,height:44,borderRadius:14,background:G+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}}>👤</div>
+        <div style={{width:48,height:48,borderRadius:14,background:"linear-gradient(135deg,"+G+"20,#5B8FD415)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:26}}>👤</div>
         <div style={{flex:1}}>
-          <div style={{fontSize:18,fontWeight:600}}>{broker.nome}</div>
+          <div style={{fontSize:20,fontWeight:700,color:textColor}}>{broker.nome}</div>
           <div style={{fontSize:13,color:subColor}}>{broker.imobiliaria||""} {broker.creci?"• CRECI "+broker.creci:""}</div>
         </div>
-        <button className="bh" onClick={function(){setBroker(null);setMdl(null);msg("Deslogado")}} style={mbtn("#D45B5B")}>Sair</button>
+        <button className="bh" onClick={function(){logAction("logout_corretor");setBroker(null);setMdl(null);msg("Deslogado")}} style={{padding:"6px 14px",borderRadius:8,background:"rgba(213,91,91,0.08)",color:"#D45B5B",border:"1px solid rgba(213,91,91,0.1)",cursor:"pointer",fontSize:12}}>Sair</button>
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:16}}>
-        <div style={{padding:12,background:cardBg,borderRadius:12,textAlign:"center",border:"1px solid "+borderColor}}>
-          <div style={{fontSize:22,fontWeight:600,color:"#4CAF7D",fontFamily:"'Cormorant Garamond',Georgia,serif"}}>{confirmed.length}</div>
-          <div style={{fontSize:12,color:subColor,textTransform:"uppercase",letterSpacing:1}}>Confirmadas</div>
-        </div>
-        <div style={{padding:12,background:cardBg,borderRadius:12,textAlign:"center",border:"1px solid "+borderColor}}>
-          <div style={{fontSize:22,fontWeight:600,color:"#E8A94E",fontFamily:"'Cormorant Garamond',Georgia,serif"}}>{pending.length}</div>
-          <div style={{fontSize:12,color:subColor,textTransform:"uppercase",letterSpacing:1}}>Pendentes</div>
-        </div>
-        <div style={{padding:12,background:cardBg,borderRadius:12,textAlign:"center",border:"1px solid "+borderColor}}>
-          <div style={{fontSize:18,fontWeight:600,color:G,fontFamily:"'Cormorant Garamond',Georgia,serif"}}>{fmt(totalComm)}</div>
-          <div style={{fontSize:12,color:subColor,textTransform:"uppercase",letterSpacing:1}}>Comissão</div>
-        </div>
-      </div>
-
-      <button className="bh" style={mP("#4CAF7D")} onClick={function(){setMdl({t:"registerSale"})}}>＋ Registrar Venda</button>
-      <button className="bh" style={Object.assign({},mP("#5B8FD4"),{marginTop:4})} onClick={function(){setMiniChat({channel:"broker_"+broker.id,title:"Chat Admin"})}}>💬 Chat com Administração</button>
-
-      <div style={{fontSize:14,fontWeight:600,color:textColor,marginTop:16,marginBottom:8}}>Minhas Vendas</div>
-      <div style={{maxHeight:300,overflow:"auto"}}>
-        {mySales.length===0&&<div style={{textAlign:"center",padding:20,color:subColor}}>Nenhuma venda registrada</div>}
-        {mySales.map(function(s){
-          var stColor=s.status==="confirmed"?"#4CAF7D":s.status==="rejected"?"#D45B5B":"#E8A94E";
-          var stLabel=s.status==="confirmed"?"✅ Confirmada":s.status==="rejected"?"❌ Rejeitada":"⏳ Pendente";
-          return <div key={s.id} style={{padding:12,background:cardBg,borderRadius:12,marginBottom:6,border:"1px solid "+borderColor}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
-              <span style={{fontSize:15,fontWeight:600}}>{s.client_name}</span>
-              <span style={{fontSize:12,fontWeight:600,color:stColor,padding:"3px 8px",background:stColor+"10",borderRadius:6}}>{stLabel}</span>
-            </div>
-            <div style={{fontSize:12,color:subColor}}>{s.building_name} — {s.unit_name}</div>
-            <div style={{fontSize:12,color:subColor}}>{s.sale_date} • {fmt(s.sale_value)}</div>
-            {s.admin_notes&&<div style={{fontSize:12,color:"#E8A94E",marginTop:4}}>📝 {s.admin_notes}</div>}
-          </div>;
+      {/* Tabs */}
+      <div style={{display:"flex",gap:4,marginBottom:14,borderBottom:"1px solid "+borderColor,paddingBottom:6}}>
+        {[{k:"dash",l:"📊 Painel"},{k:"vendas",l:"💰 Vendas"},{k:"ranking",l:"🏆 Ranking"},{k:"empreen",l:"🏢 Empreend."}].map(function(tb){
+          return <span key={tb.k} className="bh" onClick={function(){setBTab(tb.k)}} style={{padding:"6px 14px",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",background:bTab===tb.k?G+"15":"transparent",color:bTab===tb.k?G:subColor}}>{tb.l}</span>
         })}
       </div>
+
+      {/* ═══ DASHBOARD ═══ */}
+      {bTab==="dash"&&<div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:8,marginBottom:14}}>
+          {[{v:confirmed.length,l:"Vendas",c:"#4CAF7D"},{v:pending.length,l:"Pendentes",c:"#E8A94E"},{v:fmt(totalComm),l:"Comissão",c:G},{v:myPos>0?"#"+myPos:"—",l:"Ranking",c:"#5B8FD4"}].map(function(k,i){
+            return <div key={i} style={{padding:12,background:cardBg,borderRadius:12,textAlign:"center",border:"1px solid "+borderColor}}>
+              <div style={{fontSize:20,fontWeight:700,color:k.c}}>{k.v}</div>
+              <div style={{fontSize:11,color:subColor}}>{k.l}</div>
+            </div>
+          })}
+        </div>
+        {/* Quick actions */}
+        <button className="bh" style={mP("#4CAF7D")} onClick={function(){setMdl({t:"registerSale"})}}>＋ Registrar Venda</button>
+        <button className="bh" style={Object.assign({},mP("#5B8FD4"),{marginTop:4})} onClick={function(){setMiniChat({channel:"broker_"+broker.id,title:"Chat Admin"})}}>💬 Chat com Administração</button>
+        {/* Summary */}
+        <div style={{marginTop:14,padding:14,borderRadius:12,background:cardBg,border:"1px solid "+borderColor}}>
+          <div style={{fontSize:14,fontWeight:600,color:textColor,marginBottom:8}}>📈 Resumo</div>
+          <div style={{fontSize:13,color:subColor,lineHeight:2}}>
+            💰 Volume vendido: <b style={{color:"#4CAF7D"}}>{fmt(totalVal)}</b><br/>
+            💵 Comissão total: <b style={{color:G}}>{fmt(totalComm)}</b><br/>
+            🏆 Posição no ranking: <b style={{color:"#5B8FD4"}}>#{myPos} de {brokerRank.length}</b><br/>
+            📊 Aproveitamento: <b style={{color:textColor}}>{mySales.length>0?Math.round(confirmed.length/mySales.length*100):0}%</b> das vendas confirmadas
+          </div>
+        </div>
+      </div>}
+
+      {/* ═══ VENDAS ═══ */}
+      {bTab==="vendas"&&<div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+          <div style={{fontSize:15,fontWeight:600,color:textColor}}>Minhas Vendas ({mySales.length})</div>
+          <button className="bh" onClick={function(){setMdl({t:"registerSale"})}} style={{padding:"6px 14px",borderRadius:8,background:"#4CAF7D15",color:"#4CAF7D",border:"1px solid #4CAF7D25",cursor:"pointer",fontSize:12,fontWeight:600}}>+ Nova</button>
+        </div>
+        <div style={{maxHeight:"50vh",overflow:"auto"}}>
+          {mySales.length===0&&<div style={{textAlign:"center",padding:30,color:subColor}}>Nenhuma venda registrada</div>}
+          {mySales.map(function(s){
+            var stColor=s.status==="confirmed"?"#4CAF7D":s.status==="rejected"?"#D45B5B":"#E8A94E";
+            var stLabel=s.status==="confirmed"?"✅ Confirmada":s.status==="rejected"?"❌ Rejeitada":"⏳ Pendente";
+            return <div key={s.id} style={{padding:14,background:cardBg,borderRadius:12,marginBottom:6,border:"1px solid "+borderColor}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                <div>
+                  <div style={{fontSize:15,fontWeight:700,color:textColor}}>{s.client_name}</div>
+                  <div style={{fontSize:12,color:subColor}}>{s.building_name} — {s.unit_name}</div>
+                </div>
+                <span style={{fontSize:11,fontWeight:600,color:stColor,padding:"3px 8px",background:stColor+"10",borderRadius:6}}>{stLabel}</span>
+              </div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <span style={{fontSize:12,color:subColor}}>{s.sale_date}</span>
+                <div>
+                  <span style={{fontSize:16,fontWeight:700,color:"#4CAF7D"}}>{fmt(s.sale_value)}</span>
+                  {s.commission_value>0&&<span style={{fontSize:12,color:G,marginLeft:8}}>💵 {fmt(s.commission_value)}</span>}
+                </div>
+              </div>
+              {s.admin_notes&&<div style={{fontSize:12,color:"#E8A94E",marginTop:6,padding:"4px 8px",borderRadius:6,background:"rgba(232,169,78,0.06)"}}>📝 {s.admin_notes}</div>}
+            </div>
+          })}
+        </div>
+      </div>}
+
+      {/* ═══ RANKING ═══ */}
+      {bTab==="ranking"&&<div>
+        <div style={{fontSize:15,fontWeight:600,color:textColor,marginBottom:12}}>🏆 Ranking de Corretores</div>
+        {brokerRank.map(function(r,i){
+          var isMe=r.id===broker.id;
+          return <div key={r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:10,marginBottom:4,background:isMe?G+"08":cardBg,border:"1px solid "+(isMe?G+"20":borderColor)}}>
+            <div style={{width:28,height:28,borderRadius:"50%",background:i===0?"#FFD70020":i===1?"#C0C0C020":i===2?"#CD7F3220":"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,color:i===0?"#FFD700":i===1?"#C0C0C0":i===2?"#CD7F32":subColor}}>{i===0?"🥇":i===1?"🥈":i===2?"🥉":(i+1)}</div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:14,fontWeight:isMe?700:500,color:isMe?G:textColor}}>{r.nome} {isMe&&"← você"}</div>
+            </div>
+            <div style={{textAlign:"right"}}>
+              <div style={{fontSize:14,fontWeight:700,color:"#4CAF7D"}}>{r.vendas} venda{r.vendas!==1?"s":""}</div>
+              {r.valor>0&&<div style={{fontSize:11,color:subColor}}>{fmt(r.valor)}</div>}
+            </div>
+          </div>
+        })}
+      </div>}
+
+      {/* ═══ EMPREENDIMENTOS ═══ */}
+      {bTab==="empreen"&&<div>
+        <div style={{fontSize:15,fontWeight:600,color:textColor,marginBottom:12}}>🏢 Empreendimentos Disponíveis</div>
+        {buildings.filter(function(b2){return b2.active}).map(function(b2){
+          var u=getUnits(b2.id);var av=u.filter(function(x){return x.status==="available"}).length;
+          return <div key={b2.id} className="bh" onClick={function(){setMdl(null);go(b2.id)}} style={{display:"flex",alignItems:"center",gap:12,padding:12,borderRadius:12,background:cardBg,border:"1px solid "+borderColor,marginBottom:6,cursor:"pointer"}}>
+            {b2.cover_photo?<img src={b2.cover_photo} style={{width:60,height:40,borderRadius:8,objectFit:"cover"}}/>:<div style={{width:60,height:40,borderRadius:8,background:b2.color+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,color:b2.color}}>🏢</div>}
+            <div style={{flex:1}}>
+              <div style={{fontSize:14,fontWeight:600,color:textColor}}>{b2.name}</div>
+              <div style={{fontSize:12,color:subColor}}>{b2.subtitle}</div>
+            </div>
+            <div style={{textAlign:"right"}}>
+              <div style={{fontSize:16,fontWeight:700,color:av>0?"#4CAF7D":"#D45B5B"}}>{av}</div>
+              <div style={{fontSize:10,color:subColor}}>disponíveis</div>
+            </div>
+          </div>
+        })}
+      </div>}
+
       <button style={mC} onClick={function(){setMdl(null)}}>Fechar</button>
     </div>;
   }
@@ -3689,6 +3767,16 @@ function App(){
                   <option value="imediato">Imediato</option><option value="3meses">3 meses</option><option value="6meses">6 meses</option><option value="1ano">1 ano</option><option value="indefinido">Indefinido</option>
                 </select>
               </div>}
+              {/* NPS */}
+              <div style={{marginTop:8,borderTop:"1px solid "+borderColor,paddingTop:8}}>
+                <div style={{fontSize:12,fontWeight:600,color:textColor,marginBottom:4}}>📊 NPS — Satisfação</div>
+                <div style={{display:"flex",gap:2}}>
+                  {[0,1,2,3,4,5,6,7,8,9,10].map(function(n){return <button key={n} className="bh" onClick={async function(){await sb.from("pesquisas_nps").insert({lead_id:waSel.id,etapa:waSel.etapa_funil,nota:n});wmsg("NPS "+n+" registrado!")}} style={{flex:1,padding:"4px 0",borderRadius:4,fontSize:11,fontWeight:700,background:n<=6?"#D45B5B15":n<=8?"#E8A94E15":"#4CAF7D15",color:n<=6?"#D45B5B":n<=8?"#E8A94E":"#4CAF7D",border:"none",cursor:"pointer"}}>{n}</button>})}
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:subColor,marginTop:2}}>
+                  <span>Detrator</span><span>Neutro</span><span>Promotor</span>
+                </div>
+              </div>
             </div>}
           </div>
           {/* Messages */}
@@ -3737,6 +3825,70 @@ function App(){
           <div style={{fontSize:16,fontWeight:500}}>Selecione uma conversa</div>
           <div style={{fontSize:13}}>Clique em um lead à esquerda para abrir o chat</div>
         </div>}
+      </div>
+    };
+
+    // ═══ RENDER DOCS (Esteira de Documentos) ═══
+    var renderDocs=function(){
+      var docTypes=[{k:"cpf",l:"CPF/RG",i:"🆔"},{k:"comprovante_renda",l:"Comprovante de Renda",i:"💰"},{k:"comprovante_residencia",l:"Comp. Residência",i:"🏠"},{k:"certidao_casamento",l:"Certidão Casamento",i:"💍"},{k:"contrato",l:"Contrato",i:"📋"},{k:"procuracao",l:"Procuração",i:"📜"},{k:"escritura",l:"Escritura",i:"📄"},{k:"outro",l:"Outro",i:"📎"}];
+      var statusCol={pendente:"#E8A94E",enviado:"#5B8FD4",aprovado:"#4CAF7D",reprovado:"#D45B5B"};
+      return <div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+          <div style={{fontSize:15,fontWeight:700,color:textColor}}>📁 Esteira de Documentos</div>
+        </div>
+        {/* Filter by lead */}
+        <div style={{display:"flex",gap:8,marginBottom:12}}>
+          <select value={docLead} onChange={function(e){setDocLead(e.target.value)}} style={{flex:1,padding:"8px 12px",borderRadius:10,border:"1px solid "+borderColor,background:isDark?"#1a1a19":"#EFEBE4",color:textColor,fontSize:13,outline:"none"}}>
+            <option value="">Todos os leads</option>
+            {waLeads.map(function(l){return <option key={l.id} value={l.id}>{l.nome||l.telefone}</option>})}
+          </select>
+        </div>
+        {/* Add doc */}
+        {docLead&&<div style={{padding:12,borderRadius:10,background:cardBg,border:"1px dashed "+G+"30",marginBottom:12}}>
+          <div style={{fontSize:13,fontWeight:600,color:G,marginBottom:8}}>➕ Adicionar Documento</div>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+            {docTypes.map(function(dt){
+              var exists=docs2.find(function(d){return d.lead_id===docLead&&d.tipo===dt.k});
+              return <button key={dt.k} className="bh" onClick={async function(){
+                if(exists)return;
+                await sb.from("documentos_lead").insert({lead_id:docLead,tipo:dt.k,nome_arquivo:dt.l,status:"pendente"});
+                await loadDocs2();wmsg("📎 "+dt.l+" adicionado")
+              }} style={{padding:"6px 12px",borderRadius:8,fontSize:12,background:exists?statusCol[exists.status]+"10":G+"08",color:exists?statusCol[exists.status]:G,border:"1px solid "+(exists?statusCol[exists.status]+"20":G+"20"),cursor:exists?"default":"pointer",opacity:exists?0.7:1}}>{dt.i} {dt.l} {exists&&<span style={{fontSize:10}}>({exists.status})</span>}</button>
+            })}
+          </div>
+        </div>}
+        {/* Doc list */}
+        {docs2.length===0&&<div style={{padding:30,textAlign:"center",color:subColor}}>Nenhum documento{docLead?" para este lead":""}</div>}
+        {docLead&&docs2.length>0&&<div style={{marginBottom:10}}>
+          <div style={{display:"flex",gap:4,marginBottom:6}}>
+            {["pendente","enviado","aprovado","reprovado"].map(function(s){var cnt=docs2.filter(function(d){return d.status===s}).length;return cnt>0?<span key={s} style={{fontSize:11,padding:"3px 8px",borderRadius:6,background:statusCol[s]+"10",color:statusCol[s],fontWeight:600}}>{s}: {cnt}</span>:null})}
+          </div>
+          {/* Progress bar */}
+          <div style={{display:"flex",gap:2,marginBottom:10}}>
+            {docs2.map(function(d){return <div key={d.id} style={{flex:1,height:6,borderRadius:3,background:statusCol[d.status]||"#333"}} title={d.nome_arquivo+" — "+d.status}/>})}
+          </div>
+        </div>}
+        {docs2.map(function(d){
+          var lead=waLeads.find(function(l){return l.id===d.lead_id});
+          var dt=docTypes.find(function(t2){return t2.k===d.tipo});
+          return <div key={d.id} style={{display:"flex",alignItems:"center",gap:10,padding:10,borderRadius:10,background:cardBg,border:"1px solid "+borderColor,marginBottom:4}}>
+            <span style={{fontSize:20}}>{dt?dt.i:"📎"}</span>
+            <div style={{flex:1}}>
+              <div style={{fontSize:14,fontWeight:600,color:textColor}}>{d.nome_arquivo||d.tipo}</div>
+              <div style={{fontSize:12,color:subColor}}>{lead?lead.nome:"—"} · {new Date(d.criado_em).toLocaleDateString("pt-BR")}</div>
+              {d.observacoes&&<div style={{fontSize:11,color:subColor}}>{d.observacoes}</div>}
+            </div>
+            <div style={{display:"flex",gap:3}}>
+              <select value={d.status} onChange={async function(e){await sb.from("documentos_lead").update({status:e.target.value}).eq("id",d.id);await loadDocs2();wmsg("Status: "+e.target.value)}} style={{padding:"4px 6px",borderRadius:6,fontSize:11,background:cardBg,color:statusCol[d.status]||textColor,border:"1px solid "+borderColor,cursor:"pointer",fontWeight:600}}>
+                <option value="pendente">⏳ Pendente</option>
+                <option value="enviado">📤 Enviado</option>
+                <option value="aprovado">✅ Aprovado</option>
+                <option value="reprovado">❌ Reprovado</option>
+              </select>
+              <button className="bh" onClick={async function(){await sb.from("documentos_lead").delete().eq("id",d.id);await loadDocs2();wmsg("Removido")}} style={{width:24,height:24,borderRadius:6,background:"rgba(213,91,91,0.1)",color:"#D45B5B",border:"none",cursor:"pointer",fontSize:11,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+            </div>
+          </div>
+        })}
       </div>
     };
 
@@ -3800,6 +3952,12 @@ function App(){
     var _avisoForm=useState({titulo:"",conteudo:"",tipo:"geral",destinatarios:"todos",building_id:""});var avisoForm=_avisoForm[0];var setAvisoForm=_avisoForm[1];
     var loadAvisos=async function(){try{var r=await sb.from("avisos").select("*").eq("ativo",true).order("criado_em",{ascending:false});setAvisos2(r.data||[])}catch(e){}};
     useEffect(function(){if(waTab==="avisos")loadAvisos()},[waTab]);
+
+    // ═══ DOCS STATE ═══
+    var _docs2=useState([]);var docs2=_docs2[0];var setDocs2=_docs2[1];
+    var _docLead=useState("");var docLead=_docLead[0];var setDocLead=_docLead[1];
+    var loadDocs2=async function(){try{var q=sb.from("documentos_lead").select("*").order("criado_em",{ascending:false});if(docLead)q=q.eq("lead_id",docLead);var r=await q.limit(100);setDocs2(r.data||[])}catch(e){}};
+    useEffect(function(){if(waTab==="docs")loadDocs2()},[waTab,docLead]);
 
     // ═══ FUNIL FILTER ═══
     var _funilBld=useState("all");var funilBld=_funilBld[0];var setFunilBld=_funilBld[1];
@@ -4243,7 +4401,7 @@ function App(){
       </div>
       {/* Tabs */}
       <div style={{display:"flex",gap:6,marginBottom:14}}>
-        {[{k:"inbox",l:"📥 Inbox",c:WA_GREEN},{k:"funil",l:"📊 Funil",c:"#E8A94E"},{k:"contatos",l:"📇 Contatos",c:"#8B6FBF"},{k:"visitas",l:"📅 Visitas",c:"#5B8FD4"},{k:"propostas",l:"📄 Propostas",c:"#4CAF7D"},{k:"avisos",l:"📢 Avisos",c:"#C47070"}].concat(isSA?[{k:"config",l:"⚙️ Config",c:"#5B8FD4"}]:[]).map(function(tb){
+        {[{k:"inbox",l:"📥 Inbox",c:WA_GREEN},{k:"funil",l:"📊 Funil",c:"#E8A94E"},{k:"contatos",l:"📇 Contatos",c:"#8B6FBF"},{k:"visitas",l:"📅 Visitas",c:"#5B8FD4"},{k:"propostas",l:"📄 Propostas",c:"#4CAF7D"},{k:"docs",l:"📁 Docs",c:G},{k:"avisos",l:"📢 Avisos",c:"#C47070"}].concat(isSA?[{k:"config",l:"⚙️ Config",c:"#5B8FD4"}]:[]).map(function(tb){
           return <span key={tb.k} className="bh" onClick={function(){setWaTab(tb.k)}} style={{padding:"8px 18px",borderRadius:10,fontSize:14,fontWeight:600,cursor:"pointer",background:waTab===tb.k?tb.c+"15":"transparent",color:waTab===tb.k?tb.c:subColor,border:waTab===tb.k?"1px solid "+tb.c+"25":"1px solid "+borderColor,transition:"all 0.15s"}}>{tb.l}{tb.k==="inbox"&&totalUnread>0?" ("+totalUnread+")":""}</span>
         })}
       </div>
@@ -4252,6 +4410,7 @@ function App(){
       {waTab==="contatos"&&renderContatos()}
       {waTab==="visitas"&&renderVisitas()}
       {waTab==="propostas"&&renderPropostas()}
+      {waTab==="docs"&&renderDocs()}
       {waTab==="avisos"&&renderAvisos()}
       {waTab==="config"&&isSA&&renderConfig()}
       {/* Local toast */}
