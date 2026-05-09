@@ -36,8 +36,9 @@ section{padding:100px 0}
 (async function(){
   try{
     var sb2=supabase.createClient("https://zztqlktqevfdxjyzvand.supabase.co","eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp6dHFsa3RxZXZmZHhqeXp2YW5kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MzI3NjMsImV4cCI6MjA5MTUwODc2M30.xl4LFZoPDR9q78-y9tcyLgaSSLb_oQFrcm2hjmnb-Mg");
-    var r=await sb2.from("config_whatsapp").select("valor").eq("chave","landing_ativa").single();
-    var val=r.data?String(r.data.valor).replace(/"/g,""):"false";
+    var r=await sb2.from("config_whatsapp").select("valor").eq("chave","landing_ativa").limit(1);
+    var row=r.data&&r.data[0];
+    var val=row?String(row.valor).replace(/"/g,""):"false";
     if(val!=="true"){
       var base=window.location.pathname.substring(0,window.location.pathname.lastIndexOf("/")+1);
       window.location.replace(base+"portal.html");

@@ -367,7 +367,7 @@ var WA = {
   updateLeadEtapa:async function(leadId,etapa){await sb.from("leads_whatsapp").update({etapa_funil:etapa,atualizado_em:new Date().toISOString()}).eq("id",leadId)},
   updateLead:async function(leadId,data){await sb.from("leads_whatsapp").update(Object.assign({},data,{atualizado_em:new Date().toISOString()})).eq("id",leadId)},
   getConfig:async function(){var r=await sb.from("config_whatsapp").select("*").eq("tenant_id",DB._tid);var cfg={};(r.data||[]).forEach(function(c){cfg[c.chave]=c.valor});return cfg},
-  saveConfig:async function(k,v){await sb.from("config_whatsapp").upsert({chave:k,valor:v,tenant_id:DB._tid,atualizado_em:new Date().toISOString()},{onConflict:"chave"})},
+  saveConfig:async function(k,v){await sb.from("config_whatsapp").upsert({chave:k,valor:JSON.stringify(String(v)),tenant_id:DB._tid,atualizado_em:new Date().toISOString()},{onConflict:"chave"})},
   sendMessage:async function(leadId,conteudo,atendenteId){
     try{
       var resp=await fetch("https://zztqlktqevfdxjyzvand.supabase.co/functions/v1/enviar-whatsapp",{
@@ -622,8 +622,10 @@ function App(){
         }
       }
       setCfg(results[0]);setBuildings(results[1]);setAllUnits(results[2]);setAllPhotos(results[3]);setAllPlants(results[4]);setAllDocs(results[5]);setAllNotices(results[6]);setBrokers(results[7]);setSales(results[8]);setAdminUsers(results[9]);setTasks(results[10]);
-    } catch(e){ console.log("Load error:", e); }
+    } catch(e){ console.log("Load error:", e); document.title="ERRO: "+(e.message||e); window._loadError=(e.message||String(e)); }
     setRdy(true);
+    // Debug: show what loaded
+    window._debugInfo="slug:"+slug+" tid:"+DB._tid+" bld:"+(buildings?buildings.length:"?");
     refreshPromos();
   };
   useEffect(function(){ loadAll(); }, []);
@@ -716,6 +718,26 @@ function App(){
       <style>{"@keyframes p{0%,100%{opacity:1}50%{opacity:.3}}@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}"}</style>
     </div>
   );
+
+  // ═══ DIAGNOSTIC - if no data loaded ═══
+  if(buildings.length===0&&!adm){
+    return <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",background:bgColor,color:textColor,minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{textAlign:"center",padding:40,maxWidth:400}}>
+        <div style={{fontSize:48,marginBottom:16}}>🔧</div>
+        <div style={{fontSize:20,fontWeight:700,marginBottom:8}}>Portal em configuração</div>
+        <div style={{fontSize:14,color:subColor,lineHeight:1.6,marginBottom:20}}>Nenhum empreendimento encontrado. Faça login como admin para configurar o portal.</div>
+        <div style={{fontSize:11,color:subColor,padding:10,borderRadius:8,background:isDark?"#1a1a19":"#EFEBE4",textAlign:"left",fontFamily:"monospace",wordBreak:"break-all"}}>
+          slug: {slug}<br/>
+          tenant_id: {DB._tid}<br/>
+          tenant: {tenant?tenant.nome_empresa:"null"}<br/>
+          buildings: {buildings.length}<br/>
+          units: {allUnits.length}<br/>
+          error: {window._loadError||"none"}
+        </div>
+        <button className="bh" onClick={function(){setMdl({t:"login"})}} style={{marginTop:16,padding:"12px 32px",borderRadius:10,background:G,color:"#0a0a09",fontSize:15,fontWeight:700,border:"none",cursor:"pointer"}}>🔐 Login Admin</button>
+      </div>
+    </div>
+  }
 
   // ═══ SETUP WIZARD (new tenants) ═══
   var _setupStep=useState(tenant?tenant.setup_step||0:0);var setupStep=_setupStep[0];var setSetupStep=_setupStep[1];
@@ -4807,6 +4829,10 @@ function App(){
   return(
     <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",background:bgColor,color:textColor,minHeight:"100vh",maxWidth:1024,margin:"0 auto",position:"relative",paddingBottom:80}}>
       <style>{"@keyframes p{0%,100%{opacity:1}50%{opacity:.3}}"}</style>
+      {/* DEBUG - remover depois */}
+      <div style={{position:"fixed",bottom:4,right:4,padding:"4px 10px",borderRadius:6,background:"rgba(200,0,0,0.9)",color:"#fff",fontSize:10,zIndex:9999}}>
+        slug:{slug} tid:{DB._tid} bld:{buildings.length} t:{tenant?tenant.nome_empresa:"NULL"} sc:{tenant?String(tenant.setup_completo):"?"}
+      </div>
 
       {/* HERO */}
       <div style={{padding:"60px 24px 36px",textAlign:"center",background:cfg.hero_banner?"url("+cfg.hero_banner+") center/cover":isDark?"linear-gradient(175deg,#0a0a09 0%,#16140f 40%,#0d0c08 70%,#0a0a09 100%)":"linear-gradient(175deg,#F5F2ED 0%,#EDE8E0 40%,#F0EDE6 70%,#F5F2ED 100%)",position:"relative",overflow:"hidden"}}>

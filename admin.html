@@ -113,7 +113,7 @@ function App(){
 
   var toggleLanding=async function(){
     var novo=!landingOn;
-    await sb.from("config_whatsapp").update({valor:novo?"true":"false"}).eq("chave","landing_ativa");
+    await sb.from("config_whatsapp").update({valor:JSON.stringify(novo?"true":"false")}).eq("chave","landing_ativa");
     setLandingOn(novo);
     msg(novo?"🟢 Landing page ativada":"🔴 Landing desativada — redireciona para o portal");
   };
