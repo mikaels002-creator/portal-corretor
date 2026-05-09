@@ -32,23 +32,6 @@ section{padding:100px 0}
 </style>
 </head>
 <body>
-<script>
-(async function(){
-  try{
-    var sb2=supabase.createClient("https://zztqlktqevfdxjyzvand.supabase.co","eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp6dHFsa3RxZXZmZHhqeXp2YW5kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MzI3NjMsImV4cCI6MjA5MTUwODc2M30.xl4LFZoPDR9q78-y9tcyLgaSSLb_oQFrcm2hjmnb-Mg");
-    var r=await sb2.from("config_whatsapp").select("valor").eq("chave","landing_ativa").limit(1);
-    if(r.error){console.log("Landing check error:",r.error);return}
-    var row=r.data&&r.data[0];
-    if(!row){console.log("No landing_ativa row found");return}
-    var lv=row.valor;
-    var isOff=(lv===false||lv==="false"||String(lv).replace(/"/g,"")==="false");
-    if(isOff){
-      var base=window.location.pathname.substring(0,window.location.pathname.lastIndexOf("/")+1);
-      window.location.replace(base+"portal.html");
-    }
-  }catch(e){console.log("Landing check exception:",e)}
-})()
-</script>
 <div id="root"></div>
 <script type="text/babel">
 var {useState,useEffect,useRef}=React;
@@ -60,9 +43,24 @@ function App(){
   var _showForm=useState(false);var showForm=_showForm[0];var setShowForm=_showForm[1];
   var _sent=useState(false);var sent=_sent[0];var setSent=_sent[1];
   var _toast=useState(null);var toast=_toast[0];var setToast=_toast[1];
+  var _landingStatus=useState("checking");var landingStatus=_landingStatus[0];var setLandingStatus=_landingStatus[1];
   var msg=function(m){setToast(m);setTimeout(function(){setToast(null)},3000)};
 
   useEffect(function(){
+    // Check landing status
+    sb.from("config_whatsapp").select("valor").eq("chave","landing_ativa").limit(1).then(function(r){
+      var row=r.data&&r.data[0];
+      if(!row){setLandingStatus("on");return}
+      var lv=row.valor;
+      var isOff=(lv===false||lv==="false"||String(lv).replace(/"/g,"")==="false");
+      if(isOff){
+        var base=window.location.pathname.substring(0,window.location.pathname.lastIndexOf("/")+1);
+        window.location.replace(base+"portal.html");
+      }else{
+        setLandingStatus("on");
+      }
+    }).catch(function(){setLandingStatus("on")});
+    // Load planos
     sb.from("planos").select("*").eq("ativo",true).order("valor_mensal").then(function(r){setPlanos(r.data||[])});
   },[]);
 
@@ -312,6 +310,15 @@ function App(){
       </div>
     </div>
   };
+
+  // While checking landing status, show loading
+  if(landingStatus==="checking") return <div style={{minHeight:"100vh",background:"#06060a",display:"flex",alignItems:"center",justifyContent:"center"}}>
+    <div style={{textAlign:"center"}}>
+      <div style={{fontSize:36,marginBottom:12,animation:"pulse 1.5s infinite"}}>🏢</div>
+      <div style={{fontSize:14,color:"#666"}}>Carregando...</div>
+      <style>{"@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}"}</style>
+    </div>
+  </div>;
 
   return <div>
     <Nav/>
