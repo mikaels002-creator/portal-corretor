@@ -178,12 +178,12 @@ var IgIcon = function(){return <svg width="12" height="12" viewBox="0 0 24 24" f
 var DB = {
   _tid: "mk", // tenant_id, set on load
   // --- Site Config ---
-  loadConfig: async function(){
+  loadConfig: async function(){try{
     var res = await sb.from("site_config").select("*");
     if(res.error || !res.data) return {};
     var cfg = {};
     res.data.forEach(function(r){ cfg[r.key] = r.value; });
-    return cfg;
+    return cfg;}catch(e){return{}}
   },
   saveConfig: async function(key, value){
     await sb.from("site_config").upsert({key:key, value:String(value)});
@@ -305,11 +305,11 @@ var DB = {
   deleteBroker: async function(id){
     await sb.from("brokers").delete().eq("id", id);
   },
-  loadSales: async function(){var r=await sb.from("broker_sales").select("*").order("id",{ascending:false});return r.data||[]},
-  addSale: async function(s){await sb.from("broker_sales").insert(s)},
-  updateSale: async function(id,c){await sb.from("broker_sales").update(c).eq("id",id)},
+  loadSales: async function(){try{var r=await sb.from("broker_sales").select("*").order("id",{ascending:false});return r.data||[]}catch(e){return[]}},
+  addSale: async function(s){try{await sb.from("broker_sales").insert(s)}catch(e){}},
+  updateSale: async function(id,c){try{await sb.from("broker_sales").update(c).eq("id",id)}catch(e){}},
   // --- Admin Users ---
-  loadAdminUsers: async function(){var r=await sb.from("admin_users").select("*").eq("tenant_id",DB._tid).order("id");return r.data||[]},
+  loadAdminUsers: async function(){try{var r=await sb.from("admin_users").select("*").eq("tenant_id",DB._tid).order("id");return r.data||[]}catch(e){return[]}},
   addAdminUser: async function(u){u.tenant_id=DB._tid;return await sb.from("admin_users").insert(u)},
   updateAdminUser: async function(id,c){await sb.from("admin_users").update(c).eq("id",id)},
   deleteAdminUser: async function(id){await sb.from("admin_users").delete().eq("id",id)},
@@ -324,7 +324,7 @@ var DB = {
   saveReport: async function(r){await sb.from("ai_reports").insert(r)},
   loadReports: async function(){var r=await sb.from("ai_reports").select("*").order("id",{ascending:false}).limit(20);return r.data||[]},
   // --- Tasks ---
-  loadTasks: async function(){var r=await sb.from("tasks").select("*").order("id",{ascending:false});return r.data||[]},
+  loadTasks: async function(){try{var r=await sb.from("tasks").select("*").order("id",{ascending:false});return r.data||[]}catch(e){return[]}},
   addTask: async function(t){await sb.from("tasks").insert(t)},
   updateTask: async function(id,c){await sb.from("tasks").update(c).eq("id",id)},
   deleteTask: async function(id){await sb.from("tasks").delete().eq("id",id)},
@@ -603,10 +603,24 @@ function App(){
         DB._tid=tr.data.slug||tr.data.id;
         document.title="Portal "+(tr.data.nome_portal||tr.data.nome_empresa.split(" ")[0]);
       } else {
-        // Fallback - no tenant found, use mk as default
         DB._tid="mk";
       }
-      var results = await Promise.all([DB.loadConfig(),DB.loadBuildings(),DB.loadAllUnits(),DB.loadPhotos(),DB.loadPlants(),DB.loadDocuments(),DB.loadNotices(),DB.loadBrokers(),DB.loadSales(),DB.loadAdminUsers(),DB.loadTasks()]);
+      var safe=function(fn){return fn().catch(function(){return[]})};
+      var results = await Promise.all([safe(DB.loadConfig),safe(DB.loadBuildings),safe(DB.loadAllUnits),safe(DB.loadPhotos),safe(DB.loadPlants),safe(DB.loadDocuments),safe(DB.loadNotices),safe(DB.loadBrokers),safe(DB.loadSales),safe(DB.loadAdminUsers),safe(DB.loadTasks)]);
+      // If buildings came back empty, try without tenant filter (backwards compat)
+      if((!results[1]||results[1].length===0)&&DB._tid){
+        var fb=await sb.from("buildings").select("*").order("sort_order");
+        if(fb.data&&fb.data.length>0){
+          results[1]=fb.data;
+          results[2]=(await sb.from("units").select("*").order("sort_order")).data||[];
+          results[3]=(await sb.from("photos").select("*").order("sort_order")).data||[];
+          results[4]=(await sb.from("plants").select("*").order("sort_order")).data||[];
+          results[5]=(await sb.from("documents").select("*").order("sort_order")).data||[];
+          results[6]=(await sb.from("notices").select("*").order("id",{ascending:false})).data||[];
+          results[7]=(await sb.from("brokers").select("*").order("id",{ascending:false})).data||[];
+          results[9]=(await sb.from("admin_users").select("*").order("id")).data||[];
+        }
+      }
       setCfg(results[0]);setBuildings(results[1]);setAllUnits(results[2]);setAllPhotos(results[3]);setAllPlants(results[4]);setAllDocs(results[5]);setAllNotices(results[6]);setBrokers(results[7]);setSales(results[8]);setAdminUsers(results[9]);setTasks(results[10]);
     } catch(e){ console.log("Load error:", e); }
     setRdy(true);
