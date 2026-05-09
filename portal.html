@@ -118,7 +118,7 @@ body.light [style*="rgba(139, 111, 191, 0.0"]{background:rgba(139,111,191,0.06)!
 <body>
 <script>
   var tp=sessionStorage.getItem('tenant_slug');
-  if(tp){sessionStorage.removeItem('tenant_slug');history.replaceState(null,'','/'+tp)}
+  if(tp){sessionStorage.removeItem('tenant_slug');history.replaceState(null,'',tp)}
 </script>
 <div id="root"></div>
 <script type="text/babel" data-type="module">
@@ -448,7 +448,16 @@ var SmartImg = function(props){
 function App(){
   // ═══ TENANT / MULTI-TENANT ═══
   var _tenant = useState(null); var tenant = _tenant[0]; var setTenant = _tenant[1];
-  var slug = window.location.pathname.replace(/^\//,"").replace(/\/$/,"").split("/")[0] || "mk";
+  var slug = (function(){
+    // Check sessionStorage first (from 404 redirect)
+    var ss=sessionStorage.getItem('tenant_slug');
+    if(ss){sessionStorage.removeItem('tenant_slug');return ss}
+    // Check URL path - remove known file names and repo name
+    var path=window.location.pathname.replace(/^\//,"").replace(/\/$/,"");
+    var parts=path.split("/").filter(function(p){return p&&p!=="portal.html"&&p!=="index.html"&&p!=="admin.html"&&p!=="portal-corretor"});
+    if(parts.length>0&&parts[parts.length-1].indexOf(".")===-1)return parts[parts.length-1];
+    return "mk";
+  })();
   var tenantName = tenant ? tenant.nome_empresa : "";
   var portalDisplayName = tenant ? (tenant.nome_portal || tenant.nome_empresa.split(" ")[0]) : "";
   var portalTitle = tenant ? "Portal " + portalDisplayName : "Portal do Corretor";

@@ -4,14 +4,21 @@
 <meta charset="utf-8">
 <title>Redirecionando...</title>
 <script>
-  var path = window.location.pathname.replace(/^\//,"").replace(/\/$/,"");
-  if(path === 'admin' || path === 'admin.html') {
-    window.location.replace(window.location.origin + '/admin.html');
-  } else if(path && path !== 'index.html' && path !== 'landing.html' && path !== 'portal.html') {
-    sessionStorage.setItem('tenant_slug', path);
-    window.location.replace(window.location.origin + '/portal.html');
+  var path = window.location.pathname;
+  var parts = path.replace(/^\//,"").replace(/\/$/,"").split("/");
+  // Get base path (repo name on GitHub Pages)
+  var base = "";
+  if(parts.length > 1) base = "/" + parts[0];
+  var last = parts[parts.length - 1];
+  
+  if(last === 'admin' || last === 'admin.html') {
+    window.location.replace(base + '/admin.html');
+  } else if(last && last !== 'index.html' && last !== 'portal.html' && last.indexOf('.') === -1) {
+    // Tenant slug - save and redirect to portal
+    sessionStorage.setItem('tenant_slug', last);
+    window.location.replace(base + '/portal.html');
   } else {
-    window.location.replace(window.location.origin + '/');
+    window.location.replace(base + '/');
   }
 </script>
 </head>
