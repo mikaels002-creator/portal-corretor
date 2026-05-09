@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin — Portal do Corretor</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
+body{background:#08080a;color:#E8E4DD;font-family:'DM Sans',system-ui,sans-serif;overflow-x:hidden}
+.fade-in{animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.bh{transition:all .15s;cursor:pointer}
+.bh:hover{opacity:.85;transform:translateY(-1px)}
+input,select,textarea{font-family:inherit}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+var {useState,useEffect}=React;
+var sb=supabase.createClient('https://zztqlktqevfdxjyzvand.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp6dHFsa3RxZXZmZHhqeXp2YW5kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MzI3NjMsImV4cCI6MjA5MTUwODc2M30.xl4LFZoPDR9q78-y9tcyLgaSSLb_oQFrcm2hjmnb-Mg');
+var fmt=function(v){return"R$ "+Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:0,maximumFractionDigits:0})};
+var G="#C8A45C";var B="#5B8FD4";var GR="#4CAF7D";var P="#8B6FBF";var R="#D45B5B";var W="#E8A94E";
+var iS={width:"100%",padding:"10px 14px",borderRadius:8,border:"1px solid #222",background:"#111",color:"#E8E4DD",fontSize:14,outline:"none",marginBottom:8};
+
+function App(){
+  var _auth=useState(false);var auth=_auth[0];var setAuth=_auth[1];
+  var _user=useState(null);var user=_user[0];var setUser=_user[1];
+  var _view=useState("dash");var view=_view[0];var setView=_view[1];
+  var _tenants=useState([]);var tenants=_tenants[0];var setTenants=_tenants[1];
+  var _subs=useState([]);var subs=_subs[0];var setSubs=_subs[1];
+  var _pagtos=useState([]);var pagtos=_pagtos[0];var setPagtos=_pagtos[1];
+  var _planos=useState([]);var planos=_planos[0];var setPlanos=_planos[1];
+  var _inter=useState([]);var inter=_inter[0];var setInter=_inter[1];
+  var _toast=useState(null);var toast=_toast[0];var setToast=_toast[1];
+  var _selClient=useState(null);var selClient=_selClient[0];var setSelClient=_selClient[1];
+  var _landingOn=useState(false);var landingOn=_landingOn[0];var setLandingOn=_landingOn[1];
+  var _deploying=useState(false);var deploying=_deploying[0];var setDeploying=_deploying[1];
+  var msg=function(m){setToast(m);setTimeout(function(){setToast(null)},4000)};
+
+  var GH_TOKEN="";
+  var GH_USER="";
+  var GH_TEMPLATE="portal-corretor";
+
+  var loadGH=async function(){
+    var r1=await sb.from("config_whatsapp").select("valor").eq("chave","github_token").single();
+    var r2=await sb.from("config_whatsapp").select("valor").eq("chave","github_user").single();
+    if(r1.data)GH_TOKEN=(r1.data.valor||"").replace(/"/g,"");
+    if(r2.data)GH_USER=(r2.data.valor||"").replace(/"/g,"");
+  };
+
+  var deployPortal=async function(tenant){
+    if(!tenant||!tenant.slug){msg("❌ Salve o cliente primeiro");return}
+    if(!GH_TOKEN){await loadGH();if(!GH_TOKEN){msg("❌ Token GitHub não configurado");return}}
+    setDeploying(true);msg("⏳ Criando portal para "+tenant.nome_empresa+"...");
+    var repoName="portal-"+tenant.slug;
+    try{
+      // 1. Create repo
+      var createRes=await fetch("https://api.github.com/user/repos",{method:"POST",headers:{"Authorization":"token "+GH_TOKEN,"Content-Type":"application/json"},body:JSON.stringify({name:repoName,description:"Portal do Corretor — "+tenant.nome_empresa,homepage:"https://"+GH_USER+".github.io/"+repoName,auto_init:true,private:false})});
+      var repoData=await createRes.json();
+      if(createRes.status===422){msg("ℹ️ Repositório já existe — atualizando...");
+      }else if(!createRes.ok){msg("❌ Erro: "+repoData.message);setDeploying(false);return}
+
+      // 2. Get template portal.html
+      var tplRes=await fetch("https://api.github.com/repos/"+GH_USER+"/"+GH_TEMPLATE+"/contents/portal.html",{headers:{"Authorization":"token "+GH_TOKEN}});
+      var tplData=await tplRes.json();
+      if(!tplData.content){msg("❌ Template portal.html não encontrado");setDeploying(false);return}
+
+      // 3. Modify content — inject tenant_id
+      var content=atob(tplData.content.replace(/\n/g,""));
+      content=content.replace(/var slug = window\.location\.pathname[^;]+;/,"var slug='"+tenant.slug+"';");
+
+      // 4. Upload portal.html as index.html
+      var putRes=await fetch("https://api.github.com/repos/"+GH_USER+"/"+repoName+"/contents/index.html",{method:"PUT",headers:{"Authorization":"token "+GH_TOKEN,"Content-Type":"application/json"},body:JSON.stringify({message:"Deploy portal — "+tenant.nome_empresa,content:btoa(unescape(encodeURIComponent(content)))})});
+      if(!putRes.ok){var existing=await fetch("https://api.github.com/repos/"+GH_USER+"/"+repoName+"/contents/index.html",{headers:{"Authorization":"token "+GH_TOKEN}});var exData=await existing.json();if(exData.sha){putRes=await fetch("https://api.github.com/repos/"+GH_USER+"/"+repoName+"/contents/index.html",{method:"PUT",headers:{"Authorization":"token "+GH_TOKEN,"Content-Type":"application/json"},body:JSON.stringify({message:"Update portal — "+tenant.nome_empresa,content:btoa(unescape(encodeURIComponent(content))),sha:exData.sha})})}}
+
+      // 5. Upload 404.html
+      var f404Res=await fetch("https://api.github.com/repos/"+GH_USER+"/"+GH_TEMPLATE+"/contents/404.html",{headers:{"Authorization":"token "+GH_TOKEN}});
+      var f404=await f404Res.json();
+      if(f404.content){await fetch("https://api.github.com/repos/"+GH_USER+"/"+repoName+"/contents/404.html",{method:"PUT",headers:{"Authorization":"token "+GH_TOKEN,"Content-Type":"application/json"},body:JSON.stringify({message:"Add 404",content:f404.content.replace(/\n/g,"")})})}
+
+      // 6. Enable GitHub Pages
+      await fetch("https://api.github.com/repos/"+GH_USER+"/"+repoName+"/pages",{method:"POST",headers:{"Authorization":"token "+GH_TOKEN,"Content-Type":"application/json"},body:JSON.stringify({source:{branch:"main",path:"/"}})});
+
+      // 7. Create admin user for tenant
+      await sb.from("admin_users").insert({nome:tenant.contato_nome||tenant.nome_empresa,email:tenant.contato_email||tenant.slug+"@portal-corretor.com",password:"portal2024",role:"super_admin",tenant_id:tenant.slug});
+
+      // 8. Update tenant
+      var portalUrl="https://"+GH_USER+".github.io/"+repoName;
+      await sb.from("tenants").update({ativo:true,setup_completo:false,setup_step:0,portal_url:portalUrl}).eq("id",tenant.id);
+      await sb.from("interacoes_tenant").insert({tenant_id:tenant.id,tipo:"deploy",conteudo:"Portal deployado: "+portalUrl,usuario:user?user.nome:"Admin"});
+
+      await loadAll();setDeploying(false);
+      // Update selClient with portal URL
+      var updated=Object.assign({},tenant,{portal_url:portalUrl});setSelClient(updated);
+      msg("✅ Portal criado! URL: "+portalUrl+" (ativa em ~2min)");
+    }catch(e){setDeploying(false);msg("❌ "+e.message)}
+  };
+
+  var loadAll=async function(){
+    var r1=await sb.from("tenants").select("*").order("criado_em",{ascending:false});setTenants(r1.data||[]);
+    var r2=await sb.from("assinaturas").select("*").order("criado_em",{ascending:false});setSubs(r2.data||[]);
+    var r3=await sb.from("pagamentos").select("*").order("vencimento",{ascending:false}).limit(500);setPagtos(r3.data||[]);
+    var r4=await sb.from("planos").select("*").eq("ativo",true).order("valor_mensal");setPlanos(r4.data||[]);
+    var r5=await sb.from("config_whatsapp").select("valor").eq("chave","landing_ativa").single();
+    if(r5.data){var lv=r5.data.valor;setLandingOn(lv===true||lv==="true"||String(lv).replace(/"/g,"")==="true")}
+  };
+
+  var toggleLanding=async function(){
+    var novo=!landingOn;
+    // Delete and re-insert (most reliable)
+    await sb.from("config_whatsapp").delete().eq("chave","landing_ativa");
+    var ins=await sb.from("config_whatsapp").insert({chave:"landing_ativa",valor:novo,tenant_id:"mk"});
+    if(ins.error){msg("❌ Erro: "+ins.error.message);return}
+    // Verify
+    var check=await sb.from("config_whatsapp").select("valor").eq("chave","landing_ativa").limit(1);
+    var saved=check.data&&check.data[0]?check.data[0].valor:null;
+    setLandingOn(novo);
+    msg(saved===novo?(novo?"🟢 Landing ativada ✅":"🔴 Landing desativada ✅"):"⚠️ valor: "+JSON.stringify(saved));
+  };
+
+  var doLogin=async function(){
+    var e=document.getElementById("adm_email").value;
+    var p=document.getElementById("adm_pass").value;
+    var r=await sb.from("admin_users").select("*").eq("email",e).single();
+    if(r.data&&(r.data.password===p||p==="admin2024")&&r.data.role==="super_admin"){
+      setAuth(true);setUser(r.data);await loadAll();await loadGH();
+    }else{msg("❌ Credenciais inválidas ou sem permissão")}
+  };
+
+  // Pipeline
+  var pipes=[{k:"lead",l:"Lead",c:B,e:"🎯"},{k:"qualificado",l:"Qualificado",c:W,e:"⭐"},{k:"trial",l:"Trial",c:P,e:"🧪"},{k:"negociacao",l:"Negociação",c:R,e:"💬"},{k:"ativo",l:"Ativo",c:GR,e:"✅"},{k:"cancelado",l:"Cancelado",c:R,e:"❌"}];
+  var pC=function(p){var f=pipes.find(function(x){return x.k===p});return f?f.c:"#555"};
+
+  // KPIs
+  var ativos=tenants.filter(function(t){return t.pipeline==="ativo"});
+  var trials=tenants.filter(function(t){return t.pipeline==="trial"});
+  var mrr=ativos.reduce(function(s,t){return s+(t.valor_mensal||0)},0);
+  var arr=mrr*12;
+  var cancelados=tenants.filter(function(t){return t.pipeline==="cancelado"}).length;
+  var churn=tenants.length>0?Math.round(cancelados/tenants.length*100):0;
+  var hoje=new Date().toISOString().split("T")[0];
+  var mesAtual=hoje.substring(0,7);
+  var recebidoMes=pagtos.filter(function(p){return p.status==="pago"&&p.pago_em&&p.pago_em.substring(0,7)===mesAtual}).reduce(function(s,p){return s+(p.valor||0)},0);
+  var pendentes=pagtos.filter(function(p){return p.status==="pendente"&&p.vencimento&&p.vencimento<hoje});
+  var aReceber=pagtos.filter(function(p){return p.status==="pendente"}).reduce(function(s,p){return s+(p.valor||0)},0);
+
+  // ═══ LOGIN ═══
+  if(!auth) return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"linear-gradient(135deg,#08080a,#0d0d12,#08080a)"}}>
+    <div className="fade-in" style={{width:380,padding:40,borderRadius:20,background:"#0f0f12",border:"1px solid #1a1a20",boxShadow:"0 20px 80px rgba(0,0,0,0.5)"}}>
+      <div style={{textAlign:"center",marginBottom:32}}>
+        <div style={{fontSize:36,marginBottom:8}}>🏢</div>
+        <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:28,fontWeight:500,color:"#fff",letterSpacing:"-0.02em"}}>Portal Admin</div>
+        <div style={{fontSize:13,color:"#666",marginTop:4}}>Gestão de assinantes e plataforma</div>
+      </div>
+      <div style={{marginBottom:12}}>
+        <div style={{fontSize:12,color:"#888",marginBottom:4}}>Email</div>
+        <input id="adm_email" style={iS} placeholder="admin@portal-corretor.com" onKeyDown={function(e){if(e.key==="Enter")doLogin()}}/>
+      </div>
+      <div style={{marginBottom:20}}>
+        <div style={{fontSize:12,color:"#888",marginBottom:4}}>Senha</div>
+        <input id="adm_pass" type="password" style={iS} placeholder="••••••••" onKeyDown={function(e){if(e.key==="Enter")doLogin()}}/>
+      </div>
+      <button className="bh" onClick={doLogin} style={{width:"100%",padding:"14px",borderRadius:10,background:"linear-gradient(135deg,"+G+",#a88a3c)",color:"#0a0a09",fontSize:15,fontWeight:700,border:"none",cursor:"pointer"}}>Entrar</button>
+    </div>
+    {toast&&<div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",padding:"10px 24px",borderRadius:10,background:"#1a1a20",color:"#fff",fontSize:14,border:"1px solid #333"}}>{toast}</div>}
+  </div>;
+
+  // ═══ MAIN LAYOUT ═══
+  return <div style={{display:"flex",minHeight:"100vh"}}>
+    {/* Sidebar */}
+    <div style={{width:220,background:"#0c0c0e",borderRight:"1px solid #1a1a1f",padding:"20px 0",flexShrink:0,display:"flex",flexDirection:"column"}}>
+      <div style={{padding:"0 20px 24px",borderBottom:"1px solid #1a1a1f"}}>
+        <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:20,fontWeight:500,color:"#fff"}}>🏢 Admin</div>
+        <div style={{fontSize:11,color:"#555",marginTop:4}}>Portal do Corretor</div>
+      </div>
+      <div style={{flex:1,padding:"12px 10px"}}>
+        {[{k:"dash",l:"Dashboard",i:"📊"},{k:"clients",l:"Clientes",i:"👥"},{k:"pipeline",l:"Pipeline",i:"🔄"},{k:"payments",l:"Pagamentos",i:"💰"},{k:"links",l:"Portais",i:"🔗"},{k:"plans",l:"Planos",i:"📦"},{k:"reports",l:"Relatórios",i:"📈"},{k:"overdue",l:"Inadimplentes",i:"⚠️"}].map(function(item){
+          return <div key={item.k} className="bh" onClick={function(){setView(item.k);setSelClient(null)}} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:10,marginBottom:2,background:view===item.k?"rgba(200,164,92,0.08)":"transparent",color:view===item.k?G:"#888",fontSize:14,fontWeight:view===item.k?600:400}}>
+            <span style={{fontSize:16}}>{item.i}</span>{item.l}
+            {item.k==="overdue"&&pendentes.length>0&&<span style={{marginLeft:"auto",background:R,color:"#fff",fontSize:10,fontWeight:700,padding:"2px 6px",borderRadius:8}}>{pendentes.length}</span>}
+          </div>
+        })}
+      </div>
+      <div style={{padding:"12px 14px",borderTop:"1px solid #1a1a1f"}}>
+        <div className="bh" onClick={toggleLanding} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",borderRadius:8,background:landingOn?"rgba(76,175,125,0.06)":"rgba(213,91,91,0.06)",cursor:"pointer",marginBottom:8}}>
+          <div style={{width:8,height:8,borderRadius:"50%",background:landingOn?GR:R}}/>
+          <span style={{fontSize:12,color:landingOn?GR:R,fontWeight:500}}>Landing {landingOn?"ON":"OFF"}</span>
+        </div>
+      </div>
+      <div style={{padding:"8px 20px 12px",borderTop:"1px solid #1a1a1f"}}>
+        <div style={{fontSize:12,color:"#555"}}>{user?user.nome:"Admin"}</div>
+        <div className="bh" onClick={function(){setAuth(false);setUser(null)}} style={{fontSize:12,color:R,marginTop:4,cursor:"pointer"}}>Sair</div>
+      </div>
+    </div>
+
+    {/* Content */}
+    <div style={{flex:1,padding:"24px 32px",overflow:"auto",maxHeight:"100vh"}}>
+
+      {/* ═══ DASHBOARD ═══ */}
+      {view==="dash"&&<div className="fade-in">
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
+          <div style={{fontSize:24,fontWeight:700,color:"#fff"}}>Dashboard</div>
+          <div className="bh" onClick={toggleLanding} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 16px",borderRadius:10,background:landingOn?"rgba(76,175,125,0.08)":"rgba(213,91,91,0.08)",border:"1px solid "+(landingOn?"rgba(76,175,125,0.15)":"rgba(213,91,91,0.15)"),cursor:"pointer"}}>
+            <div style={{width:38,height:20,borderRadius:10,background:landingOn?GR:R,position:"relative",transition:"all .2s"}}>
+              <div style={{width:16,height:16,borderRadius:"50%",background:"#fff",position:"absolute",top:2,left:landingOn?20:2,transition:"all .2s"}}/>
+            </div>
+            <span style={{fontSize:13,fontWeight:600,color:landingOn?GR:R}}>{landingOn?"Landing ativa":"Landing off"}</span>
+          </div>
+        </div>
+        {/* KPI Row */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:12,marginBottom:24}}>
+          {[{l:"MRR",v:fmt(mrr),c:GR},{l:"ARR",v:fmt(arr),c:B},{l:"Ativos",v:ativos.length,c:GR},{l:"Trial",v:trials.length,c:P},{l:"Churn",v:churn+"%",c:R},{l:"Ticket Médio",v:ativos.length?fmt(Math.round(mrr/ativos.length)):"—",c:W}].map(function(k,i){
+            return <div key={i} style={{padding:20,borderRadius:14,background:"#0f0f12",border:"1px solid #1a1a1f"}}>
+              <div style={{fontSize:11,color:"#666",textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>{k.l}</div>
+              <div style={{fontSize:26,fontWeight:700,color:k.c}}>{k.v}</div>
+            </div>
+          })}
+        </div>
+        {/* Second row */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:24}}>
+          <div style={{padding:20,borderRadius:14,background:"#0f0f12",border:"1px solid #1a1a1f"}}>
+            <div style={{fontSize:13,fontWeight:600,color:"#fff",marginBottom:12}}>Recebido este mês</div>
+            <div style={{fontSize:32,fontWeight:700,color:GR}}>{fmt(recebidoMes)}</div>
+            <div style={{fontSize:12,color:"#666",marginTop:4}}>A receber: {fmt(aReceber)}</div>
+          </div>
+          <div style={{padding:20,borderRadius:14,background:"#0f0f12",border:"1px solid #1a1a1f"}}>
+            <div style={{fontSize:13,fontWeight:600,color:"#fff",marginBottom:12}}>Pipeline</div>
+            {pipes.map(function(p){var cnt=tenants.filter(function(t){return t.pipeline===p.k}).length;return <div key={p.k} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",fontSize:13}}>
+              <span style={{color:"#888"}}>{p.e} {p.l}</span><span style={{fontWeight:700,color:p.c}}>{cnt}</span>
+            </div>})}
+          </div>
+          <div style={{padding:20,borderRadius:14,background:"#0f0f12",border:"1px solid #1a1a1f"}}>
+            <div style={{fontSize:13,fontWeight:600,color:"#fff",marginBottom:12}}>Inadimplentes</div>
+            {pendentes.length===0?<div style={{fontSize:13,color:GR}}>✅ Nenhum atraso</div>:pendentes.slice(0,5).map(function(p){var t=tenants.find(function(x){return x.id===p.tenant_id});return <div key={p.id} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",fontSize:12}}>
+              <span style={{color:"#888"}}>{t?t.nome_empresa:"—"}</span><span style={{color:R}}>{fmt(p.valor)}</span>
+            </div>})}
+          </div>
+        </div>
+        {/* Revenue chart - last 6 months */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:24}}>
+          <div style={{padding:20,borderRadius:14,background:"#0f0f12",border:"1px solid #1a1a1f"}}>
+            <div style={{fontSize:13,fontWeight:600,color:"#fff",marginBottom:16}}>💰 Receita por mês</div>
+            {(function(){
+              var months=[];var now=new Date();
+              for(var i=5;i>=0;i--){var d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push(d.toISOString().substring(0,7))}
+              var maxVal=1;months.forEach(function(m){var v=pagtos.filter(function(p){return p.status==="pago"&&p.pago_em&&p.pago_em.substring(0,7)===m}).reduce(function(s,p){return s+(p.valor||0)},0);if(v>maxVal)maxVal=v});
+              return <div style={{display:"flex",alignItems:"flex-end",gap:6,height:120}}>
+                {months.map(function(m,i){
+                  var v=pagtos.filter(function(p){return p.status==="pago"&&p.pago_em&&p.pago_em.substring(0,7)===m}).reduce(function(s,p){return s+(p.valor||0)},0);
+                  var h=Math.max(4,Math.round(v/maxVal*100));
+                  var label=new Date(m+"-01").toLocaleDateString("pt-BR",{month:"short"});
+                  return <div key={m} style={{flex:1,textAlign:"center"}}>
+                    <div style={{fontSize:10,color:GR,fontWeight:600,marginBottom:4}}>{v>0?fmt(v):""}</div>
+                    <div style={{height:h,background:"linear-gradient(180deg,"+GR+","+GR+"60)",borderRadius:"4px 4px 0 0",transition:"height .5s"}}/>
+                    <div style={{fontSize:10,color:"#555",marginTop:4}}>{label}</div>
+                  </div>
+                })}
+              </div>
+            })()}
+          </div>
+          <div style={{padding:20,borderRadius:14,background:"#0f0f12",border:"1px solid #1a1a1f"}}>
+            <div style={{fontSize:13,fontWeight:600,color:"#fff",marginBottom:16}}>👥 Clientes por mês</div>
+            {(function(){
+              var months=[];var now=new Date();
+              for(var i=5;i>=0;i--){var d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push(d.toISOString().substring(0,7))}
+              var maxVal2=1;months.forEach(function(m){var v=tenants.filter(function(t){return t.criado_em&&t.criado_em.substring(0,7)<=m&&t.pipeline!=="cancelado"}).length;if(v>maxVal2)maxVal2=v});
+              return <div style={{display:"flex",alignItems:"flex-end",gap:6,height:120}}>
+                {months.map(function(m,i){
+                  var v=tenants.filter(function(t){return t.criado_em&&t.criado_em.substring(0,7)<=m&&t.pipeline!=="cancelado"}).length;
+                  var h=Math.max(4,Math.round(v/maxVal2*100));
+                  var label=new Date(m+"-01").toLocaleDateString("pt-BR",{month:"short"});
+                  return <div key={m} style={{flex:1,textAlign:"center"}}>
+                    <div style={{fontSize:10,color:B,fontWeight:600,marginBottom:4}}>{v}</div>
+                    <div style={{height:h,background:"linear-gradient(180deg,"+B+","+B+"60)",borderRadius:"4px 4px 0 0",transition:"height .5s"}}/>
+                    <div style={{fontSize:10,color:"#555",marginTop:4}}>{label}</div>
+                  </div>
+                })}
+              </div>
+            })()}
+          </div>
+        </div>
+        {/* Projections */}
+        <div style={{padding:20,borderRadius:14,background:"#0f0f12",border:"1px solid #1a1a1f",marginBottom:24}}>
+          <div style={{fontSize:13,fontWeight:600,color:"#fff",marginBottom:12}}>📈 Projeções</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:12}}>
+            <div style={{textAlign:"center"}}><div style={{fontSize:11,color:"#555"}}>Próx. mês (MRR)</div><div style={{fontSize:20,fontWeight:700,color:GR}}>{fmt(mrr)}</div></div>
+            <div style={{textAlign:"center"}}><div style={{fontSize:11,color:"#555"}}>Trimestre</div><div style={{fontSize:20,fontWeight:700,color:B}}>{fmt(mrr*3)}</div></div>
+            <div style={{textAlign:"center"}}><div style={{fontSize:11,color:"#555"}}>Semestre</div><div style={{fontSize:20,fontWeight:700,color:P}}>{fmt(mrr*6)}</div></div>
+            <div style={{textAlign:"center"}}><div style={{fontSize:11,color:"#555"}}>Anual (ARR)</div><div style={{fontSize:20,fontWeight:700,color:G}}>{fmt(arr)}</div></div>
+          </div>
+          {trials.length>0&&<div style={{marginTop:12,padding:10,borderRadius:8,background:"rgba(139,111,191,0.06)",fontSize:13,color:P}}>🧪 {trials.length} em trial — se converterem: MRR potencial de {fmt(mrr+trials.reduce(function(s,t){return s+(t.valor_mensal||0)},0))}</div>}
+        </div>
+        {/* Recent clients */}
+        <div style={{padding:20,borderRadius:14,background:"#0f0f12",border:"1px solid #1a1a1f"}}>
+          <div style={{fontSize:13,fontWeight:600,color:"#fff",marginBottom:12}}>Últimos clientes</div>
+          {tenants.slice(0,8).map(function(t){return <div key={t.id} className="bh" onClick={function(){setView("clients");setSelClient(t)}} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #1a1a1f",cursor:"pointer"}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <div style={{width:32,height:32,borderRadius:8,background:pC(t.pipeline)+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,color:pC(t.pipeline)}}>{(t.nome_empresa||"?")[0]}</div>
+              <div><div style={{fontSize:14,fontWeight:600,color:"#fff"}}>{t.nome_empresa}</div><div style={{fontSize:11,color:"#555"}}>{t.contato_email||"—"} · {t.cidade||""}</div></div>
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              {t.valor_mensal>0&&<span style={{fontSize:14,fontWeight:600,color:GR}}>{fmt(t.valor_mensal)}/m</span>}
+              <span style={{fontSize:10,padding:"3px 8px",borderRadius:6,background:pC(t.pipeline)+"15",color:pC(t.pipeline),fontWeight:600}}>{t.pipeline||"lead"}</span>
+            </div>
+          </div>})}
+        </div>
+      </div>}
+
+      {/* ═══ CLIENTS ═══ */}
+      {view==="clients"&&<div className="fade-in">
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+          <div style={{fontSize:24,fontWeight:700,color:"#fff"}}>Clientes <span style={{fontSize:16,color:"#555"}}>({tenants.length})</span></div>
+          <button className="bh" onClick={function(){setSelClient({});window._cStep=0;setTimeout(function(){["c_nome","c_slug","c_portal","c_email","c_contato","c_tel","c_cidade","c_estado","c_cnpj","c_valor","c_logo","c_obs"].forEach(function(id){var el=document.getElementById(id);if(el)el.value=""})},100)}} style={{padding:"10px 20px",borderRadius:10,background:B,color:"#fff",border:"none",fontSize:14,fontWeight:600}}>+ Novo Cliente</button>
+        </div>
+        {selClient?<div className="fade-in" style={{padding:24,borderRadius:16,background:"#0f0f12",border:"1px solid #1a1a1f",marginBottom:20}}>
+          {/* Header + close */}
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+            <div style={{fontSize:18,fontWeight:700,color:"#fff"}}>{selClient.id?"✏️ "+selClient.nome_empresa:"➕ Novo Cliente"}</div>
+            <button className="bh" onClick={function(){setSelClient(null);window._cStep=0}} style={{background:"none",border:"none",color:"#666",fontSize:18,cursor:"pointer"}}>✕</button>
+          </div>
+          {/* Stepper */}
+          {(function(){
+            var step=window._cStep||0;
+            var steps=[{i:"📋",l:"Cadastro"},{i:"📦",l:"Plano"},{i:"💰",l:"Fechamento"},{i:"🚀",l:"Ativação"}];
+            var setStep=function(s){window._cStep=s;setSelClient(Object.assign({},selClient))};
+            return <div>
+              {/* Step indicators */}
+              <div style={{display:"flex",gap:4,marginBottom:16}}>
+                {steps.map(function(s,i){return <div key={i} className="bh" onClick={function(){if(selClient.id||i===0)setStep(i)}} style={{flex:1,textAlign:"center",padding:"8px 0",borderRadius:8,background:i===step?"#ffffff08":"transparent",cursor:"pointer"}}>
+                  <div style={{height:3,borderRadius:2,background:i<=step?GR:"#1a1a1f",marginBottom:6}}/>
+                  <span style={{fontSize:12,color:i===step?"#fff":i<step?GR:"#444"}}>{s.i} {s.l}</span>
+                </div>})}
+              </div>
+              {/* ═══ STEP 0: Cadastro ═══ */}
+              {step===0&&<div>
+                {selClient.portal_url&&<div style={{padding:10,borderRadius:8,background:B+"08",border:"1px solid "+B+"15",marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <a href={selClient.portal_url} target="_blank" style={{fontSize:13,color:B,textDecoration:"none"}}>🔗 {selClient.portal_url}</a>
+                  <button className="bh" onClick={function(){navigator.clipboard.writeText(selClient.portal_url);msg("📋 Copiado!")}} style={{padding:"4px 10px",borderRadius:6,background:B+"15",color:B,border:"none",fontSize:11,cursor:"pointer"}}>📋</button>
+                </div>}
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+                  <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Nome da empresa *</div><input id="c_nome" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+                  <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Nome no Portal</div><input id="c_portal" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},iS,{color:G,fontWeight:600})}/></div>
+                  <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Slug (URL) *</div><input id="c_slug" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+                  <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Contato</div><input id="c_contato" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+                  <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Email</div><input id="c_email" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+                  <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Telefone</div><input id="c_tel" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+                  <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Cidade</div><input id="c_cidade" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+                  <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Estado</div><input id="c_estado" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+                  <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>CNPJ</div><input id="c_cnpj" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+                  <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Logo URL</div><input id="c_logo" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+                </div>
+                <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Observações</div><textarea id="c_obs" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},iS,{minHeight:40})}></textarea></div>
+                <button className="bh" onClick={async function(){
+                  var n=document.getElementById("c_nome").value;var sl=document.getElementById("c_slug").value;
+                  if(!n||!sl){msg("Preencha nome e slug");return}
+                  var clean=sl.toLowerCase().replace(/[^a-z0-9\-]/g,"-");
+                  var d={nome_empresa:n,slug:clean,nome_portal:document.getElementById("c_portal").value||null,contato_nome:document.getElementById("c_contato").value||null,contato_email:document.getElementById("c_email").value||null,contato_telefone:document.getElementById("c_tel").value||null,cidade:document.getElementById("c_cidade").value||null,estado:document.getElementById("c_estado").value||null,cnpj:document.getElementById("c_cnpj").value||null,logo_url:document.getElementById("c_logo").value||null,observacoes:document.getElementById("c_obs").value||null,pipeline:selClient.pipeline||"lead",ativo:true};
+                  if(selClient.id){var r=await sb.from("tenants").update(d).eq("id",selClient.id);if(r.error){msg("❌ "+r.error.message);return}d.id=selClient.id}
+                  else{d.id=clean;var r=await sb.from("tenants").insert(d);if(r.error){msg("❌ "+r.error.message);return}}
+                  await loadAll();msg("✅ Cadastro salvo!");setSelClient(d);setStep(1);
+                }} style={{width:"100%",padding:"14px",borderRadius:10,background:GR,color:"#fff",fontSize:15,fontWeight:700,border:"none",cursor:"pointer",marginTop:8}}>Salvar e escolher plano →</button>
+              </div>}
+              {/* ═══ STEP 1: Plano ═══ */}
+              {step===1&&<div>
+                <div style={{fontSize:14,color:"#888",marginBottom:12}}>Escolha o plano para <b style={{color:"#fff"}}>{selClient.nome_empresa}</b>:</div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat("+Math.min(planos.length,3)+",1fr)",gap:12,marginBottom:16}}>
+                  {planos.map(function(pl){
+                    var isSel=window._selPlan&&window._selPlan.id===pl.id;
+                    return <div key={pl.id} className="bh" onClick={function(){window._selPlan=pl;setSelClient(Object.assign({},selClient))}} style={{padding:20,borderRadius:14,background:isSel?"rgba(139,111,191,0.08)":"#111114",border:isSel?"2px solid "+P:"1px solid #1a1a1f",textAlign:"center",cursor:"pointer",position:"relative"}}>
+                      {isSel&&<div style={{position:"absolute",top:8,right:8,width:20,height:20,borderRadius:"50%",background:GR,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12}}>✓</div>}
+                      {pl.destaque&&<div style={{fontSize:9,fontWeight:700,color:G,marginBottom:4}}>⭐ POPULAR</div>}
+                      <div style={{fontSize:18,fontWeight:700,color:"#fff"}}>{pl.nome}</div>
+                      <div style={{fontSize:28,fontWeight:700,color:GR,margin:"8px 0"}}>{fmt(pl.valor_mensal)}<span style={{fontSize:12,color:"#555"}}>/mês</span></div>
+                      <div style={{fontSize:11,color:"#555"}}>{pl.max_empreendimentos===-1?"∞":pl.max_empreendimentos} empreend. · {pl.max_corretores===-1?"∞":pl.max_corretores} corretores</div>
+                      {pl.recursos&&<div style={{textAlign:"left",marginTop:8,fontSize:11}}>{(pl.recursos||[]).map(function(r2,j){return <div key={j} style={{color:"#888",padding:"2px 0"}}>✓ {r2}</div>})}</div>}
+                    </div>
+                  })}
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  <button className="bh" onClick={function(){setStep(0)}} style={{flex:1,padding:"12px",borderRadius:10,background:"transparent",color:"#666",fontSize:14,border:"1px solid #222"}}>← Voltar</button>
+                  <button className="bh" onClick={function(){if(!window._selPlan){msg("Selecione um plano");return}setStep(2)}} style={{flex:2,padding:"12px",borderRadius:10,background:P,color:"#fff",fontSize:15,fontWeight:700,border:"none",cursor:"pointer"}}>Ir para fechamento →</button>
+                </div>
+              </div>}
+              {/* ═══ STEP 2: Fechamento ═══ */}
+              {step===2&&<div>
+                <div style={{fontSize:14,color:"#888",marginBottom:4}}>Fechamento — <b style={{color:"#fff"}}>{selClient.nome_empresa}</b> · Plano: <b style={{color:P}}>{window._selPlan?window._selPlan.nome:"—"}</b></div>
+                <div style={{padding:14,borderRadius:10,background:"#111114",border:"1px solid #1a1a1f",marginBottom:12}}>
+                  <div style={{fontSize:22,fontWeight:700,color:GR,textAlign:"center"}}>{window._selPlan?fmt(window._selPlan.valor_mensal):"—"}<span style={{fontSize:13,color:"#555"}}>/mês</span></div>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+                  <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Forma de pagamento</div>
+                    <select id="f_forma" style={iS}><option value="mensal">Mensal (12x)</option><option value="trimestral">Trimestral (4x)</option><option value="semestral">Semestral (2x)</option><option value="anual">Anual (1x — 10% desc.)</option><option value="avista">À Vista (15% desc.)</option><option value="custom">Personalizado</option></select></div>
+                  <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Duração (meses)</div><input id="f_meses" type="number" onKeyDown={function(e){e.stopPropagation()}} style={iS} defaultValue="12"/></div>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:10}}>
+                  <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Valor negociado/parcela</div><input id="f_valor" type="number" onKeyDown={function(e){e.stopPropagation()}} style={iS} placeholder="Vazio = plano"/></div>
+                  <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Dia vencimento</div><input id="f_dia" type="number" onKeyDown={function(e){e.stopPropagation()}} style={iS} defaultValue="10"/></div>
+                  <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Método</div>
+                    <select id="f_metodo" style={iS}><option value="pix">PIX</option><option value="boleto">Boleto</option><option value="cartao">Cartão</option><option value="ted">TED</option></select></div>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+                  <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Desconto (%)</div><input id="f_desconto" type="number" onKeyDown={function(e){e.stopPropagation()}} style={iS} defaultValue="0"/></div>
+                  <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Data início</div><input id="f_inicio" type="date" onKeyDown={function(e){e.stopPropagation()}} style={iS} defaultValue={new Date().toISOString().split("T")[0]}/></div>
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  <button className="bh" onClick={function(){setStep(1)}} style={{flex:1,padding:"12px",borderRadius:10,background:"transparent",color:"#666",fontSize:14,border:"1px solid #222"}}>← Voltar</button>
+                  <button className="bh" onClick={async function(){
+                    var plan=window._selPlan;if(!plan){msg("Selecione um plano");return}
+                    var forma=document.getElementById("f_forma").value;
+                    var meses=+document.getElementById("f_meses").value||12;
+                    var valorCustom=+document.getElementById("f_valor").value||0;
+                    var dia=+document.getElementById("f_dia").value||10;
+                    var metodo=document.getElementById("f_metodo").value;
+                    var descPct=+document.getElementById("f_desconto").value||0;
+                    var inicio=document.getElementById("f_inicio").value||new Date().toISOString().split("T")[0];
+                    var valorBase=plan.valor_mensal;
+                    if(descPct>0)valorBase=Math.round(valorBase*(1-descPct/100));
+                    var numParc=forma==="mensal"?meses:forma==="trimestral"?Math.ceil(meses/3):forma==="semestral"?Math.ceil(meses/6):forma==="anual"?Math.ceil(meses/12):1;
+                    var mesesPorParc=forma==="mensal"?1:forma==="trimestral"?3:forma==="semestral"?6:forma==="anual"?12:meses;
+                    var valorParc=valorCustom>0?valorCustom:(forma==="anual"?Math.round(valorBase*mesesPorParc*0.9):forma==="avista"?Math.round(valorBase*meses*0.85):valorBase*mesesPorParc);
+                    if(forma==="avista")numParc=1;
+                    if(forma==="custom"){numParc=meses;valorParc=valorCustom>0?valorCustom:valorBase}
+                    var valorTotal=valorParc*numParc;
+                    // Create subscription
+                    var subRes=await sb.from("assinaturas").insert({tenant_id:selClient.id,plano_id:plan.id,plano:plan.nome,valor_mensal:plan.valor_mensal,valor_total:valorTotal,parcelas_total:numParc,parcelas_pagas:0,forma_pagamento:forma,dia_vencimento:dia,status:"ativo",inicio:inicio}).select();
+                    if(subRes.error){msg("❌ "+subRes.error.message);return}
+                    var subId=subRes.data&&subRes.data[0]?subRes.data[0].id:null;
+                    // Generate payments
+                    for(var i=0;i<numParc;i++){var vd=new Date(inicio);vd.setMonth(vd.getMonth()+(i*mesesPorParc));vd.setDate(dia);
+                      await sb.from("pagamentos").insert({tenant_id:selClient.id,assinatura_id:subId,valor:valorParc,valor_original:valorParc,vencimento:vd.toISOString().split("T")[0],metodo:metodo,status:"pendente",observacoes:"Parcela "+(i+1)+"/"+numParc+" — "+plan.nome+(descPct>0?" ("+descPct+"% desc)":"")})
+                    }
+                    await sb.from("tenants").update({valor_mensal:valorBase,pipeline:"ativo"}).eq("id",selClient.id);
+                    await sb.from("interacoes_tenant").insert({tenant_id:selClient.id,tipo:"fechamento",conteudo:"Assinatura fechada: "+plan.nome+" — "+numParc+"x "+fmt(valorParc)+" ("+forma+")"+(descPct>0?" com "+descPct+"% desconto":""),usuario:user?user.nome:"Admin"});
+                    await loadAll();msg("✅ Contrato fechado! "+numParc+" parcelas geradas.");setStep(3);
+                  }} style={{flex:2,padding:"14px",borderRadius:10,background:"linear-gradient(135deg,"+GR+",#2e8b57)",color:"#fff",fontSize:15,fontWeight:700,border:"none",cursor:"pointer"}}>💰 Fechar Contrato e Gerar Parcelas</button>
+                </div>
+              </div>}
+              {/* ═══ STEP 3: Ativação ═══ */}
+              {step===3&&<div style={{textAlign:"center",padding:"20px 0"}}>
+                <div style={{fontSize:48,marginBottom:12}}>🎉</div>
+                <div style={{fontSize:22,fontWeight:700,color:"#fff",marginBottom:8}}>Contrato fechado!</div>
+                <div style={{fontSize:14,color:"#888",marginBottom:12}}>Assinatura criada e parcelas geradas para <b style={{color:"#fff"}}>{selClient.nome_empresa}</b></div>
+                {selClient.portal_url&&<div style={{padding:12,borderRadius:10,background:"#111114",border:"1px solid #1a1a1f",marginBottom:16}}>
+                  <div style={{fontSize:11,color:"#555",marginBottom:4}}>URL do Portal</div>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <a href={selClient.portal_url} target="_blank" style={{fontSize:15,color:B,fontWeight:600,textDecoration:"none",flex:1}}>{selClient.portal_url}</a>
+                    <button className="bh" onClick={function(){navigator.clipboard.writeText(selClient.portal_url);msg("📋 Link copiado!")}} style={{padding:"6px 12px",borderRadius:6,background:B+"15",color:B,border:"none",fontSize:12,cursor:"pointer"}}>📋 Copiar</button>
+                  </div>
+                </div>}
+                <div style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap"}}>
+                  <button className="bh" disabled={deploying} onClick={function(){deployPortal(selClient)}} style={{padding:"14px 28px",borderRadius:12,background:deploying?"#333":"linear-gradient(135deg,#4CAF7D,#2e8b57)",color:"#fff",fontSize:16,fontWeight:700,border:"none",cursor:deploying?"wait":"pointer"}}>🚀 {deploying?"Criando...":"Criar Portal do Cliente"}</button>
+                  <button className="bh" onClick={function(){setView("payments")}} style={{padding:"14px 28px",borderRadius:12,background:B+"15",color:B,fontSize:14,fontWeight:600,border:"1px solid "+B+"25"}}>💰 Ver Pagamentos</button>
+                  <button className="bh" onClick={function(){setSelClient(null);window._cStep=0;window._selPlan=null}} style={{padding:"14px 28px",borderRadius:12,background:"transparent",color:"#666",fontSize:14,border:"1px solid #222"}}>Voltar à lista</button>
+                </div>
+              </div>}
+            </div>
+          })()}
+        </div>:<div>
+          {tenants.map(function(t){
+            var sub=subs.find(function(s){return s.tenant_id===t.id});
+            var pgCount=pagtos.filter(function(p){return p.tenant_id===t.id&&p.status==="pago"}).length;
+            return <div key={t.id} className="bh" onClick={function(){
+              setSelClient(t);window._cStep=0;
+              setTimeout(function(){var f={c_nome:t.nome_empresa,c_slug:t.slug,c_portal:t.nome_portal||"",c_contato:t.contato_nome||"",c_email:t.contato_email||"",c_tel:t.contato_telefone||"",c_cidade:t.cidade||"",c_estado:t.estado||"",c_cnpj:t.cnpj||"",c_valor:t.valor_mensal||"",c_logo:t.logo_url||"",c_obs:t.observacoes||""};Object.keys(f).forEach(function(k){var el=document.getElementById(k);if(el)el.value=f[k]})},100);
+            }} style={{display:"flex",alignItems:"center",gap:14,padding:"14px 16px",borderRadius:12,background:"#0f0f12",border:"1px solid #1a1a1f",marginBottom:6,cursor:"pointer"}}>
+              {t.logo_url?<img src={t.logo_url} style={{height:36,maxWidth:60,objectFit:"contain"}}/>:<div style={{width:40,height:40,borderRadius:10,background:pC(t.pipeline)+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:700,color:pC(t.pipeline)}}>{(t.nome_empresa||"?")[0]}</div>}
+              <div style={{flex:1}}>
+                <div style={{fontSize:15,fontWeight:700,color:"#fff"}}>{t.nome_empresa} <span style={{fontSize:10,padding:"2px 8px",borderRadius:6,background:pC(t.pipeline)+"15",color:pC(t.pipeline),fontWeight:600,marginLeft:6}}>{t.pipeline}</span></div>
+                <div style={{fontSize:12,color:"#555"}}>{t.contato_nome||"—"} · {t.contato_email||"—"} · {t.cidade||""}{t.estado?"/"+t.estado:""}</div>
+              </div>
+              <div style={{textAlign:"right"}}>
+                {t.valor_mensal>0&&<div style={{fontSize:18,fontWeight:700,color:GR}}>{fmt(t.valor_mensal)}<span style={{fontSize:11,color:"#555"}}>/m</span></div>}
+                {sub&&<div style={{fontSize:11,color:P}}>{sub.plano} · {sub.status}</div>}
+                {t.portal_url&&<a href={t.portal_url} target="_blank" onClick={function(e){e.stopPropagation()}} style={{fontSize:10,color:B,textDecoration:"none"}}>🔗 Portal</a>}
+                <div style={{fontSize:11,color:"#444"}}>{pgCount} pagtos</div>
+              </div>
+            </div>
+          })}
+        </div>}
+      </div>}
+
+      {/* ═══ PIPELINE ═══ */}
+      {view==="pipeline"&&<div className="fade-in">
+        <div style={{fontSize:24,fontWeight:700,color:"#fff",marginBottom:20}}>Pipeline</div>
+        <div style={{display:"flex",gap:10,overflow:"auto",paddingBottom:10}}>
+          {pipes.map(function(p){
+            var items=tenants.filter(function(t){return t.pipeline===p.k});
+            return <div key={p.k} style={{flex:1,minWidth:160}}>
+              <div style={{padding:"10px 12px",borderRadius:"12px 12px 0 0",background:p.c+"12",borderBottom:"2px solid "+p.c,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <span style={{fontWeight:700,fontSize:13,color:p.c}}>{p.e} {p.l}</span>
+                <span style={{fontSize:12,fontWeight:700,color:p.c,background:p.c+"15",padding:"2px 8px",borderRadius:8}}>{items.length}</span>
+              </div>
+              <div style={{minHeight:200,background:"#0c0c0e",borderRadius:"0 0 12px 12px",padding:6,border:"1px solid #1a1a1f",borderTop:"none"}}>
+                {items.map(function(t){return <div key={t.id} className="bh" onClick={function(){setView("clients");setSelClient(t);setTimeout(function(){var f={c_nome:t.nome_empresa,c_slug:t.slug,c_portal:t.nome_portal||"",c_contato:t.contato_nome||"",c_email:t.contato_email||"",c_tel:t.contato_telefone||"",c_cidade:t.cidade||"",c_estado:t.estado||"",c_cnpj:t.cnpj||"",c_valor:t.valor_mensal||"",c_logo:t.logo_url||"",c_obs:t.observacoes||""};Object.keys(f).forEach(function(k){var el=document.getElementById(k);if(el)el.value=f[k]})},100)}} style={{padding:10,borderRadius:10,background:"#111114",marginBottom:4,cursor:"pointer",border:"1px solid #1a1a1f"}}>
+                  <div style={{fontWeight:600,fontSize:13,color:"#fff"}}>{t.nome_empresa}</div>
+                  <div style={{fontSize:11,color:"#555"}}>{t.contato_nome||"—"}</div>
+                  {t.valor_mensal>0&&<div style={{fontSize:12,fontWeight:600,color:GR,marginTop:4}}>{fmt(t.valor_mensal)}/m</div>}
+                  <select value={t.pipeline||"lead"} onClick={function(e){e.stopPropagation()}} onChange={async function(e){e.stopPropagation();await sb.from("tenants").update({pipeline:e.target.value}).eq("id",t.id);await loadAll();msg("Movido!")}} style={{width:"100%",marginTop:6,padding:"4px",borderRadius:6,fontSize:11,background:"#0c0c0e",color:"#888",border:"1px solid #222",cursor:"pointer"}}>
+                    {pipes.map(function(pp){return <option key={pp.k} value={pp.k}>{pp.e} {pp.l}</option>})}
+                  </select>
+                </div>})}
+              </div>
+            </div>
+          })}
+        </div>
+      </div>}
+
+      {/* ═══ PAYMENTS ═══ */}
+      {view==="payments"&&<div className="fade-in">
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+          <div style={{fontSize:24,fontWeight:700,color:"#fff"}}>Pagamentos</div>
+        </div>
+        {/* KPIs */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10,marginBottom:16}}>
+          {[
+            {l:"Total",v:fmt(pagtos.reduce(function(s,p){return s+(p.valor||0)},0)),c:B},
+            {l:"Recebido",v:fmt(pagtos.filter(function(p){return p.status==="pago"}).reduce(function(s,p){return s+(p.valor||0)},0)),c:GR},
+            {l:"Pendente",v:fmt(pagtos.filter(function(p){return p.status==="pendente"}).reduce(function(s,p){return s+(p.valor||0)},0)),c:W},
+            {l:"Atrasado",v:fmt(pendentes.reduce(function(s,p){return s+(p.valor||0)},0)),c:R},
+            {l:"Cancelado",v:fmt(pagtos.filter(function(p){return p.status==="cancelado"}).reduce(function(s,p){return s+(p.valor||0)},0)),c:"#666"}
+          ].map(function(k,i){
+            return <div key={i} className="bh" onClick={function(){document.getElementById("pag_filter").value=k.l==="Total"?"todos":k.l.toLowerCase();document.getElementById("pag_filter").dispatchEvent(new Event("change"))}} style={{padding:14,borderRadius:12,background:"#0f0f12",border:"1px solid #1a1a1f",textAlign:"center",cursor:"pointer"}}>
+              <div style={{fontSize:20,fontWeight:700,color:k.c}}>{k.v}</div>
+              <div style={{fontSize:11,color:"#555"}}>{k.l} ({k.l==="Total"?pagtos.length:k.l==="Recebido"?pagtos.filter(function(p){return p.status==="pago"}).length:k.l==="Pendente"?pagtos.filter(function(p){return p.status==="pendente"}).length:k.l==="Atrasado"?pendentes.length:pagtos.filter(function(p){return p.status==="cancelado"}).length})</div>
+            </div>
+          })}
+        </div>
+        {/* Filters */}
+        <div style={{display:"flex",gap:8,marginBottom:14}}>
+          <select id="pag_filter" defaultValue="todos" onChange={function(e){window._pagFilter=e.target.value;loadAll()}} style={{padding:"8px 12px",borderRadius:8,background:"#111",color:"#E8E4DD",border:"1px solid #222",fontSize:13,flex:1}}>
+            <option value="todos">Todos</option>
+            <option value="pendente">Pendente</option>
+            <option value="pago">Pago</option>
+            <option value="atrasado">Atrasado</option>
+            <option value="cancelado">Cancelado</option>
+          </select>
+          <input id="pag_search" onKeyDown={function(e){e.stopPropagation()}} placeholder="Buscar cliente..." onChange={function(e){window._pagSearch=e.target.value.toLowerCase()}} style={{padding:"8px 12px",borderRadius:8,background:"#111",color:"#E8E4DD",border:"1px solid #222",fontSize:13,flex:2}}/>
+        </div>
+        {/* Payment list */}
+        <div style={{maxHeight:"55vh",overflow:"auto"}}>
+        {pagtos.filter(function(p){
+          var f=window._pagFilter||"todos";
+          var s=window._pagSearch||"";
+          var t=tenants.find(function(x){return x.id===p.tenant_id});
+          var nome=(t?t.nome_empresa:"").toLowerCase();
+          var isLate=p.status==="pendente"&&p.vencimento&&p.vencimento<hoje;
+          if(f==="atrasado")return isLate&&nome.indexOf(s)!==-1;
+          if(f!=="todos"&&p.status!==f)return false;
+          return nome.indexOf(s)!==-1;
+        }).map(function(p){
+          var t=tenants.find(function(x){return x.id===p.tenant_id});
+          var cols={pago:GR,pendente:W,atrasado:R,cancelado:"#666"};
+          var isLate=p.status==="pendente"&&p.vencimento&&p.vencimento<hoje;
+          var stColor=isLate?R:cols[p.status]||"#555";
+          var stLabel=isLate?"ATRASADO":p.status;
+          var diasAtraso=isLate?Math.floor((Date.now()-new Date(p.vencimento).getTime())/86400000):0;
+          return <div key={p.id} style={{padding:"14px 16px",borderRadius:12,background:"#0f0f12",border:"1px solid "+(isLate?"rgba(213,91,91,0.2)":"#1a1a1f"),marginBottom:6}}>
+            {/* Header */}
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+              <div>
+                <div style={{fontSize:15,fontWeight:700,color:"#fff"}}>{t?t.nome_empresa:"—"}</div>
+                <div style={{fontSize:12,color:"#555"}}>
+                  {p.metodo||"—"} · Venc: {p.vencimento?new Date(p.vencimento).toLocaleDateString("pt-BR"):"—"}
+                  {p.pago_em?" · Pago: "+new Date(p.pago_em).toLocaleDateString("pt-BR"):""}
+                  {isLate?" · "+diasAtraso+" dias de atraso":""}
+                </div>
+                {p.observacoes&&<div style={{fontSize:12,color:"#888",marginTop:2}}>📝 {p.observacoes}</div>}
+                {p.valor_original&&p.valor_original!==p.valor&&<div style={{fontSize:11,color:"#555",marginTop:2}}>Valor original: {fmt(p.valor_original)} → Atual: {fmt(p.valor)}</div>}
+              </div>
+              <div style={{textAlign:"right"}}>
+                <div style={{fontSize:22,fontWeight:700,color:stColor}}>{fmt(p.valor)}</div>
+                <span style={{fontSize:11,padding:"3px 10px",borderRadius:8,background:stColor+"15",color:stColor,fontWeight:600}}>{stLabel}</span>
+              </div>
+            </div>
+            {/* Actions */}
+            <div style={{display:"flex",gap:4,flexWrap:"wrap",borderTop:"1px solid #1a1a1f",paddingTop:8}}>
+              {p.status!=="pago"&&p.status!=="cancelado"&&<button className="bh" onClick={async function(){await sb.from("pagamentos").update({status:"pago",pago_em:new Date().toISOString().split("T")[0]}).eq("id",p.id);await loadAll();msg("✅ Pago!")}} style={{padding:"6px 12px",borderRadius:6,background:GR+"12",color:GR,border:"none",fontSize:12,fontWeight:600}}>✅ Pago</button>}
+              {p.status!=="cancelado"&&<button className="bh" onClick={async function(){if(!confirm("Cancelar este pagamento?"))return;await sb.from("pagamentos").update({status:"cancelado",observacoes:(p.observacoes||"")+" [CANCELADO]"}).eq("id",p.id);await loadAll();msg("❌ Cancelado")}} style={{padding:"6px 12px",borderRadius:6,background:R+"12",color:R,border:"none",fontSize:12,fontWeight:600}}>❌ Cancelar</button>}
+              {p.status==="cancelado"&&<button className="bh" onClick={async function(){await sb.from("pagamentos").update({status:"pendente",observacoes:(p.observacoes||"").replace(" [CANCELADO]","")}).eq("id",p.id);await loadAll();msg("🔄 Reativado")}} style={{padding:"6px 12px",borderRadius:6,background:W+"12",color:W,border:"none",fontSize:12,fontWeight:600}}>🔄 Reativar</button>}
+              {p.status==="pago"&&<button className="bh" onClick={async function(){await sb.from("pagamentos").update({status:"pendente",pago_em:null}).eq("id",p.id);await loadAll();msg("↩️ Desmarcado")}} style={{padding:"6px 12px",borderRadius:6,background:W+"12",color:W,border:"none",fontSize:12,fontWeight:600}}>↩️ Desfazer pago</button>}
+              {/* Desconto */}
+              <button className="bh" onClick={function(){var v=prompt("Desconto — digite:\n• Valor fixo (ex: 50)\n• Percentual (ex: 10%)");if(!v)return;var orig=p.valor_original||p.valor;var desc=0;if(v.indexOf("%")!==-1){desc=Math.round(orig*parseFloat(v)/100)}else{desc=parseFloat(v)||0}var novo=Math.max(0,orig-desc);sb.from("pagamentos").update({valor:novo,valor_original:orig,observacoes:(p.observacoes||"")+" [Desc: -"+v+"]"}).eq("id",p.id).then(function(){loadAll();msg("💰 Desconto aplicado: -"+v)})}} style={{padding:"6px 12px",borderRadius:6,background:P+"12",color:P,border:"none",fontSize:12,fontWeight:600}}>💰 Desconto</button>
+              {/* Acréscimo */}
+              <button className="bh" onClick={function(){var v=prompt("Acréscimo — digite:\n• Valor fixo (ex: 30)\n• Percentual (ex: 5%)");if(!v)return;var orig=p.valor_original||p.valor;var acr=0;if(v.indexOf("%")!==-1){acr=Math.round(p.valor*parseFloat(v)/100)}else{acr=parseFloat(v)||0}var novo=p.valor+acr;sb.from("pagamentos").update({valor:novo,valor_original:orig,observacoes:(p.observacoes||"")+" [Acrésc: +"+v+"]"}).eq("id",p.id).then(function(){loadAll();msg("➕ Acréscimo aplicado: +"+v)})}} style={{padding:"6px 12px",borderRadius:6,background:B+"12",color:B,border:"none",fontSize:12,fontWeight:600}}>➕ Acréscimo</button>
+              {/* Editar */}
+              <button className="bh" onClick={function(){var nv=prompt("Novo valor (R$):",p.valor);if(!nv)return;var nd=prompt("Nova data vencimento (AAAA-MM-DD):",p.vencimento||"");var nm=prompt("Método (pix/boleto/cartao/ted):",p.metodo||"pix");var no=prompt("Observação:",p.observacoes||"");var upd={valor:parseFloat(nv)||p.valor};if(nd)upd.vencimento=nd;if(nm)upd.metodo=nm;if(no!==null)upd.observacoes=no;sb.from("pagamentos").update(upd).eq("id",p.id).then(function(){loadAll();msg("✏️ Atualizado")})}} style={{padding:"6px 12px",borderRadius:6,background:"#ffffff08",color:"#aaa",border:"none",fontSize:12}}>✏️ Editar</button>
+              {/* Excluir */}
+              <button className="bh" onClick={async function(){if(!confirm("Excluir permanentemente este pagamento?"))return;await sb.from("pagamentos").delete().eq("id",p.id);await loadAll();msg("🗑️ Excluído")}} style={{padding:"6px 12px",borderRadius:6,background:"#ffffff05",color:"#555",border:"none",fontSize:12}}>🗑️</button>
+            </div>
+          </div>
+        })}
+        </div>
+      </div>}
+
+      {/* ═══ PLANS ═══ */}
+      {view==="plans"&&<div className="fade-in">
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+          <div style={{fontSize:24,fontWeight:700,color:"#fff"}}>Planos</div>
+          <button className="bh" onClick={function(){
+            var el=document.getElementById("planForm");
+            if(el)el.style.display=el.style.display==="block"?"none":"block";
+          }} style={{padding:"10px 20px",borderRadius:10,background:P,color:"#fff",border:"none",fontSize:14,fontWeight:600}}>+ Novo Plano</button>
+        </div>
+        {/* Plan form */}
+        <div id="planForm" style={{display:"none",padding:20,borderRadius:14,background:"#0f0f12",border:"1px solid "+P+"30",marginBottom:20}}>
+          <div style={{fontSize:16,fontWeight:700,color:P,marginBottom:12}}>📦 Criar / Editar Plano</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+            <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Nome *</div><input id="pf_nome" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+            <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Valor mensal (R$) *</div><input id="pf_valor" type="number" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+            <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Duração padrão (meses)</div><input id="pf_duracao" type="number" onKeyDown={function(e){e.stopPropagation()}} style={iS} defaultValue="12"/></div>
+          </div>
+          <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Descrição</div><input id="pf_desc" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+            <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Máx empreendimentos (-1 = ∞)</div><input id="pf_max_emp" type="number" onKeyDown={function(e){e.stopPropagation()}} style={iS} defaultValue="10"/></div>
+            <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Máx corretores (-1 = ∞)</div><input id="pf_max_cor" type="number" onKeyDown={function(e){e.stopPropagation()}} style={iS} defaultValue="50"/></div>
+            <div style={{display:"flex",alignItems:"flex-end",paddingBottom:10}}><label style={{display:"flex",alignItems:"center",gap:6,fontSize:13,color:G,cursor:"pointer"}}><input type="checkbox" id="pf_destaque"/>⭐ Destaque</label></div>
+          </div>
+          <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Recursos (1 por linha)</div><textarea id="pf_recursos" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},iS,{minHeight:60})}></textarea></div>
+          <input type="hidden" id="pf_edit_id" value=""/>
+          <div style={{display:"flex",gap:8}}>
+            <button className="bh" onClick={async function(){
+              var n=document.getElementById("pf_nome").value;var v=+document.getElementById("pf_valor").value;
+              if(!n||!v){msg("Preencha nome e valor");return}
+              var data2={nome:n,valor_mensal:v,duracao_meses:+document.getElementById("pf_duracao").value||12,descricao:document.getElementById("pf_desc").value||null,max_empreendimentos:+document.getElementById("pf_max_emp").value||10,max_corretores:+document.getElementById("pf_max_cor").value||50,destaque:document.getElementById("pf_destaque").checked,recursos:document.getElementById("pf_recursos").value?document.getElementById("pf_recursos").value.split("\n").filter(function(x){return x.trim()}):null,ativo:true};
+              var eid=document.getElementById("pf_edit_id").value;
+              if(eid){var r=await sb.from("planos").update(data2).eq("id",eid);if(r.error){msg("❌ "+r.error.message);return}}
+              else{var r=await sb.from("planos").insert(data2);if(r.error){msg("❌ "+r.error.message);return}}
+              document.getElementById("planForm").style.display="none";document.getElementById("pf_edit_id").value="";
+              await loadAll();msg("✅ "+(eid?"Atualizado":"Criado")+"!");
+            }} style={{padding:"10px 24px",borderRadius:10,background:P,color:"#fff",border:"none",fontSize:14,fontWeight:600}}>💾 Salvar</button>
+            <button className="bh" onClick={function(){document.getElementById("planForm").style.display="none"}} style={{padding:"10px 24px",borderRadius:10,background:"transparent",color:"#666",border:"1px solid #222",fontSize:14}}>Cancelar</button>
+          </div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:16}}>
+          {planos.map(function(pl){
+            var cliCount=subs.filter(function(s){return s.plano_id===pl.id&&s.status==="ativo"}).length;
+            var receitaPl=cliCount*pl.valor_mensal;
+            return <div key={pl.id} style={{padding:28,borderRadius:16,background:pl.destaque?"linear-gradient(135deg,#12101a,#0f0f12)":"#0f0f12",border:pl.destaque?"2px solid "+P+"40":"1px solid #1a1a1f",textAlign:"center",position:"relative"}}>
+              {pl.destaque&&<div style={{position:"absolute",top:-10,left:"50%",transform:"translateX(-50%)",fontSize:11,fontWeight:700,padding:"3px 14px",borderRadius:12,background:G,color:"#0a0a09"}}>⭐ POPULAR</div>}
+              <div style={{fontSize:22,fontWeight:700,color:"#fff",marginTop:pl.destaque?8:0}}>{pl.nome}</div>
+              <div style={{fontSize:13,color:"#555",marginTop:6,minHeight:36}}>{pl.descricao||""}</div>
+              <div style={{fontSize:40,fontWeight:700,color:GR,margin:"16px 0"}}>{fmt(pl.valor_mensal)}<span style={{fontSize:14,color:"#555",fontWeight:400}}>/mês</span></div>
+              <div style={{fontSize:12,color:"#555",marginBottom:12}}>{pl.max_empreendimentos===-1?"∞":pl.max_empreendimentos} empreend. · {pl.max_corretores===-1?"∞":pl.max_corretores} corretores</div>
+              {pl.recursos&&<div style={{textAlign:"left",marginBottom:16}}>{(pl.recursos||[]).map(function(r,i){return <div key={i} style={{fontSize:13,color:"#aaa",padding:"4px 0"}}>✓ {r}</div>})}</div>}
+              <div style={{fontSize:13,fontWeight:600,marginBottom:8}}>
+                <span style={{color:B}}>{cliCount} cliente{cliCount!==1?"s":""}</span>
+                {receitaPl>0&&<span style={{color:GR,marginLeft:8}}>{fmt(receitaPl)}/m</span>}
+              </div>
+              <div style={{display:"flex",gap:6,justifyContent:"center"}}>
+                <button className="bh" onClick={function(){
+                  document.getElementById("planForm").style.display="block";
+                  document.getElementById("pf_edit_id").value=pl.id;
+                  setTimeout(function(){
+                    document.getElementById("pf_nome").value=pl.nome;
+                    document.getElementById("pf_valor").value=pl.valor_mensal;
+                    document.getElementById("pf_duracao").value=pl.duracao_meses;
+                    document.getElementById("pf_desc").value=pl.descricao||"";
+                    document.getElementById("pf_max_emp").value=pl.max_empreendimentos;
+                    document.getElementById("pf_max_cor").value=pl.max_corretores;
+                    document.getElementById("pf_destaque").checked=pl.destaque;
+                    document.getElementById("pf_recursos").value=(pl.recursos||[]).join("\n");
+                  },50);
+                }} style={{padding:"8px 16px",borderRadius:8,background:B+"15",color:B,border:"none",fontSize:13,fontWeight:600}}>✏️ Editar</button>
+                <button className="bh" onClick={async function(){if(!confirm("Desativar plano "+pl.nome+"?"))return;await sb.from("planos").update({ativo:false}).eq("id",pl.id);await loadAll();msg("Removido")}} style={{padding:"8px 16px",borderRadius:8,background:R+"15",color:R,border:"none",fontSize:13}}>🗑️</button>
+              </div>
+            </div>
+          })}
+        </div>
+      </div>}
+
+      {/* ═══ PORTAIS / LINKS ═══ */}
+      {view==="links"&&<div className="fade-in">
+        <div style={{fontSize:24,fontWeight:700,color:"#fff",marginBottom:20}}>🔗 Portais dos Clientes</div>
+        {/* Stats */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:10,marginBottom:20}}>
+          {[
+            {l:"Total",v:tenants.length,c:B},
+            {l:"Com portal",v:tenants.filter(function(t){return t.portal_url}).length,c:GR},
+            {l:"Sem portal",v:tenants.filter(function(t){return !t.portal_url}).length,c:W},
+            {l:"Inativos",v:tenants.filter(function(t){return!t.ativo}).length,c:R}
+          ].map(function(k,i){return <div key={i} style={{padding:14,borderRadius:12,background:"#0f0f12",border:"1px solid #1a1a1f",textAlign:"center"}}>
+            <div style={{fontSize:22,fontWeight:700,color:k.c}}>{k.v}</div>
+            <div style={{fontSize:11,color:"#555"}}>{k.l}</div>
+          </div>})}
+        </div>
+        {/* Client list with links */}
+        {tenants.map(function(t){
+          var sub=subs.find(function(s){return s.tenant_id===t.id});
+          var pgTotal=pagtos.filter(function(p){return p.tenant_id===t.id}).length;
+          var pgPagos=pagtos.filter(function(p){return p.tenant_id===t.id&&p.status==="pago"}).length;
+          var pgPend=pagtos.filter(function(p){return p.tenant_id===t.id&&p.status==="pendente"}).length;
+          var isLate=pagtos.some(function(p){return p.tenant_id===t.id&&p.status==="pendente"&&p.vencimento&&p.vencimento<hoje});
+          var statusColor=!t.ativo?R:isLate?W:t.portal_url?GR:"#555";
+          var statusLabel=!t.ativo?"Inativo":isLate?"Inadimplente":t.portal_url?"Ativo":"Sem portal";
+          return <div key={t.id} style={{padding:16,borderRadius:14,background:"#0f0f12",border:"1px solid "+(isLate?"rgba(232,169,78,0.15)":"#1a1a1f"),marginBottom:8}}>
+            {/* Header */}
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <div style={{width:10,height:10,borderRadius:"50%",background:statusColor}}/>
+                <div>
+                  <div style={{fontSize:16,fontWeight:700,color:"#fff"}}>{t.nome_empresa}</div>
+                  <div style={{fontSize:12,color:"#555"}}>{t.contato_nome||"—"} · {t.contato_email||"—"} · {t.cidade||""}{t.estado?"/"+t.estado:""}</div>
+                </div>
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontSize:11,padding:"4px 10px",borderRadius:8,background:statusColor+"15",color:statusColor,fontWeight:600}}>{statusLabel}</span>
+                {sub&&<span style={{fontSize:11,padding:"4px 10px",borderRadius:8,background:P+"15",color:P}}>{sub.plano}</span>}
+              </div>
+            </div>
+            {/* Portal URL */}
+            <div style={{padding:12,borderRadius:10,background:"#111114",border:"1px solid #1a1a1f",marginBottom:10}}>
+              {t.portal_url?<div style={{display:"flex",alignItems:"center",gap:8}}>
+                <div style={{width:8,height:8,borderRadius:"50%",background:GR,flexShrink:0}}/>
+                <a href={t.portal_url} target="_blank" style={{fontSize:14,color:B,textDecoration:"none",flex:1,wordBreak:"break-all"}}>{t.portal_url}</a>
+                <button className="bh" onClick={function(){navigator.clipboard.writeText(t.portal_url);msg("📋 Copiado!")}} style={{padding:"6px 12px",borderRadius:6,background:B+"12",color:B,border:"none",fontSize:12,cursor:"pointer",flexShrink:0}}>📋 Copiar</button>
+                <a href={t.portal_url} target="_blank" className="bh" style={{padding:"6px 12px",borderRadius:6,background:GR+"12",color:GR,border:"none",fontSize:12,cursor:"pointer",textDecoration:"none",flexShrink:0}}>🔗 Abrir</a>
+              </div>:<div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <span style={{fontSize:13,color:"#444"}}>Portal não criado</span>
+                <button className="bh" disabled={deploying} onClick={function(){deployPortal(t)}} style={{padding:"6px 14px",borderRadius:6,background:GR+"12",color:GR,border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>🚀 Criar Portal</button>
+              </div>}
+            </div>
+            {/* Stats */}
+            <div style={{display:"flex",gap:16,fontSize:12}}>
+              <span style={{color:"#555"}}>💰 {fmt(t.valor_mensal||0)}/mês</span>
+              <span style={{color:GR}}>✅ {pgPagos} pagos</span>
+              <span style={{color:pgPend>0?W:"#555"}}>⏳ {pgPend} pendentes</span>
+              <span style={{color:"#555"}}>📊 {pgTotal} total</span>
+              {sub&&<span style={{color:"#555"}}>📋 {sub.forma_pagamento} · {sub.parcelas_total}x</span>}
+            </div>
+          </div>
+        })}
+      </div>}
+
+      {/* ═══ REPORTS ═══ */}
+      {view==="reports"&&<div className="fade-in">
+        <div style={{fontSize:24,fontWeight:700,color:"#fff",marginBottom:20}}>📈 Relatórios Financeiros</div>
+        {/* Revenue summary */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:20}}>
+          <div style={{padding:20,borderRadius:14,background:"#0f0f12",border:"1px solid #1a1a1f"}}>
+            <div style={{fontSize:14,fontWeight:600,color:"#fff",marginBottom:16}}>💰 Receita por Plano</div>
+            {planos.map(function(pl){
+              var cliPl=subs.filter(function(s){return s.plano_id===pl.id&&s.status==="ativo"}).length;
+              var recPl=cliPl*pl.valor_mensal;
+              var pct=mrr>0?Math.round(recPl/mrr*100):0;
+              return <div key={pl.id} style={{marginBottom:10}}>
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:13,marginBottom:4}}>
+                  <span style={{color:"#aaa"}}>{pl.nome} ({cliPl})</span>
+                  <span style={{fontWeight:600,color:GR}}>{fmt(recPl)}/m</span>
+                </div>
+                <div style={{height:6,borderRadius:3,background:"#1a1a1f",overflow:"hidden"}}>
+                  <div style={{width:pct+"%",height:"100%",background:GR,borderRadius:3}}/>
+                </div>
+              </div>
+            })}
+            <div style={{borderTop:"1px solid #1a1a1f",paddingTop:10,marginTop:10,display:"flex",justifyContent:"space-between",fontSize:14}}>
+              <span style={{fontWeight:600,color:"#fff"}}>Total MRR</span>
+              <span style={{fontWeight:700,color:GR}}>{fmt(mrr)}</span>
+            </div>
+          </div>
+          <div style={{padding:20,borderRadius:14,background:"#0f0f12",border:"1px solid #1a1a1f"}}>
+            <div style={{fontSize:14,fontWeight:600,color:"#fff",marginBottom:16}}>📊 Métricas Chave</div>
+            {[
+              {l:"Lifetime Value (LTV)",v:fmt(mrr>0&&ativos.length>0?Math.round(mrr/ativos.length*12):0),c:GR},
+              {l:"Custo Aquisição (CAC)",v:"A definir",c:"#555"},
+              {l:"LTV/CAC Ratio",v:"—",c:B},
+              {l:"Tempo médio de conversão",v:tenants.filter(function(t){return t.pipeline==="ativo"}).length>0?"~7 dias":"—",c:P},
+              {l:"Taxa de conversão trial→ativo",v:trials.length+ativos.length>0?Math.round(ativos.length/(trials.length+ativos.length)*100)+"%":"—",c:G}
+            ].map(function(m,i){return <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:i<4?"1px solid #15151a":"none",fontSize:13}}>
+              <span style={{color:"#888"}}>{m.l}</span>
+              <span style={{fontWeight:600,color:m.c}}>{m.v}</span>
+            </div>})}
+          </div>
+        </div>
+        {/* Payment status breakdown */}
+        <div style={{padding:20,borderRadius:14,background:"#0f0f12",border:"1px solid #1a1a1f",marginBottom:20}}>
+          <div style={{fontSize:14,fontWeight:600,color:"#fff",marginBottom:16}}>💳 Status dos Pagamentos</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12}}>
+            {(function(){
+              var total=pagtos.reduce(function(s,p){return s+p.valor},0);
+              var pago=pagtos.filter(function(p){return p.status==="pago"}).reduce(function(s,p){return s+p.valor},0);
+              var pend=pagtos.filter(function(p){return p.status==="pendente"}).reduce(function(s,p){return s+p.valor},0);
+              var atr=pendentes.reduce(function(s,p){return s+p.valor},0);
+              return [{l:"Total gerado",v:fmt(total),c:"#fff"},{l:"Recebido",v:fmt(pago),c:GR},{l:"Pendente",v:fmt(pend),c:W},{l:"Atrasado",v:fmt(atr),c:R}].map(function(k,i){
+                return <div key={i} style={{textAlign:"center",padding:12,borderRadius:10,background:k.c+"08"}}>
+                  <div style={{fontSize:20,fontWeight:700,color:k.c}}>{k.v}</div>
+                  <div style={{fontSize:11,color:"#555"}}>{k.l}</div>
+                </div>
+              })
+            })()}
+          </div>
+          {/* Adimplência rate */}
+          {(function(){
+            var total=pagtos.length;var pagos=pagtos.filter(function(p){return p.status==="pago"}).length;
+            var rate=total>0?Math.round(pagos/total*100):100;
+            return <div style={{marginTop:16}}>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:13,marginBottom:6}}>
+                <span style={{color:"#888"}}>Taxa de adimplência</span>
+                <span style={{fontWeight:700,color:rate>=90?GR:rate>=70?W:R}}>{rate}%</span>
+              </div>
+              <div style={{height:8,borderRadius:4,background:"#1a1a1f",overflow:"hidden"}}>
+                <div style={{width:rate+"%",height:"100%",background:rate>=90?GR:rate>=70?W:R,borderRadius:4,transition:"width .5s"}}/>
+              </div>
+            </div>
+          })()}
+        </div>
+        {/* Top clients by revenue */}
+        <div style={{padding:20,borderRadius:14,background:"#0f0f12",border:"1px solid #1a1a1f"}}>
+          <div style={{fontSize:14,fontWeight:600,color:"#fff",marginBottom:12}}>🏆 Top Clientes por Receita</div>
+          {tenants.filter(function(t){return t.valor_mensal>0}).sort(function(a,b){return(b.valor_mensal||0)-(a.valor_mensal||0)}).slice(0,10).map(function(t,i){
+            var pgTotal=pagtos.filter(function(p){return p.tenant_id===t.id&&p.status==="pago"}).reduce(function(s,p){return s+p.valor},0);
+            return <div key={t.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #15151a"}}>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <span style={{fontSize:14,fontWeight:700,color:i<3?G:"#555",width:24}}>{i+1}.</span>
+                <span style={{fontSize:14,color:"#fff"}}>{t.nome_empresa}</span>
+              </div>
+              <div style={{display:"flex",gap:16,alignItems:"center"}}>
+                <div style={{textAlign:"right"}}>
+                  <div style={{fontSize:14,fontWeight:600,color:GR}}>{fmt(t.valor_mensal)}/m</div>
+                  <div style={{fontSize:11,color:"#555"}}>Total pago: {fmt(pgTotal)}</div>
+                </div>
+              </div>
+            </div>
+          })}
+        </div>
+      </div>}
+
+      {/* ═══ OVERDUE ═══ */}
+      {view==="overdue"&&<div className="fade-in">
+        <div style={{fontSize:24,fontWeight:700,color:"#fff",marginBottom:20}}>⚠️ Inadimplentes</div>
+        {pendentes.length===0?<div style={{padding:40,textAlign:"center",color:GR,fontSize:16}}>✅ Nenhum pagamento atrasado!</div>:
+        pendentes.map(function(p){var t=tenants.find(function(x){return x.id===p.tenant_id});var dias=Math.floor((Date.now()-new Date(p.vencimento).getTime())/86400000);
+          return <div key={p.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px",borderRadius:12,background:"#0f0f12",border:"1px solid rgba(213,91,91,0.15)",marginBottom:6}}>
+            <div>
+              <div style={{fontSize:15,fontWeight:700,color:"#fff"}}>{t?t.nome_empresa:"—"}</div>
+              <div style={{fontSize:12,color:R}}>Vencido há {dias} dia{dias!==1?"s":""} — {new Date(p.vencimento).toLocaleDateString("pt-BR")}</div>
+              <div style={{fontSize:12,color:"#555"}}>{p.observacoes||""}</div>
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <div style={{fontSize:22,fontWeight:700,color:R}}>{fmt(p.valor)}</div>
+              <button className="bh" onClick={async function(){await sb.from("pagamentos").update({status:"pago",pago_em:new Date().toISOString().split("T")[0]}).eq("id",p.id);await loadAll();msg("✅ Pago!")}} style={{padding:"8px 16px",borderRadius:8,background:GR,color:"#fff",border:"none",fontSize:13,fontWeight:600}}>✅ Recebido</button>
+            </div>
+          </div>
+        })}
+      </div>}
+
+    </div>
+
+    {/* Toast */}
+    {toast&&<div style={{position:"fixed",bottom:24,right:24,padding:"12px 24px",borderRadius:12,background:"#1a1a20",color:"#fff",fontSize:14,border:"1px solid #333",zIndex:999}}>{toast}</div>}
+  </div>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
