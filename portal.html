@@ -609,21 +609,7 @@ function App(){
       }
       var safe=function(fn){return fn().catch(function(){return[]})};
       var results = await Promise.all([safe(DB.loadConfig),safe(DB.loadBuildings),safe(DB.loadAllUnits),safe(DB.loadPhotos),safe(DB.loadPlants),safe(DB.loadDocuments),safe(DB.loadNotices),safe(DB.loadBrokers),safe(DB.loadSales),safe(DB.loadAdminUsers),safe(DB.loadTasks)]);
-      // If buildings came back empty, try without tenant filter (backwards compat)
-      if((!results[1]||results[1].length===0)&&DB._tid){
-        var fb=await sb.from("buildings").select("*").order("sort_order");
-        if(fb.data&&fb.data.length>0){
-          results[1]=fb.data;
-          results[2]=(await sb.from("units").select("*").order("sort_order")).data||[];
-          results[3]=(await sb.from("photos").select("*").order("sort_order")).data||[];
-          results[4]=(await sb.from("plants").select("*").order("sort_order")).data||[];
-          results[5]=(await sb.from("documents").select("*").order("sort_order")).data||[];
-          results[6]=(await sb.from("notices").select("*").order("id",{ascending:false})).data||[];
-          results[7]=(await sb.from("brokers").select("*").order("id",{ascending:false})).data||[];
-          results[9]=(await sb.from("admin_users").select("*").order("id")).data||[];
-        }
-      }
-      setCfg(results[0]);setBuildings(results[1]);setAllUnits(results[2]);setAllPhotos(results[3]);setAllPlants(results[4]);setAllDocs(results[5]);setAllNotices(results[6]);setBrokers(results[7]);setSales(results[8]);setAdminUsers(results[9]);setTasks(results[10]);
+      setCfg(results[0]);setBuildings(results[1]||[]);setAllUnits(results[2]||[]);setAllPhotos(results[3]||[]);setAllPlants(results[4]||[]);setAllDocs(results[5]||[]);setAllNotices(results[6]||[]);setBrokers(results[7]||[]);setSales(results[8]||[]);setAdminUsers(results[9]||[]);setTasks(results[10]||[]);
     } catch(e){ console.log("Load error:", e); document.title="ERRO: "+(e.message||e); window._loadError=(e.message||String(e)); }
     setRdy(true);
     // Debug: show what loaded
