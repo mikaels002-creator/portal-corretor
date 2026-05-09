@@ -176,6 +176,7 @@ var IgIcon = function(){return <svg width="12" height="12" viewBox="0 0 24 24" f
 // SUPABASE DATA FUNCTIONS
 // ═══════════════════════════════════════
 var DB = {
+  _tid: "mk", // tenant_id, set on load
   // --- Site Config ---
   loadConfig: async function(){
     var res = await sb.from("site_config").select("*");
@@ -194,10 +195,11 @@ var DB = {
 
   // --- Buildings ---
   loadBuildings: async function(){
-    var res = await sb.from("buildings").select("*").order("sort_order");
+    var res = await sb.from("buildings").select("*").eq("tenant_id",DB._tid).order("sort_order");
     return res.data || [];
   },
   insertBuilding: async function(b){
+    b.tenant_id=DB._tid;
     var r=await sb.from("buildings").insert(b);if(r.error)console.log("insert error:",r.error);return r;
   },
   deleteBuilding: async function(id){
@@ -206,16 +208,17 @@ var DB = {
 
   // --- Units ---
   loadUnits: async function(buildingId){
-    var q = sb.from("units").select("*").order("sort_order");
+    var q = sb.from("units").select("*").eq("tenant_id",DB._tid).order("sort_order");
     if(buildingId) q = q.eq("building_id", buildingId);
     var res = await q;
     return res.data || [];
   },
   loadAllUnits: async function(){
-    var res = await sb.from("units").select("*").order("sort_order");
+    var res = await sb.from("units").select("*").eq("tenant_id",DB._tid).order("sort_order");
     return res.data || [];
   },
   insertUnit: async function(u){
+    u.tenant_id=DB._tid;
     var r=await sb.from("units").insert(u);if(r.error)console.log("insert error:",r.error);return r;
   },
   deleteUnit: async function(id){
@@ -224,12 +227,13 @@ var DB = {
 
   // --- Photos ---
   loadPhotos: async function(buildingId){
-    var q = sb.from("photos").select("*").order("sort_order");
+    var q = sb.from("photos").select("*").eq("tenant_id",DB._tid).order("sort_order");
     if(buildingId) q = q.eq("building_id", buildingId);
     var res = await q;
     return res.data || [];
   },
   addPhoto: async function(p){
+    p.tenant_id=DB._tid;
     await sb.from("photos").insert(p);
   },
   updatePhoto: async function(id, changes){
@@ -246,12 +250,13 @@ var DB = {
 
   // --- Plants ---
   loadPlants: async function(buildingId){
-    var q = sb.from("plants").select("*").order("sort_order");
+    var q = sb.from("plants").select("*").eq("tenant_id",DB._tid).order("sort_order");
     if(buildingId) q = q.eq("building_id", buildingId);
     var res = await q;
     return res.data || [];
   },
   addPlant: async function(p){
+    p.tenant_id=DB._tid;
     await sb.from("plants").insert(p);
   },
   deletePlant: async function(id){
@@ -260,12 +265,13 @@ var DB = {
 
   // --- Documents ---
   loadDocuments: async function(buildingId){
-    var q = sb.from("documents").select("*").order("sort_order");
+    var q = sb.from("documents").select("*").eq("tenant_id",DB._tid).order("sort_order");
     if(buildingId) q = q.eq("building_id", buildingId);
     var res = await q;
     return res.data || [];
   },
   addDocument: async function(d){
+    d.tenant_id=DB._tid;
     await sb.from("documents").insert(d);
   },
   deleteDocument: async function(id){
@@ -274,12 +280,13 @@ var DB = {
 
   // --- Notices ---
   loadNotices: async function(buildingId){
-    var q = sb.from("notices").select("*").order("id",{ascending:false});
+    var q = sb.from("notices").select("*").eq("tenant_id",DB._tid).order("id",{ascending:false});
     if(buildingId) q = q.eq("building_id", buildingId);
     var res = await q;
     return res.data || [];
   },
   addNotice: async function(n){
+    n.tenant_id=DB._tid;
     await sb.from("notices").insert(n);
   },
   deleteNotice: async function(id){
@@ -288,10 +295,11 @@ var DB = {
 
   // --- Brokers ---
   loadBrokers: async function(){
-    var res = await sb.from("brokers").select("*").order("id",{ascending:false});
+    var res = await sb.from("brokers").select("*").eq("tenant_id",DB._tid).order("id",{ascending:false});
     return res.data || [];
   },
   addBroker: async function(b){
+    b.tenant_id=DB._tid;
     await sb.from("brokers").insert(b);
   },
   deleteBroker: async function(id){
@@ -301,8 +309,8 @@ var DB = {
   addSale: async function(s){await sb.from("broker_sales").insert(s)},
   updateSale: async function(id,c){await sb.from("broker_sales").update(c).eq("id",id)},
   // --- Admin Users ---
-  loadAdminUsers: async function(){var r=await sb.from("admin_users").select("*").order("id");return r.data||[]},
-  addAdminUser: async function(u){return await sb.from("admin_users").insert(u)},
+  loadAdminUsers: async function(){var r=await sb.from("admin_users").select("*").eq("tenant_id",DB._tid).order("id");return r.data||[]},
+  addAdminUser: async function(u){u.tenant_id=DB._tid;return await sb.from("admin_users").insert(u)},
   updateAdminUser: async function(id,c){await sb.from("admin_users").update(c).eq("id",id)},
   deleteAdminUser: async function(id){await sb.from("admin_users").delete().eq("id",id)},
   // --- Analytics ---
@@ -346,20 +354,20 @@ var WA = {
   TOKEN:"EAAX7CZAnuN8UBRYtPtRxTZCQOZCldkyhqWGiBlRrBBQupR0qiw9IZCgQnpWNs42ZCXL9jFzxuPsGFeWKxL0nZBWTJKAoreGcEHSpoSjQHKe9NYwZAzbsefu1dsnqZCpeODCkiJ5eUj4ea5Qyesp0YlGK3jjJmHZBxJFZCWzhfiErFWZAB2KonlovDk3zZCoJkSaZCVXhltcOYpMLUOteHRZB659gYCb7fh9dSpcKzrOuOVXfeGwO9qYv93hGqAkqAiOy1xSX07IZBbZCPt1pRSWXZBkEHaNhI",
   PHONE_ID:"1064884910048060",
   API:"https://graph.facebook.com/v21.0",
-  getAtendentes:async function(){var r=await sb.from("atendentes_whatsapp").select("*").order("ordem");return r.data||[]},
+  getAtendentes:async function(){var r=await sb.from("atendentes_whatsapp").select("*").eq("tenant_id",DB._tid).order("ordem");return r.data||[]},
   getLeads:async function(atendenteId){
-    var q=sb.from("leads_whatsapp").select("*").order("ultima_mensagem_em",{ascending:false});
+    var q=sb.from("leads_whatsapp").select("*").eq("tenant_id",DB._tid).order("ultima_mensagem_em",{ascending:false});
     if(atendenteId)q=q.eq("atendente_id",atendenteId);
     var r=await q;return r.data||[];
   },
   getMessages:async function(leadId){var r=await sb.from("mensagens_whatsapp").select("*").eq("lead_id",leadId).order("criado_em",{ascending:true});return r.data||[]},
   markRead:async function(leadId){await sb.from("mensagens_whatsapp").update({lida:true}).eq("lead_id",leadId).eq("direcao","entrada").eq("lida",false)},
   getUnreadCount:async function(leadId){var r=await sb.from("mensagens_whatsapp").select("id",{count:"exact"}).eq("lead_id",leadId).eq("direcao","entrada").eq("lida",false);return r.count||0},
-  getAllUnread:async function(){var r=await sb.from("mensagens_whatsapp").select("id",{count:"exact"}).eq("direcao","entrada").eq("lida",false);return r.count||0},
+  getAllUnread:async function(){var leads=await sb.from("leads_whatsapp").select("id").eq("tenant_id",DB._tid);var ids=(leads.data||[]).map(function(l){return l.id});if(ids.length===0)return 0;var r=await sb.from("mensagens_whatsapp").select("id",{count:"exact"}).in("lead_id",ids).eq("direcao","entrada").eq("lida",false);return r.count||0},
   updateLeadEtapa:async function(leadId,etapa){await sb.from("leads_whatsapp").update({etapa_funil:etapa,atualizado_em:new Date().toISOString()}).eq("id",leadId)},
   updateLead:async function(leadId,data){await sb.from("leads_whatsapp").update(Object.assign({},data,{atualizado_em:new Date().toISOString()})).eq("id",leadId)},
-  getConfig:async function(){var r=await sb.from("config_whatsapp").select("*");var cfg={};(r.data||[]).forEach(function(c){cfg[c.chave]=c.valor});return cfg},
-  saveConfig:async function(k,v){await sb.from("config_whatsapp").upsert({chave:k,valor:v,atualizado_em:new Date().toISOString()},{onConflict:"chave"})},
+  getConfig:async function(){var r=await sb.from("config_whatsapp").select("*").eq("tenant_id",DB._tid);var cfg={};(r.data||[]).forEach(function(c){cfg[c.chave]=c.valor});return cfg},
+  saveConfig:async function(k,v){await sb.from("config_whatsapp").upsert({chave:k,valor:v,tenant_id:DB._tid,atualizado_em:new Date().toISOString()},{onConflict:"chave"})},
   sendMessage:async function(leadId,conteudo,atendenteId){
     try{
       var resp=await fetch("https://zztqlktqevfdxjyzvand.supabase.co/functions/v1/enviar-whatsapp",{
@@ -373,7 +381,7 @@ var WA = {
     }catch(e){return{error:e.message}}
   },
   createLead:async function(telefone,nome,atendenteId,origem){
-    var r=await sb.from("leads_whatsapp").insert({telefone:telefone,nome:nome||telefone,atendente_id:atendenteId,origem:origem||"manual",etapa_funil:"novo",ultima_mensagem_em:new Date().toISOString()}).select().single();
+    var r=await sb.from("leads_whatsapp").insert({telefone:telefone,nome:nome||telefone,atendente_id:atendenteId,origem:origem||"manual",etapa_funil:"novo",ultima_mensagem_em:new Date().toISOString(),tenant_id:DB._tid}).select().single();
     return r.data;
   },
   distribuirLead:async function(){
@@ -448,7 +456,7 @@ function App(){
   var _rdy = useState(false); var rdy = _rdy[0]; var setRdy = _rdy[1];
   var _buildings = useState([]); var buildings = _buildings[0]; var setBuildings = _buildings[1];
   var _allPromos = useState([]); var allPromos = _allPromos[0]; var setAllPromos = _allPromos[1];
-  var refreshPromos = async function(){try{var r=await sb.from("promocoes").select("*").eq("ativo",true).eq("destaque",true).order("criado_em",{ascending:false});setAllPromos(r.data||[])}catch(e){}};
+  var refreshPromos = async function(){try{var r=await sb.from("promocoes").select("*").eq("tenant_id",DB._tid).eq("ativo",true).eq("destaque",true).order("criado_em",{ascending:false});setAllPromos(r.data||[])}catch(e){}};
   var _allUnits = useState([]); var allUnits = _allUnits[0]; var setAllUnits = _allUnits[1];
   var _allPhotos = useState([]); var allPhotos = _allPhotos[0]; var setAllPhotos = _allPhotos[1];
   var _allPlants = useState([]); var allPlants = _allPlants[0]; var setAllPlants = _allPlants[1];
@@ -517,7 +525,7 @@ function App(){
 
   // Audit log
   var logAction=async function(acao,tabela,registroId,dadosAntes,dadosDepois){
-    try{await sb.from("audit_log").insert({usuario:currentUser?currentUser.nome:"visitante",acao:acao,tabela:tabela||null,registro_id:registroId||null,dados_antes:dadosAntes||null,dados_depois:dadosDepois||null})}catch(e){}
+    try{await sb.from("audit_log").insert({tenant_id:DB._tid,usuario:currentUser?currentUser.nome:"visitante",acao:acao,tabela:tabela||null,registro_id:registroId||null,dados_antes:dadosAntes||null,dados_depois:dadosDepois||null})}catch(e){}
   };
 
   // Notification helper
@@ -581,7 +589,7 @@ function App(){
       // Load tenant first
       var tr=await sb.from("tenants").select("*").eq("slug",slug).eq("ativo",true).single();
       if(!tr.data){tr=await sb.from("tenants").select("*").eq("ativo",true).order("criado_em").limit(1).single()}
-      if(tr.data){setTenant(tr.data);document.title="Portal "+(tr.data.nome_portal||tr.data.nome_empresa.split(" ")[0])}
+      if(tr.data){setTenant(tr.data);DB._tid=tr.data.slug||tr.data.id;document.title="Portal "+(tr.data.nome_portal||tr.data.nome_empresa.split(" ")[0])}
       var results = await Promise.all([DB.loadConfig(),DB.loadBuildings(),DB.loadAllUnits(),DB.loadPhotos(),DB.loadPlants(),DB.loadDocuments(),DB.loadNotices(),DB.loadBrokers(),DB.loadSales(),DB.loadAdminUsers(),DB.loadTasks()]);
       setCfg(results[0]);setBuildings(results[1]);setAllUnits(results[2]);setAllPhotos(results[3]);setAllPlants(results[4]);setAllDocs(results[5]);setAllNotices(results[6]);setBrokers(results[7]);setSales(results[8]);setAdminUsers(results[9]);setTasks(results[10]);
     } catch(e){ console.log("Load error:", e); }
@@ -904,9 +912,9 @@ function App(){
     var _editPromo=useState(null);var editPromo=_editPromo[0];var setEditPromo=_editPromo[1];
     var _pForm=useState({titulo:"",descricao:"",unit_id:"",preco_promocional:"",condicao_pagamento:"",validade:"",destaque:true,visibilidade:"todos"});var pForm=_pForm[0];var setPForm=_pForm[1];
     useEffect(function(){
-      sb.from("promocoes").select("*").eq("building_id",bld.id).eq("ativo",true).order("criado_em",{ascending:false}).then(function(r){setPromos(r.data||[])});
+      sb.from("promocoes").select("*").eq("tenant_id",DB._tid).eq("building_id",bld.id).eq("ativo",true).order("criado_em",{ascending:false}).then(function(r){setPromos(r.data||[])});
     },[bld.id]);
-    var reloadPromos=async function(){var r=await sb.from("promocoes").select("*").eq("building_id",bld.id).eq("ativo",true).order("criado_em",{ascending:false});setPromos(r.data||[]);refreshPromos()};
+    var reloadPromos=async function(){var r=await sb.from("promocoes").select("*").eq("tenant_id",DB._tid).eq("building_id",bld.id).eq("ativo",true).order("criado_em",{ascending:false});setPromos(r.data||[]);refreshPromos()};
     var savePromo=async function(){
       if(!pForm.titulo.trim()){msg("Preencha o título");return}
       try{
@@ -915,7 +923,7 @@ function App(){
           if(res.error){msg("❌ "+res.error.message);return}
           setEditPromo(null);
         }else{
-          var res=await sb.from("promocoes").insert({building_id:bld.id,unit_id:pForm.unit_id||null,titulo:pForm.titulo,descricao:pForm.descricao,preco_promocional:pForm.preco_promocional?+pForm.preco_promocional:null,condicao_pagamento:pForm.condicao_pagamento,validade:pForm.validade||null,destaque:pForm.destaque!==false,visibilidade:pForm.visibilidade||"todos",ativo:true});
+          var res=await sb.from("promocoes").insert({tenant_id:DB._tid,building_id:bld.id,unit_id:pForm.unit_id||null,titulo:pForm.titulo,descricao:pForm.descricao,preco_promocional:pForm.preco_promocional?+pForm.preco_promocional:null,condicao_pagamento:pForm.condicao_pagamento,validade:pForm.validade||null,destaque:pForm.destaque!==false,visibilidade:pForm.visibilidade||"todos",ativo:true});
           if(res.error){msg("❌ "+res.error.message);console.error(res.error);return}
         }
         setPForm({titulo:"",descricao:"",unit_id:"",preco_promocional:"",condicao_pagamento:"",validade:"",destaque:true,visibilidade:"todos"});setShowPromoForm(false);await reloadPromos();msg(editPromo?"✅ Oferta atualizada!":"✅ Oferta criada!");
@@ -2898,7 +2906,7 @@ function App(){
     var loadLogs=async function(){
       setLoading2(true);
       try{
-        var q=sb.from("audit_log").select("*").order("criado_em",{ascending:false}).limit(logLimit);
+        var q=sb.from("audit_log").select("*").eq("tenant_id",DB._tid).order("criado_em",{ascending:false}).limit(logLimit);
         if(logFilter!=="all")q=q.eq("acao",logFilter);
         var r=await q;setLogs(r.data||[]);
       }catch(e){}
@@ -3104,7 +3112,7 @@ function App(){
           r+="🌐 PORTAL (30 dias):\n";
           r+="   👁️ "+summary.views+" visitas · 🏦 "+summary.sims+" simulações · 📱 "+summary.waSh+" compartilhamentos\n";
           r+="   📈 Conversão visita→simulação: "+(summary.views>0?((summary.sims/summary.views)*100).toFixed(1):"0")+"%\n\n";
-          try{var waL=await WA.getLeads();var waA=await WA.getAtendentes();var cAll=(await sb.from("contatos_whatsapp").select("id",{count:"exact"}).eq("ativo",true)).count||0;
+          try{var waL=await WA.getLeads();var waA=await WA.getAtendentes();var cAll=(await sb.from("contatos_whatsapp").select("id",{count:"exact"}).eq("tenant_id",DB._tid).eq("ativo",true)).count||0;
             r+="📞 WHATSAPP: "+waL.length+" leads · "+cAll+" contatos · "+waA.filter(function(a){return a.ativo}).length+" atendentes\n";
             var wF=waL.filter(function(l){return l.etapa_funil==="fechado"}).length;
             r+="   📈 Conversão: "+(waL.length>0?((wF/waL.length)*100).toFixed(1):"0")+"%\n\n";
@@ -3151,7 +3159,7 @@ function App(){
         // ═══ CONTATOS ═══
         if(type==="contatos"){
           r+="📇 BASE DE CONTATOS\n━━━━━━━━━━━━━━━━━━━\n\n";
-          try{var cA=(await sb.from("contatos_whatsapp").select("*").eq("ativo",true)).data||[];
+          try{var cA=(await sb.from("contatos_whatsapp").select("*").eq("tenant_id",DB._tid).eq("ativo",true)).data||[];
             var corr=cA.filter(function(x){return x.tipo==="corretor"}).length;var cli=cA.filter(function(x){return x.tipo==="cliente"}).length;
             r+="📊 "+cA.length+" contatos: 🏢 "+corr+" corretores · 👤 "+cli+" clientes\n\n";
             r+="📍 POR CANAL:\n";var cn={};cA.forEach(function(x){cn[x.canal||"direto"]=(cn[x.canal||"direto"]||0)+1});
@@ -3500,7 +3508,7 @@ function App(){
     // Quick messages
     var _quickMsgs=useState([]);var quickMsgs=_quickMsgs[0];var setQuickMsgs=_quickMsgs[1];
     var _showQuick=useState(false);var showQuick=_showQuick[0];var setShowQuick=_showQuick[1];
-    useEffect(function(){sb.from("mensagens_prontas").select("*").eq("ativo",true).order("ordem").then(function(r){setQuickMsgs(r.data||[])})},[])
+    useEffect(function(){sb.from("mensagens_prontas").select("*").eq("tenant_id",DB._tid).eq("ativo",true).order("ordem").then(function(r){setQuickMsgs(r.data||[])})},[])
 
     var WA_GREEN="#25D366";
     var isSA=currentUser&&currentUser.role==="super_admin";
@@ -3522,14 +3530,14 @@ function App(){
     var _cMassMsg=useState("");var cMassMsg=_cMassMsg[0];var setCMassMsg=_cMassMsg[1];
     var _cSending=useState(false);var cSending=_cSending[0];var setCSending=_cSending[1];
 
-    var loadContatos=async function(){try{var r=await sb.from("contatos_whatsapp").select("*").eq("ativo",true).order("nome");setContatos(r.data||[])}catch(e){}};
+    var loadContatos=async function(){try{var r=await sb.from("contatos_whatsapp").select("*").eq("tenant_id",DB._tid).eq("ativo",true).order("nome");setContatos(r.data||[])}catch(e){}};
     useEffect(function(){if(waTab==="contatos")loadContatos()},[waTab]);
 
     var saveContato=async function(){
       if(!cForm||!cForm.nome||!cForm.telefone){wmsg("Preencha nome e telefone");return}
       try{
         if(cForm.id){await sb.from("contatos_whatsapp").update({nome:cForm.nome,telefone:cForm.telefone,email:cForm.email||null,tipo:cForm.tipo,empresa:cForm.empresa||null,creci:cForm.creci||null,observacoes:cForm.observacoes||null,atendente_responsavel:cForm.atendente_responsavel||null,canal:cForm.canal||"direto"}).eq("id",cForm.id)}
-        else{await sb.from("contatos_whatsapp").insert({nome:cForm.nome,telefone:cForm.telefone,email:cForm.email||null,tipo:cForm.tipo||"corretor",empresa:cForm.empresa||null,creci:cForm.creci||null,observacoes:cForm.observacoes||null,atendente_responsavel:cForm.atendente_responsavel||null,canal:cForm.canal||"direto",origem:"manual"})}
+        else{await sb.from("contatos_whatsapp").insert({tenant_id:DB._tid,nome:cForm.nome,telefone:cForm.telefone,email:cForm.email||null,tipo:cForm.tipo||"corretor",empresa:cForm.empresa||null,creci:cForm.creci||null,observacoes:cForm.observacoes||null,atendente_responsavel:cForm.atendente_responsavel||null,canal:cForm.canal||"direto",origem:"manual"})}
         setCForm(null);await loadContatos();wmsg(cForm.id?"✅ Atualizado":"✅ Contato criado!");
       }catch(e){wmsg("❌ "+e.message)}
     };
@@ -3905,7 +3913,7 @@ function App(){
               <div style={{marginTop:8,borderTop:"1px solid "+borderColor,paddingTop:8}}>
                 <div style={{fontSize:12,fontWeight:600,color:textColor,marginBottom:4}}>📊 NPS — Satisfação</div>
                 <div style={{display:"flex",gap:2}}>
-                  {[0,1,2,3,4,5,6,7,8,9,10].map(function(n){return <button key={n} className="bh" onClick={async function(){await sb.from("pesquisas_nps").insert({lead_id:waSel.id,etapa:waSel.etapa_funil,nota:n});wmsg("NPS "+n+" registrado!")}} style={{flex:1,padding:"4px 0",borderRadius:4,fontSize:11,fontWeight:700,background:n<=6?"#D45B5B15":n<=8?"#E8A94E15":"#4CAF7D15",color:n<=6?"#D45B5B":n<=8?"#E8A94E":"#4CAF7D",border:"none",cursor:"pointer"}}>{n}</button>})}
+                  {[0,1,2,3,4,5,6,7,8,9,10].map(function(n){return <button key={n} className="bh" onClick={async function(){await sb.from("pesquisas_nps").insert({tenant_id:DB._tid,lead_id:waSel.id,etapa:waSel.etapa_funil,nota:n});wmsg("NPS "+n+" registrado!")}} style={{flex:1,padding:"4px 0",borderRadius:4,fontSize:11,fontWeight:700,background:n<=6?"#D45B5B15":n<=8?"#E8A94E15":"#4CAF7D15",color:n<=6?"#D45B5B":n<=8?"#E8A94E":"#4CAF7D",border:"none",cursor:"pointer"}}>{n}</button>})}
                 </div>
                 <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:subColor,marginTop:2}}>
                   <span>Detrator</span><span>Neutro</span><span>Promotor</span>
@@ -3985,7 +3993,7 @@ function App(){
               var exists=docs2.find(function(d){return d.lead_id===docLead&&d.tipo===dt.k});
               return <button key={dt.k} className="bh" onClick={async function(){
                 if(exists)return;
-                await sb.from("documentos_lead").insert({lead_id:docLead,tipo:dt.k,nome_arquivo:dt.l,status:"pendente"});
+                await sb.from("documentos_lead").insert({tenant_id:DB._tid,lead_id:docLead,tipo:dt.k,nome_arquivo:dt.l,status:"pendente"});
                 await loadDocs2();wmsg("📎 "+dt.l+" adicionado")
               }} style={{padding:"6px 12px",borderRadius:8,fontSize:12,background:exists?statusCol[exists.status]+"10":G+"08",color:exists?statusCol[exists.status]:G,border:"1px solid "+(exists?statusCol[exists.status]+"20":G+"20"),cursor:exists?"default":"pointer",opacity:exists?0.7:1}}>{dt.i} {dt.l} {exists&&<span style={{fontSize:10}}>({exists.status})</span>}</button>
             })}
@@ -4070,21 +4078,21 @@ function App(){
     var _visitas=useState([]);var visitas2=_visitas[0];var setVisitas2=_visitas[1];
     var _showVisitaForm=useState(false);var showVisitaForm=_showVisitaForm[0];var setShowVisitaForm=_showVisitaForm[1];
     var _vForm=useState({lead_id:"",building_id:"",data_hora:"",observacoes:""});var vForm=_vForm[0];var setVForm=_vForm[1];
-    var loadVisitas=async function(){try{var r=await sb.from("visitas").select("*").order("data_hora",{ascending:true});setVisitas2(r.data||[])}catch(e){}};
+    var loadVisitas=async function(){try{var r=await sb.from("visitas").select("*").eq("tenant_id",DB._tid).order("data_hora",{ascending:true});setVisitas2(r.data||[])}catch(e){}};
     useEffect(function(){if(waTab==="visitas")loadVisitas()},[waTab]);
 
     // ═══ PROPOSTAS STATE ═══
     var _propostas2=useState([]);var propostas2=_propostas2[0];var setPropostas2=_propostas2[1];
     var _showPropForm=useState(false);var showPropForm=_showPropForm[0];var setShowPropForm=_showPropForm[1];
     var _propForm=useState({lead_id:"",building_id:"",unit_id:"",valor_proposta:"",condicao_pagamento:"",desconto_pct:"",validade:"",observacoes:""});var propForm=_propForm[0];var setPropForm=_propForm[1];
-    var loadPropostas=async function(){try{var r=await sb.from("propostas").select("*").order("criado_em",{ascending:false});setPropostas2(r.data||[])}catch(e){}};
+    var loadPropostas=async function(){try{var r=await sb.from("propostas").select("*").eq("tenant_id",DB._tid).order("criado_em",{ascending:false});setPropostas2(r.data||[])}catch(e){}};
     useEffect(function(){if(waTab==="propostas")loadPropostas()},[waTab]);
 
     // ═══ AVISOS STATE ═══
     var _avisos2=useState([]);var avisos2=_avisos2[0];var setAvisos2=_avisos2[1];
     var _showAvisoForm=useState(false);var showAvisoForm=_showAvisoForm[0];var setShowAvisoForm=_showAvisoForm[1];
     var _avisoForm=useState({titulo:"",conteudo:"",tipo:"geral",destinatarios:"todos",building_id:""});var avisoForm=_avisoForm[0];var setAvisoForm=_avisoForm[1];
-    var loadAvisos=async function(){try{var r=await sb.from("avisos").select("*").eq("ativo",true).order("criado_em",{ascending:false});setAvisos2(r.data||[])}catch(e){}};
+    var loadAvisos=async function(){try{var r=await sb.from("avisos").select("*").eq("tenant_id",DB._tid).eq("ativo",true).order("criado_em",{ascending:false});setAvisos2(r.data||[])}catch(e){}};
     useEffect(function(){if(waTab==="avisos")loadAvisos()},[waTab]);
 
     // ═══ DOCS STATE ═══
@@ -4183,7 +4191,7 @@ function App(){
           </div>
           <input style={Object.assign({},mI,{fontSize:13})} value={vForm.observacoes} onChange={function(e){setVForm(Object.assign({},vForm,{observacoes:e.target.value}))}} placeholder="Observações"/>
           <div style={{display:"flex",gap:6}}>
-            <button className="bh" onClick={async function(){if(!vForm.lead_id||!vForm.data_hora){wmsg("Preencha lead e data");return}var myAtt=waAtt.find(function(a){return a.admin_user_id===currentUser.id});await sb.from("visitas").insert({lead_id:vForm.lead_id,building_id:vForm.building_id||null,data_hora:vForm.data_hora,observacoes:vForm.observacoes,atendente_id:myAtt?myAtt.id:null});setVForm({lead_id:"",building_id:"",data_hora:"",observacoes:""});setShowVisitaForm(false);await loadVisitas();wmsg("✅ Visita agendada!")}} style={{padding:"8px 20px",borderRadius:8,background:"#5B8FD4",color:"#fff",border:"none",cursor:"pointer",fontSize:13,fontWeight:600}}>💾 Agendar</button>
+            <button className="bh" onClick={async function(){if(!vForm.lead_id||!vForm.data_hora){wmsg("Preencha lead e data");return}var myAtt=waAtt.find(function(a){return a.admin_user_id===currentUser.id});await sb.from("visitas").insert({tenant_id:DB._tid,lead_id:vForm.lead_id,building_id:vForm.building_id||null,data_hora:vForm.data_hora,observacoes:vForm.observacoes,atendente_id:myAtt?myAtt.id:null});setVForm({lead_id:"",building_id:"",data_hora:"",observacoes:""});setShowVisitaForm(false);await loadVisitas();wmsg("✅ Visita agendada!")}} style={{padding:"8px 20px",borderRadius:8,background:"#5B8FD4",color:"#fff",border:"none",cursor:"pointer",fontSize:13,fontWeight:600}}>💾 Agendar</button>
             <button className="bh" onClick={function(){setShowVisitaForm(false)}} style={{padding:"8px 20px",borderRadius:8,background:"transparent",color:subColor,border:"1px solid "+borderColor,cursor:"pointer",fontSize:13}}>Cancelar</button>
           </div>
         </div>}
@@ -4249,7 +4257,7 @@ function App(){
           <input style={Object.assign({},mI,{fontSize:13})} value={propForm.condicao_pagamento||""} onChange={function(e){setPropForm(Object.assign({},propForm,{condicao_pagamento:e.target.value}))}} placeholder="Condição de pagamento"/>
           <textarea style={Object.assign({},mI,{fontSize:13,minHeight:40})} value={propForm.observacoes||""} onChange={function(e){setPropForm(Object.assign({},propForm,{observacoes:e.target.value}))}} placeholder="Observações"/>
           <div style={{display:"flex",gap:6}}>
-            <button className="bh" onClick={async function(){if(!propForm.lead_id){wmsg("Selecione o lead");return}await sb.from("propostas").insert({lead_id:propForm.lead_id,building_id:propForm.building_id||null,unit_id:propForm.unit_id||null,valor_proposta:propForm.valor_proposta?+propForm.valor_proposta:null,condicao_pagamento:propForm.condicao_pagamento,desconto_pct:propForm.desconto_pct?+propForm.desconto_pct:0,validade:propForm.validade||null,observacoes:propForm.observacoes,status:"rascunho"});setPropForm({lead_id:"",building_id:"",unit_id:"",valor_proposta:"",condicao_pagamento:"",desconto_pct:"",validade:"",observacoes:""});setShowPropForm(false);await loadPropostas();wmsg("✅ Proposta criada!")}} style={{padding:"8px 20px",borderRadius:8,background:"#4CAF7D",color:"#fff",border:"none",cursor:"pointer",fontSize:13,fontWeight:600}}>💾 Salvar</button>
+            <button className="bh" onClick={async function(){if(!propForm.lead_id){wmsg("Selecione o lead");return}await sb.from("propostas").insert({tenant_id:DB._tid,lead_id:propForm.lead_id,building_id:propForm.building_id||null,unit_id:propForm.unit_id||null,valor_proposta:propForm.valor_proposta?+propForm.valor_proposta:null,condicao_pagamento:propForm.condicao_pagamento,desconto_pct:propForm.desconto_pct?+propForm.desconto_pct:0,validade:propForm.validade||null,observacoes:propForm.observacoes,status:"rascunho"});setPropForm({lead_id:"",building_id:"",unit_id:"",valor_proposta:"",condicao_pagamento:"",desconto_pct:"",validade:"",observacoes:""});setShowPropForm(false);await loadPropostas();wmsg("✅ Proposta criada!")}} style={{padding:"8px 20px",borderRadius:8,background:"#4CAF7D",color:"#fff",border:"none",cursor:"pointer",fontSize:13,fontWeight:600}}>💾 Salvar</button>
             <button className="bh" onClick={function(){setShowPropForm(false)}} style={{padding:"8px 20px",borderRadius:8,background:"transparent",color:subColor,border:"1px solid "+borderColor,cursor:"pointer",fontSize:13}}>Cancelar</button>
           </div>
         </div>}
@@ -4304,7 +4312,7 @@ function App(){
             </select>
           </div>
           <div style={{display:"flex",gap:6}}>
-            <button className="bh" onClick={async function(){if(!avisoForm.titulo){wmsg("Preencha o título");return}await sb.from("avisos").insert({titulo:avisoForm.titulo,conteudo:avisoForm.conteudo,tipo:avisoForm.tipo,destinatarios:avisoForm.destinatarios,building_id:avisoForm.building_id||null});setAvisoForm({titulo:"",conteudo:"",tipo:"geral",destinatarios:"todos",building_id:""});setShowAvisoForm(false);await loadAvisos();wmsg("✅ Aviso publicado!")}} style={{padding:"8px 20px",borderRadius:8,background:"#C47070",color:"#fff",border:"none",cursor:"pointer",fontSize:13,fontWeight:600}}>📢 Publicar</button>
+            <button className="bh" onClick={async function(){if(!avisoForm.titulo){wmsg("Preencha o título");return}await sb.from("avisos").insert({tenant_id:DB._tid,titulo:avisoForm.titulo,conteudo:avisoForm.conteudo,tipo:avisoForm.tipo,destinatarios:avisoForm.destinatarios,building_id:avisoForm.building_id||null});setAvisoForm({titulo:"",conteudo:"",tipo:"geral",destinatarios:"todos",building_id:""});setShowAvisoForm(false);await loadAvisos();wmsg("✅ Aviso publicado!")}} style={{padding:"8px 20px",borderRadius:8,background:"#C47070",color:"#fff",border:"none",cursor:"pointer",fontSize:13,fontWeight:600}}>📢 Publicar</button>
             <button className="bh" onClick={function(){setShowAvisoForm(false)}} style={{padding:"8px 20px",borderRadius:8,background:"transparent",color:subColor,border:"1px solid "+borderColor,cursor:"pointer",fontSize:13}}>Cancelar</button>
           </div>
         </div>}
@@ -4503,7 +4511,7 @@ function App(){
               <div style={{fontWeight:600,fontSize:13,color:textColor}}>{qm.titulo}</div>
               <div style={{fontSize:11,color:subColor}}>{qm.conteudo.substring(0,80)}{qm.conteudo.length>80?"...":""}</div>
             </div>
-            <button className="bh" onClick={async function(){await sb.from("mensagens_prontas").delete().eq("id",qm.id);var r=await sb.from("mensagens_prontas").select("*").eq("ativo",true).order("ordem");setQuickMsgs(r.data||[]);wmsg("Removida")}} style={{width:24,height:24,borderRadius:6,background:"rgba(213,91,91,0.1)",color:"#D45B5B",border:"none",cursor:"pointer",fontSize:11,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+            <button className="bh" onClick={async function(){await sb.from("mensagens_prontas").delete().eq("id",qm.id);var r=await sb.from("mensagens_prontas").select("*").eq("tenant_id",DB._tid).eq("ativo",true).order("ordem");setQuickMsgs(r.data||[]);wmsg("Removida")}} style={{width:24,height:24,borderRadius:6,background:"rgba(213,91,91,0.1)",color:"#D45B5B",border:"none",cursor:"pointer",fontSize:11,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
           </div>
         })}
         <div style={{padding:12,borderRadius:10,background:cardBg,border:"1px dashed "+borderColor,marginTop:6}}>
@@ -4514,7 +4522,7 @@ function App(){
             </select>
           </div>
           <textarea id="qm_conteudo" style={{width:"100%",padding:"6px 10px",borderRadius:6,border:"1px solid "+borderColor,background:isDark?"#1a1a19":"#EFEBE4",color:textColor,fontSize:12,outline:"none",minHeight:40}} placeholder="Conteúdo da mensagem"/>
-          <button className="bh" onClick={async function(){var ti=document.getElementById("qm_titulo").value;var co=document.getElementById("qm_conteudo").value;var ca=document.getElementById("qm_cat").value;if(!ti||!co)return;await sb.from("mensagens_prontas").insert({titulo:ti,conteudo:co,categoria:ca,ordem:quickMsgs.length+1});var r=await sb.from("mensagens_prontas").select("*").eq("ativo",true).order("ordem");setQuickMsgs(r.data||[]);document.getElementById("qm_titulo").value="";document.getElementById("qm_conteudo").value="";wmsg("✅ Adicionada!")}} style={{marginTop:6,padding:"6px 14px",borderRadius:6,background:"#8B6FBF",color:"#fff",border:"none",cursor:"pointer",fontSize:12,fontWeight:600}}>+ Adicionar</button>
+          <button className="bh" onClick={async function(){var ti=document.getElementById("qm_titulo").value;var co=document.getElementById("qm_conteudo").value;var ca=document.getElementById("qm_cat").value;if(!ti||!co)return;await sb.from("mensagens_prontas").insert({tenant_id:DB._tid,titulo:ti,conteudo:co,categoria:ca,ordem:quickMsgs.length+1});var r=await sb.from("mensagens_prontas").select("*").eq("tenant_id",DB._tid).eq("ativo",true).order("ordem");setQuickMsgs(r.data||[]);document.getElementById("qm_titulo").value="";document.getElementById("qm_conteudo").value="";wmsg("✅ Adicionada!")}} style={{marginTop:6,padding:"6px 14px",borderRadius:6,background:"#8B6FBF",color:"#fff",border:"none",cursor:"pointer",fontSize:12,fontWeight:600}}>+ Adicionar</button>
         </div>
       </div>
     };
