@@ -398,28 +398,89 @@ function App(){
 
       {/* ═══ PAYMENTS ═══ */}
       {view==="payments"&&<div className="fade-in">
-        <div style={{fontSize:24,fontWeight:700,color:"#fff",marginBottom:20}}>Pagamentos</div>
-        <div style={{display:"flex",gap:10,marginBottom:16}}>
-          {[{l:"Total",v:fmt(pagtos.reduce(function(s,p){return s+p.valor},0)),c:B},{l:"Recebido",v:fmt(pagtos.filter(function(p){return p.status==="pago"}).reduce(function(s,p){return s+p.valor},0)),c:GR},{l:"Pendente",v:fmt(aReceber),c:W},{l:"Atrasado",v:fmt(pendentes.reduce(function(s,p){return s+p.valor},0)),c:R}].map(function(k,i){
-            return <div key={i} style={{flex:1,padding:16,borderRadius:12,background:"#0f0f12",border:"1px solid #1a1a1f",textAlign:"center"}}>
-              <div style={{fontSize:22,fontWeight:700,color:k.c}}>{k.v}</div>
-              <div style={{fontSize:11,color:"#555"}}>{k.l}</div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+          <div style={{fontSize:24,fontWeight:700,color:"#fff"}}>Pagamentos</div>
+        </div>
+        {/* KPIs */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10,marginBottom:16}}>
+          {[
+            {l:"Total",v:fmt(pagtos.reduce(function(s,p){return s+(p.valor||0)},0)),c:B},
+            {l:"Recebido",v:fmt(pagtos.filter(function(p){return p.status==="pago"}).reduce(function(s,p){return s+(p.valor||0)},0)),c:GR},
+            {l:"Pendente",v:fmt(pagtos.filter(function(p){return p.status==="pendente"}).reduce(function(s,p){return s+(p.valor||0)},0)),c:W},
+            {l:"Atrasado",v:fmt(pendentes.reduce(function(s,p){return s+(p.valor||0)},0)),c:R},
+            {l:"Cancelado",v:fmt(pagtos.filter(function(p){return p.status==="cancelado"}).reduce(function(s,p){return s+(p.valor||0)},0)),c:"#666"}
+          ].map(function(k,i){
+            return <div key={i} className="bh" onClick={function(){document.getElementById("pag_filter").value=k.l==="Total"?"todos":k.l.toLowerCase();document.getElementById("pag_filter").dispatchEvent(new Event("change"))}} style={{padding:14,borderRadius:12,background:"#0f0f12",border:"1px solid #1a1a1f",textAlign:"center",cursor:"pointer"}}>
+              <div style={{fontSize:20,fontWeight:700,color:k.c}}>{k.v}</div>
+              <div style={{fontSize:11,color:"#555"}}>{k.l} ({k.l==="Total"?pagtos.length:k.l==="Recebido"?pagtos.filter(function(p){return p.status==="pago"}).length:k.l==="Pendente"?pagtos.filter(function(p){return p.status==="pendente"}).length:k.l==="Atrasado"?pendentes.length:pagtos.filter(function(p){return p.status==="cancelado"}).length})</div>
             </div>
           })}
         </div>
-        {pagtos.map(function(p){var t=tenants.find(function(x){return x.id===p.tenant_id});var cols={pago:GR,pendente:W,atrasado:R};var isLate=p.status==="pendente"&&p.vencimento&&p.vencimento<hoje;
-          return <div key={p.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 16px",borderRadius:10,background:"#0f0f12",border:"1px solid #1a1a1f",marginBottom:4}}>
-            <div>
-              <div style={{fontSize:14,fontWeight:600,color:"#fff"}}>{t?t.nome_empresa:"—"}</div>
-              <div style={{fontSize:12,color:"#555"}}>{p.metodo||"—"} · {p.vencimento?new Date(p.vencimento).toLocaleDateString("pt-BR"):"—"}{p.observacoes?" · "+p.observacoes:""}</div>
+        {/* Filters */}
+        <div style={{display:"flex",gap:8,marginBottom:14}}>
+          <select id="pag_filter" defaultValue="todos" onChange={function(e){window._pagFilter=e.target.value;loadAll()}} style={{padding:"8px 12px",borderRadius:8,background:"#111",color:"#E8E4DD",border:"1px solid #222",fontSize:13,flex:1}}>
+            <option value="todos">Todos</option>
+            <option value="pendente">Pendente</option>
+            <option value="pago">Pago</option>
+            <option value="atrasado">Atrasado</option>
+            <option value="cancelado">Cancelado</option>
+          </select>
+          <input id="pag_search" onKeyDown={function(e){e.stopPropagation()}} placeholder="Buscar cliente..." onChange={function(e){window._pagSearch=e.target.value.toLowerCase()}} style={{padding:"8px 12px",borderRadius:8,background:"#111",color:"#E8E4DD",border:"1px solid #222",fontSize:13,flex:2}}/>
+        </div>
+        {/* Payment list */}
+        <div style={{maxHeight:"55vh",overflow:"auto"}}>
+        {pagtos.filter(function(p){
+          var f=window._pagFilter||"todos";
+          var s=window._pagSearch||"";
+          var t=tenants.find(function(x){return x.id===p.tenant_id});
+          var nome=(t?t.nome_empresa:"").toLowerCase();
+          var isLate=p.status==="pendente"&&p.vencimento&&p.vencimento<hoje;
+          if(f==="atrasado")return isLate&&nome.indexOf(s)!==-1;
+          if(f!=="todos"&&p.status!==f)return false;
+          return nome.indexOf(s)!==-1;
+        }).map(function(p){
+          var t=tenants.find(function(x){return x.id===p.tenant_id});
+          var cols={pago:GR,pendente:W,atrasado:R,cancelado:"#666"};
+          var isLate=p.status==="pendente"&&p.vencimento&&p.vencimento<hoje;
+          var stColor=isLate?R:cols[p.status]||"#555";
+          var stLabel=isLate?"ATRASADO":p.status;
+          var diasAtraso=isLate?Math.floor((Date.now()-new Date(p.vencimento).getTime())/86400000):0;
+          return <div key={p.id} style={{padding:"14px 16px",borderRadius:12,background:"#0f0f12",border:"1px solid "+(isLate?"rgba(213,91,91,0.2)":"#1a1a1f"),marginBottom:6}}>
+            {/* Header */}
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+              <div>
+                <div style={{fontSize:15,fontWeight:700,color:"#fff"}}>{t?t.nome_empresa:"—"}</div>
+                <div style={{fontSize:12,color:"#555"}}>
+                  {p.metodo||"—"} · Venc: {p.vencimento?new Date(p.vencimento).toLocaleDateString("pt-BR"):"—"}
+                  {p.pago_em?" · Pago: "+new Date(p.pago_em).toLocaleDateString("pt-BR"):""}
+                  {isLate?" · "+diasAtraso+" dias de atraso":""}
+                </div>
+                {p.observacoes&&<div style={{fontSize:12,color:"#888",marginTop:2}}>📝 {p.observacoes}</div>}
+                {p.valor_original&&p.valor_original!==p.valor&&<div style={{fontSize:11,color:"#555",marginTop:2}}>Valor original: {fmt(p.valor_original)} → Atual: {fmt(p.valor)}</div>}
+              </div>
+              <div style={{textAlign:"right"}}>
+                <div style={{fontSize:22,fontWeight:700,color:stColor}}>{fmt(p.valor)}</div>
+                <span style={{fontSize:11,padding:"3px 10px",borderRadius:8,background:stColor+"15",color:stColor,fontWeight:600}}>{stLabel}</span>
+              </div>
             </div>
-            <div style={{display:"flex",alignItems:"center",gap:10}}>
-              <div style={{fontSize:18,fontWeight:700,color:isLate?R:cols[p.status]||"#555"}}>{fmt(p.valor)}</div>
-              {p.status!=="pago"&&<button className="bh" onClick={async function(){await sb.from("pagamentos").update({status:"pago",pago_em:new Date().toISOString().split("T")[0]}).eq("id",p.id);await loadAll();msg("✅ Pago!")}} style={{padding:"6px 14px",borderRadius:8,background:GR+"15",color:GR,border:"none",fontSize:13,fontWeight:600}}>✅ Pago</button>}
-              <span style={{fontSize:11,padding:"4px 10px",borderRadius:8,background:(isLate?R:cols[p.status]||"#555")+"15",color:isLate?R:cols[p.status]||"#555",fontWeight:600}}>{isLate?"ATRASADO":p.status}{p.pago_em?" · "+new Date(p.pago_em).toLocaleDateString("pt-BR"):""}</span>
+            {/* Actions */}
+            <div style={{display:"flex",gap:4,flexWrap:"wrap",borderTop:"1px solid #1a1a1f",paddingTop:8}}>
+              {p.status!=="pago"&&p.status!=="cancelado"&&<button className="bh" onClick={async function(){await sb.from("pagamentos").update({status:"pago",pago_em:new Date().toISOString().split("T")[0]}).eq("id",p.id);await loadAll();msg("✅ Pago!")}} style={{padding:"6px 12px",borderRadius:6,background:GR+"12",color:GR,border:"none",fontSize:12,fontWeight:600}}>✅ Pago</button>}
+              {p.status!=="cancelado"&&<button className="bh" onClick={async function(){if(!confirm("Cancelar este pagamento?"))return;await sb.from("pagamentos").update({status:"cancelado",observacoes:(p.observacoes||"")+" [CANCELADO]"}).eq("id",p.id);await loadAll();msg("❌ Cancelado")}} style={{padding:"6px 12px",borderRadius:6,background:R+"12",color:R,border:"none",fontSize:12,fontWeight:600}}>❌ Cancelar</button>}
+              {p.status==="cancelado"&&<button className="bh" onClick={async function(){await sb.from("pagamentos").update({status:"pendente",observacoes:(p.observacoes||"").replace(" [CANCELADO]","")}).eq("id",p.id);await loadAll();msg("🔄 Reativado")}} style={{padding:"6px 12px",borderRadius:6,background:W+"12",color:W,border:"none",fontSize:12,fontWeight:600}}>🔄 Reativar</button>}
+              {p.status==="pago"&&<button className="bh" onClick={async function(){await sb.from("pagamentos").update({status:"pendente",pago_em:null}).eq("id",p.id);await loadAll();msg("↩️ Desmarcado")}} style={{padding:"6px 12px",borderRadius:6,background:W+"12",color:W,border:"none",fontSize:12,fontWeight:600}}>↩️ Desfazer pago</button>}
+              {/* Desconto */}
+              <button className="bh" onClick={function(){var v=prompt("Desconto — digite:\n• Valor fixo (ex: 50)\n• Percentual (ex: 10%)");if(!v)return;var orig=p.valor_original||p.valor;var desc=0;if(v.indexOf("%")!==-1){desc=Math.round(orig*parseFloat(v)/100)}else{desc=parseFloat(v)||0}var novo=Math.max(0,orig-desc);sb.from("pagamentos").update({valor:novo,valor_original:orig,observacoes:(p.observacoes||"")+" [Desc: -"+v+"]"}).eq("id",p.id).then(function(){loadAll();msg("💰 Desconto aplicado: -"+v)})}} style={{padding:"6px 12px",borderRadius:6,background:P+"12",color:P,border:"none",fontSize:12,fontWeight:600}}>💰 Desconto</button>
+              {/* Acréscimo */}
+              <button className="bh" onClick={function(){var v=prompt("Acréscimo — digite:\n• Valor fixo (ex: 30)\n• Percentual (ex: 5%)");if(!v)return;var orig=p.valor_original||p.valor;var acr=0;if(v.indexOf("%")!==-1){acr=Math.round(p.valor*parseFloat(v)/100)}else{acr=parseFloat(v)||0}var novo=p.valor+acr;sb.from("pagamentos").update({valor:novo,valor_original:orig,observacoes:(p.observacoes||"")+" [Acrésc: +"+v+"]"}).eq("id",p.id).then(function(){loadAll();msg("➕ Acréscimo aplicado: +"+v)})}} style={{padding:"6px 12px",borderRadius:6,background:B+"12",color:B,border:"none",fontSize:12,fontWeight:600}}>➕ Acréscimo</button>
+              {/* Editar */}
+              <button className="bh" onClick={function(){var nv=prompt("Novo valor (R$):",p.valor);if(!nv)return;var nd=prompt("Nova data vencimento (AAAA-MM-DD):",p.vencimento||"");var nm=prompt("Método (pix/boleto/cartao/ted):",p.metodo||"pix");var no=prompt("Observação:",p.observacoes||"");var upd={valor:parseFloat(nv)||p.valor};if(nd)upd.vencimento=nd;if(nm)upd.metodo=nm;if(no!==null)upd.observacoes=no;sb.from("pagamentos").update(upd).eq("id",p.id).then(function(){loadAll();msg("✏️ Atualizado")})}} style={{padding:"6px 12px",borderRadius:6,background:"#ffffff08",color:"#aaa",border:"none",fontSize:12}}>✏️ Editar</button>
+              {/* Excluir */}
+              <button className="bh" onClick={async function(){if(!confirm("Excluir permanentemente este pagamento?"))return;await sb.from("pagamentos").delete().eq("id",p.id);await loadAll();msg("🗑️ Excluído")}} style={{padding:"6px 12px",borderRadius:6,background:"#ffffff05",color:"#555",border:"none",fontSize:12}}>🗑️</button>
             </div>
           </div>
         })}
+        </div>
       </div>}
 
       {/* ═══ PLANS ═══ */}
