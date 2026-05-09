@@ -43,7 +43,64 @@ function App(){
   var _toast=useState(null);var toast=_toast[0];var setToast=_toast[1];
   var _selClient=useState(null);var selClient=_selClient[0];var setSelClient=_selClient[1];
   var _landingOn=useState(false);var landingOn=_landingOn[0];var setLandingOn=_landingOn[1];
-  var msg=function(m){setToast(m);setTimeout(function(){setToast(null)},3000)};
+  var _deploying=useState(false);var deploying=_deploying[0];var setDeploying=_deploying[1];
+  var msg=function(m){setToast(m);setTimeout(function(){setToast(null)},4000)};
+
+  var GH_TOKEN="";
+  var GH_USER="";
+  var GH_TEMPLATE="portal-corretor";
+
+  var loadGH=async function(){
+    var r1=await sb.from("config_whatsapp").select("valor").eq("chave","github_token").single();
+    var r2=await sb.from("config_whatsapp").select("valor").eq("chave","github_user").single();
+    if(r1.data)GH_TOKEN=(r1.data.valor||"").replace(/"/g,"");
+    if(r2.data)GH_USER=(r2.data.valor||"").replace(/"/g,"");
+  };
+
+  var deployPortal=async function(tenant){
+    if(!tenant||!tenant.slug){msg("❌ Salve o cliente primeiro");return}
+    if(!GH_TOKEN){await loadGH();if(!GH_TOKEN){msg("❌ Token GitHub não configurado");return}}
+    setDeploying(true);msg("⏳ Criando portal para "+tenant.nome_empresa+"...");
+    var repoName="portal-"+tenant.slug;
+    try{
+      // 1. Create repo
+      var createRes=await fetch("https://api.github.com/user/repos",{method:"POST",headers:{"Authorization":"token "+GH_TOKEN,"Content-Type":"application/json"},body:JSON.stringify({name:repoName,description:"Portal do Corretor — "+tenant.nome_empresa,homepage:"https://"+GH_USER+".github.io/"+repoName,auto_init:true,private:false})});
+      var repoData=await createRes.json();
+      if(createRes.status===422){msg("ℹ️ Repositório já existe — atualizando...");
+      }else if(!createRes.ok){msg("❌ Erro: "+repoData.message);setDeploying(false);return}
+
+      // 2. Get template portal.html
+      var tplRes=await fetch("https://api.github.com/repos/"+GH_USER+"/"+GH_TEMPLATE+"/contents/portal.html",{headers:{"Authorization":"token "+GH_TOKEN}});
+      var tplData=await tplRes.json();
+      if(!tplData.content){msg("❌ Template portal.html não encontrado");setDeploying(false);return}
+
+      // 3. Modify content — inject tenant_id
+      var content=atob(tplData.content.replace(/\n/g,""));
+      content=content.replace(/var slug = window\.location\.pathname[^;]+;/,"var slug='"+tenant.slug+"';");
+
+      // 4. Upload portal.html as index.html
+      var putRes=await fetch("https://api.github.com/repos/"+GH_USER+"/"+repoName+"/contents/index.html",{method:"PUT",headers:{"Authorization":"token "+GH_TOKEN,"Content-Type":"application/json"},body:JSON.stringify({message:"Deploy portal — "+tenant.nome_empresa,content:btoa(unescape(encodeURIComponent(content)))})});
+      if(!putRes.ok){var existing=await fetch("https://api.github.com/repos/"+GH_USER+"/"+repoName+"/contents/index.html",{headers:{"Authorization":"token "+GH_TOKEN}});var exData=await existing.json();if(exData.sha){putRes=await fetch("https://api.github.com/repos/"+GH_USER+"/"+repoName+"/contents/index.html",{method:"PUT",headers:{"Authorization":"token "+GH_TOKEN,"Content-Type":"application/json"},body:JSON.stringify({message:"Update portal — "+tenant.nome_empresa,content:btoa(unescape(encodeURIComponent(content))),sha:exData.sha})})}}
+
+      // 5. Upload 404.html
+      var f404Res=await fetch("https://api.github.com/repos/"+GH_USER+"/"+GH_TEMPLATE+"/contents/404.html",{headers:{"Authorization":"token "+GH_TOKEN}});
+      var f404=await f404Res.json();
+      if(f404.content){await fetch("https://api.github.com/repos/"+GH_USER+"/"+repoName+"/contents/404.html",{method:"PUT",headers:{"Authorization":"token "+GH_TOKEN,"Content-Type":"application/json"},body:JSON.stringify({message:"Add 404",content:f404.content.replace(/\n/g,"")})})}
+
+      // 6. Enable GitHub Pages
+      await fetch("https://api.github.com/repos/"+GH_USER+"/"+repoName+"/pages",{method:"POST",headers:{"Authorization":"token "+GH_TOKEN,"Content-Type":"application/json"},body:JSON.stringify({source:{branch:"main",path:"/"}})});
+
+      // 7. Create admin user for tenant
+      await sb.from("admin_users").insert({nome:tenant.contato_nome||tenant.nome_empresa,email:tenant.contato_email||tenant.slug+"@portal-corretor.com",password:"portal2024",role:"super_admin",tenant_id:tenant.slug});
+
+      // 8. Update tenant
+      await sb.from("tenants").update({ativo:true,setup_completo:false,setup_step:0}).eq("id",tenant.id);
+      await sb.from("interacoes_tenant").insert({tenant_id:tenant.id,tipo:"deploy",conteudo:"Portal deployado: https://"+GH_USER+".github.io/"+repoName,usuario:user?user.nome:"Admin"});
+
+      await loadAll();setDeploying(false);
+      msg("✅ Portal criado! URL: https://"+GH_USER+".github.io/"+repoName+" (ativa em ~2min)");
+    }catch(e){setDeploying(false);msg("❌ "+e.message)}
+  };
 
   var loadAll=async function(){
     var r1=await sb.from("tenants").select("*").order("criado_em",{ascending:false});setTenants(r1.data||[]);
@@ -66,7 +123,7 @@ function App(){
     var p=document.getElementById("adm_pass").value;
     var r=await sb.from("admin_users").select("*").eq("email",e).single();
     if(r.data&&(r.data.password===p||p==="admin2024")&&r.data.role==="super_admin"){
-      setAuth(true);setUser(r.data);await loadAll();
+      setAuth(true);setUser(r.data);await loadAll();await loadGH();
     }else{msg("❌ Credenciais inválidas ou sem permissão")}
   };
 
@@ -283,6 +340,7 @@ function App(){
             else{d.id=clean;var r=await sb.from("tenants").insert(d);if(r.error){msg("❌ "+r.error.message);return}}
             setSelClient(null);await loadAll();msg("✅ "+(selClient.id?"Atualizado":"Criado")+"!");
           }} style={{padding:"12px 24px",borderRadius:10,background:B,color:"#fff",border:"none",fontSize:14,fontWeight:600,marginTop:8,cursor:"pointer"}}>💾 Salvar</button>
+          {selClient&&selClient.id&&<button className="bh" disabled={deploying} onClick={function(){deployPortal(selClient)}} style={{padding:"12px 24px",borderRadius:10,background:deploying?"#333":"linear-gradient(135deg,#4CAF7D,#2e8b57)",color:"#fff",border:"none",fontSize:14,fontWeight:600,marginTop:8,marginLeft:8,cursor:deploying?"wait":"pointer",opacity:deploying?0.6:1}}>🚀 {deploying?"Deployando...":"Deploy Portal"}</button>}
         </div>:<div>
           {tenants.map(function(t){
             var sub=subs.find(function(s){return s.tenant_id===t.id});

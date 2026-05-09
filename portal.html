@@ -679,6 +679,140 @@ function App(){
     </div>
   );
 
+  // ═══ SETUP WIZARD (new tenants) ═══
+  var _setupStep=useState(tenant?tenant.setup_step||0:0);var setupStep=_setupStep[0];var setSetupStep=_setupStep[1];
+  if(tenant&&tenant.setup_completo===false&&adm&&currentUser){
+    var stepLabels=["Empresa","Contato","Empreendimento","Tabela","Finalizar"];
+    var saveSetupStep=async function(step){await sb.from("tenants").update({setup_step:step}).eq("id",tenant.id);setSetupStep(step)};
+    var finishSetup=async function(){await sb.from("tenants").update({setup_completo:true,setup_step:5}).eq("id",tenant.id);window.location.reload()};
+    return <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",background:bgColor,color:textColor,minHeight:"100vh",padding:"40px 20px"}}>
+      <div style={{maxWidth:600,margin:"0 auto"}}>
+        <div style={{textAlign:"center",marginBottom:30}}>
+          <div style={{fontSize:36,marginBottom:8}}>🏢</div>
+          <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:32,fontWeight:500,color:textColor}}>Portal <span style={{color:G,fontWeight:600}}>{portalDisplayName||"Setup"}</span></div>
+          <div style={{fontSize:14,color:subColor,marginTop:4}}>Configuração inicial — passo {setupStep+1} de 5</div>
+        </div>
+        {/* Progress */}
+        <div style={{display:"flex",gap:4,marginBottom:24}}>
+          {stepLabels.map(function(l,i){return <div key={i} style={{flex:1,textAlign:"center"}}>
+            <div style={{height:4,borderRadius:2,background:i<=setupStep?G:borderColor,marginBottom:4,transition:"background .3s"}}/>
+            <div style={{fontSize:10,color:i<=setupStep?G:subColor}}>{l}</div>
+          </div>})}
+        </div>
+        <div style={{padding:24,borderRadius:16,background:cardBg,border:"1px solid "+borderColor}}>
+          {/* Step 0: Empresa */}
+          {setupStep===0&&<div>
+            <div style={{fontSize:18,fontWeight:700,color:textColor,marginBottom:16}}>🏢 Dados da Empresa</div>
+            <div style={{fontSize:11,color:subColor,marginBottom:3}}>Nome da empresa</div>
+            <input id="sw_empresa" onKeyDown={function(e){e.stopPropagation()}} defaultValue={tenant.nome_empresa||""} style={mI} placeholder="Construtora ABC"/>
+            <div style={{fontSize:11,color:subColor,marginBottom:3}}>Nome no título do Portal</div>
+            <input id="sw_portal_nome" onKeyDown={function(e){e.stopPropagation()}} defaultValue={tenant.nome_portal||""} style={Object.assign({},mI,{color:G,fontWeight:600})} placeholder="ABC"/>
+            <div style={{fontSize:11,color:subColor,marginBottom:3}}>Logo (URL)</div>
+            <input id="sw_logo" onKeyDown={function(e){e.stopPropagation()}} defaultValue={tenant.logo_url||""} style={mI} placeholder="https://..."/>
+            <button className="bh" onClick={async function(){
+              var n=document.getElementById("sw_empresa").value;var np=document.getElementById("sw_portal_nome").value;var lg=document.getElementById("sw_logo").value;
+              await sb.from("tenants").update({nome_empresa:n||tenant.nome_empresa,nome_portal:np||null,logo_url:lg||null}).eq("id",tenant.id);
+              saveSetupStep(1);msg("✅ Dados salvos!");
+            }} style={{width:"100%",padding:14,borderRadius:10,background:G,color:"#0a0a09",fontSize:15,fontWeight:700,border:"none",cursor:"pointer",marginTop:8}}>Próximo →</button>
+          </div>}
+          {/* Step 1: Contato */}
+          {setupStep===1&&<div>
+            <div style={{fontSize:18,fontWeight:700,color:textColor,marginBottom:16}}>📞 Informações de Contato</div>
+            <div style={{fontSize:11,color:subColor,marginBottom:3}}>WhatsApp</div>
+            <input id="sw_whats" onKeyDown={function(e){e.stopPropagation()}} style={mI} placeholder="47999999999"/>
+            <div style={{fontSize:11,color:subColor,marginBottom:3}}>Instagram</div>
+            <input id="sw_insta" onKeyDown={function(e){e.stopPropagation()}} style={mI} placeholder="@suaconstrutora"/>
+            <div style={{fontSize:11,color:subColor,marginBottom:3}}>Email</div>
+            <input id="sw_email" onKeyDown={function(e){e.stopPropagation()}} style={mI} placeholder="contato@empresa.com"/>
+            <div style={{display:"flex",gap:8}}>
+              <button className="bh" onClick={function(){saveSetupStep(0)}} style={{flex:1,padding:14,borderRadius:10,background:"transparent",color:subColor,fontSize:15,border:"1px solid "+borderColor,cursor:"pointer"}}>← Voltar</button>
+              <button className="bh" onClick={async function(){
+                var wh=document.getElementById("sw_whats").value;var ig=document.getElementById("sw_insta").value;var em=document.getElementById("sw_email").value;
+                var cfgData=[{chave:"wa_number",valor:wh,tenant_id:tenant.slug},{chave:"instagram",valor:ig,tenant_id:tenant.slug},{chave:"contact_email",valor:em,tenant_id:tenant.slug}];
+                for(var i=0;i<cfgData.length;i++){if(cfgData[i].valor){await sb.from("config_whatsapp").insert(cfgData[i]).catch(function(){})}}
+                saveSetupStep(2);msg("✅ Contato salvo!");
+              }} style={{flex:2,padding:14,borderRadius:10,background:G,color:"#0a0a09",fontSize:15,fontWeight:700,border:"none",cursor:"pointer"}}>Próximo →</button>
+            </div>
+          </div>}
+          {/* Step 2: Empreendimento */}
+          {setupStep===2&&<div>
+            <div style={{fontSize:18,fontWeight:700,color:textColor,marginBottom:16}}>🏗️ Primeiro Empreendimento</div>
+            <div style={{fontSize:13,color:subColor,marginBottom:12}}>Você pode adicionar mais depois. Comece com o principal.</div>
+            <div style={{fontSize:11,color:subColor,marginBottom:3}}>Nome do empreendimento</div>
+            <input id="sw_bld_nome" onKeyDown={function(e){e.stopPropagation()}} style={mI} placeholder="Ed. Aurora Residence"/>
+            <div style={{fontSize:11,color:subColor,marginBottom:3}}>Subtítulo</div>
+            <input id="sw_bld_sub" onKeyDown={function(e){e.stopPropagation()}} style={mI} placeholder="Itapema - SC"/>
+            <div style={{display:"flex",gap:8}}>
+              <div style={{flex:1}}><div style={{fontSize:11,color:subColor,marginBottom:3}}>Status</div>
+                <select id="sw_bld_status" style={mI}><option value="construction">Em Obras</option><option value="ready">Pronto</option><option value="launch">Lançamento</option></select>
+              </div>
+              <div style={{flex:1}}><div style={{fontSize:11,color:subColor,marginBottom:3}}>% Obra</div>
+                <input id="sw_bld_pct" type="number" onKeyDown={function(e){e.stopPropagation()}} style={mI} defaultValue="0" placeholder="0"/>
+              </div>
+            </div>
+            <div style={{display:"flex",gap:8}}>
+              <div style={{flex:1}}><div style={{fontSize:11,color:subColor,marginBottom:3}}>CUB Base</div>
+                <input id="sw_cub_base" type="number" onKeyDown={function(e){e.stopPropagation()}} style={mI} placeholder="2400"/>
+              </div>
+              <div style={{flex:1}}><div style={{fontSize:11,color:subColor,marginBottom:3}}>CUB Atual</div>
+                <input id="sw_cub_atual" type="number" onKeyDown={function(e){e.stopPropagation()}} style={mI} placeholder="2580"/>
+              </div>
+            </div>
+            <div style={{display:"flex",gap:8}}>
+              <button className="bh" onClick={function(){saveSetupStep(1)}} style={{flex:1,padding:14,borderRadius:10,background:"transparent",color:subColor,fontSize:15,border:"1px solid "+borderColor,cursor:"pointer"}}>← Voltar</button>
+              <button className="bh" onClick={async function(){
+                var nm=document.getElementById("sw_bld_nome").value;if(!nm){msg("Preencha o nome");return}
+                var slug=nm.toLowerCase().replace(/[^a-z0-9]/g,"-").replace(/--+/g,"-");
+                var res=await sb.from("buildings").insert({id:slug,name:nm,subtitle:document.getElementById("sw_bld_sub").value||"",status:document.getElementById("sw_bld_status").value,construction_pct:+document.getElementById("sw_bld_pct").value||0,cub_base:+document.getElementById("sw_cub_base").value||2400,cub_current:+document.getElementById("sw_cub_atual").value||2400,color:"#C8A45C",active:true,tenant_id:tenant.slug});
+                if(res.error){msg("❌ "+res.error.message);return}
+                saveSetupStep(3);msg("✅ Empreendimento criado!");
+              }} style={{flex:2,padding:14,borderRadius:10,background:G,color:"#0a0a09",fontSize:15,fontWeight:700,border:"none",cursor:"pointer"}}>Próximo →</button>
+            </div>
+          </div>}
+          {/* Step 3: Unidades */}
+          {setupStep===3&&<div>
+            <div style={{fontSize:18,fontWeight:700,color:textColor,marginBottom:16}}>📊 Unidades (Tabela de Preços)</div>
+            <div style={{fontSize:13,color:subColor,marginBottom:12}}>Adicione as unidades do empreendimento. Você pode adicionar mais pelo painel depois.</div>
+            <div style={{fontSize:11,color:subColor,marginBottom:3}}>Unidade (ex: 301)</div>
+            <input id="sw_unit_nome" onKeyDown={function(e){e.stopPropagation()}} style={mI} placeholder="301"/>
+            <div style={{display:"flex",gap:8}}>
+              <div style={{flex:1}}><div style={{fontSize:11,color:subColor,marginBottom:3}}>Área (m²)</div>
+                <input id="sw_unit_area" type="number" onKeyDown={function(e){e.stopPropagation()}} style={mI} placeholder="85"/>
+              </div>
+              <div style={{flex:1}}><div style={{fontSize:11,color:subColor,marginBottom:3}}>Preço base (R$)</div>
+                <input id="sw_unit_preco" type="number" onKeyDown={function(e){e.stopPropagation()}} style={mI} placeholder="850000"/>
+              </div>
+            </div>
+            <button className="bh" onClick={async function(){
+              var nm=document.getElementById("sw_unit_nome").value;var ar=+document.getElementById("sw_unit_area").value;var pr=+document.getElementById("sw_unit_preco").value;
+              if(!nm){msg("Preencha o nome");return}
+              var blds=(await sb.from("buildings").select("id").eq("tenant_id",tenant.slug).limit(1)).data;
+              if(!blds||blds.length===0){msg("Crie o empreendimento primeiro");return}
+              await sb.from("units").insert({building_id:blds[0].id,name:nm,area:ar||0,base_price:pr||0,status:"available",tenant_id:tenant.slug});
+              msg("✅ Unidade "+nm+" adicionada!");
+              document.getElementById("sw_unit_nome").value="";document.getElementById("sw_unit_area").value="";document.getElementById("sw_unit_preco").value="";
+            }} style={{width:"100%",padding:10,borderRadius:8,background:"#5B8FD415",color:"#5B8FD4",fontSize:14,fontWeight:600,border:"1px solid #5B8FD425",cursor:"pointer",marginBottom:8}}>+ Adicionar Unidade</button>
+            <div style={{display:"flex",gap:8}}>
+              <button className="bh" onClick={function(){saveSetupStep(2)}} style={{flex:1,padding:14,borderRadius:10,background:"transparent",color:subColor,fontSize:15,border:"1px solid "+borderColor,cursor:"pointer"}}>← Voltar</button>
+              <button className="bh" onClick={function(){saveSetupStep(4);msg("Quase lá!")}} style={{flex:2,padding:14,borderRadius:10,background:G,color:"#0a0a09",fontSize:15,fontWeight:700,border:"none",cursor:"pointer"}}>Próximo →</button>
+            </div>
+          </div>}
+          {/* Step 4: Finalizar */}
+          {setupStep===4&&<div style={{textAlign:"center"}}>
+            <div style={{fontSize:48,marginBottom:16}}>🎉</div>
+            <div style={{fontSize:22,fontWeight:700,color:textColor,marginBottom:8}}>Portal configurado!</div>
+            <div style={{fontSize:15,color:subColor,marginBottom:24,lineHeight:1.6}}>Seu portal está pronto para uso. Você pode continuar adicionando empreendimentos, unidades, fotos e corretores pelo painel de gerenciamento.</div>
+            <div style={{display:"flex",gap:8}}>
+              <button className="bh" onClick={function(){saveSetupStep(3)}} style={{flex:1,padding:14,borderRadius:10,background:"transparent",color:subColor,fontSize:15,border:"1px solid "+borderColor,cursor:"pointer"}}>← Voltar</button>
+              <button className="bh" onClick={finishSetup} style={{flex:2,padding:14,borderRadius:10,background:"linear-gradient(135deg,"+G+",#a88a3c)",color:"#0a0a09",fontSize:16,fontWeight:700,border:"none",cursor:"pointer",boxShadow:"0 8px 24px rgba(200,164,92,0.2)"}}>🚀 Abrir Meu Portal</button>
+            </div>
+          </div>}
+        </div>
+      </div>
+      {toast&&<div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",padding:"10px 24px",borderRadius:10,background:cardBg,color:textColor,fontSize:14,border:"1px solid "+borderColor,zIndex:999}}>{toast}</div>}
+    </div>
+  }
+
   // ═══ HOME VIEW ═══
   function HomeView(){
     return(
