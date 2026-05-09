@@ -316,43 +316,146 @@ function App(){
       {view==="clients"&&<div className="fade-in">
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
           <div style={{fontSize:24,fontWeight:700,color:"#fff"}}>Clientes <span style={{fontSize:16,color:"#555"}}>({tenants.length})</span></div>
-          <button className="bh" onClick={function(){setSelClient({});setTimeout(function(){["c_nome","c_slug","c_portal","c_email","c_contato","c_tel","c_cidade","c_estado","c_cnpj","c_valor","c_logo","c_obs"].forEach(function(id){var el=document.getElementById(id);if(el)el.value=""})},100)}} style={{padding:"10px 20px",borderRadius:10,background:B,color:"#fff",border:"none",fontSize:14,fontWeight:600}}>+ Novo Cliente</button>
+          <button className="bh" onClick={function(){setSelClient({});window._cStep=0;setTimeout(function(){["c_nome","c_slug","c_portal","c_email","c_contato","c_tel","c_cidade","c_estado","c_cnpj","c_valor","c_logo","c_obs"].forEach(function(id){var el=document.getElementById(id);if(el)el.value=""})},100)}} style={{padding:"10px 20px",borderRadius:10,background:B,color:"#fff",border:"none",fontSize:14,fontWeight:600}}>+ Novo Cliente</button>
         </div>
         {selClient?<div className="fade-in" style={{padding:24,borderRadius:16,background:"#0f0f12",border:"1px solid #1a1a1f",marginBottom:20}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+          {/* Header + close */}
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
             <div style={{fontSize:18,fontWeight:700,color:"#fff"}}>{selClient.id?"✏️ "+selClient.nome_empresa:"➕ Novo Cliente"}</div>
-            <button className="bh" onClick={function(){setSelClient(null)}} style={{background:"none",border:"none",color:"#666",fontSize:18,cursor:"pointer"}}>✕</button>
+            <button className="bh" onClick={function(){setSelClient(null);window._cStep=0}} style={{background:"none",border:"none",color:"#666",fontSize:18,cursor:"pointer"}}>✕</button>
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
-            <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Nome da empresa *</div><input id="c_nome" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
-            <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Nome no Portal</div><input id="c_portal" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},iS,{color:G,fontWeight:600})}/></div>
-            <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Slug (URL) *</div><input id="c_slug" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
-            <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Contato</div><input id="c_contato" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
-            <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Email</div><input id="c_email" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
-            <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Telefone</div><input id="c_tel" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
-            <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Cidade</div><input id="c_cidade" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
-            <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Estado</div><input id="c_estado" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
-            <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>CNPJ</div><input id="c_cnpj" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
-            <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Valor mensal</div><input id="c_valor" type="number" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
-            <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Logo URL</div><input id="c_logo" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
-          </div>
-          <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Observações</div><textarea id="c_obs" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},iS,{minHeight:50})}></textarea></div>
-          <button className="bh" onClick={async function(){
-            var n=document.getElementById("c_nome").value;var sl=document.getElementById("c_slug").value;
-            if(!n||!sl){msg("Preencha nome e slug");return}
-            var clean=sl.toLowerCase().replace(/[^a-z0-9\-]/g,"-");
-            var d={nome_empresa:n,slug:clean,nome_portal:document.getElementById("c_portal").value||null,contato_nome:document.getElementById("c_contato").value||null,contato_email:document.getElementById("c_email").value||null,contato_telefone:document.getElementById("c_tel").value||null,cidade:document.getElementById("c_cidade").value||null,estado:document.getElementById("c_estado").value||null,cnpj:document.getElementById("c_cnpj").value||null,valor_mensal:+document.getElementById("c_valor").value||0,logo_url:document.getElementById("c_logo").value||null,observacoes:document.getElementById("c_obs").value||null,pipeline:selClient.pipeline||"lead",ativo:true};
-            if(selClient.id){var r=await sb.from("tenants").update(d).eq("id",selClient.id);if(r.error){msg("❌ "+r.error.message);return}}
-            else{d.id=clean;var r=await sb.from("tenants").insert(d);if(r.error){msg("❌ "+r.error.message);return}}
-            setSelClient(null);await loadAll();msg("✅ "+(selClient.id?"Atualizado":"Criado")+"!");
-          }} style={{padding:"12px 24px",borderRadius:10,background:B,color:"#fff",border:"none",fontSize:14,fontWeight:600,marginTop:8,cursor:"pointer"}}>💾 Salvar</button>
-          {selClient&&selClient.id&&<button className="bh" disabled={deploying} onClick={function(){deployPortal(selClient)}} style={{padding:"12px 24px",borderRadius:10,background:deploying?"#333":"linear-gradient(135deg,#4CAF7D,#2e8b57)",color:"#fff",border:"none",fontSize:14,fontWeight:600,marginTop:8,marginLeft:8,cursor:deploying?"wait":"pointer",opacity:deploying?0.6:1}}>🚀 {deploying?"Deployando...":"Deploy Portal"}</button>}
+          {/* Stepper */}
+          {(function(){
+            var step=window._cStep||0;
+            var steps=[{i:"📋",l:"Cadastro"},{i:"📦",l:"Plano"},{i:"💰",l:"Fechamento"},{i:"🚀",l:"Ativação"}];
+            var setStep=function(s){window._cStep=s;setSelClient(Object.assign({},selClient))};
+            return <div>
+              {/* Step indicators */}
+              <div style={{display:"flex",gap:4,marginBottom:16}}>
+                {steps.map(function(s,i){return <div key={i} className="bh" onClick={function(){if(selClient.id||i===0)setStep(i)}} style={{flex:1,textAlign:"center",padding:"8px 0",borderRadius:8,background:i===step?"#ffffff08":"transparent",cursor:"pointer"}}>
+                  <div style={{height:3,borderRadius:2,background:i<=step?GR:"#1a1a1f",marginBottom:6}}/>
+                  <span style={{fontSize:12,color:i===step?"#fff":i<step?GR:"#444"}}>{s.i} {s.l}</span>
+                </div>})}
+              </div>
+              {/* ═══ STEP 0: Cadastro ═══ */}
+              {step===0&&<div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+                  <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Nome da empresa *</div><input id="c_nome" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+                  <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Nome no Portal</div><input id="c_portal" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},iS,{color:G,fontWeight:600})}/></div>
+                  <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Slug (URL) *</div><input id="c_slug" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+                  <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Contato</div><input id="c_contato" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+                  <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Email</div><input id="c_email" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+                  <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Telefone</div><input id="c_tel" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+                  <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Cidade</div><input id="c_cidade" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+                  <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Estado</div><input id="c_estado" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+                  <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>CNPJ</div><input id="c_cnpj" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+                  <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Logo URL</div><input id="c_logo" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+                </div>
+                <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Observações</div><textarea id="c_obs" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},iS,{minHeight:40})}></textarea></div>
+                <button className="bh" onClick={async function(){
+                  var n=document.getElementById("c_nome").value;var sl=document.getElementById("c_slug").value;
+                  if(!n||!sl){msg("Preencha nome e slug");return}
+                  var clean=sl.toLowerCase().replace(/[^a-z0-9\-]/g,"-");
+                  var d={nome_empresa:n,slug:clean,nome_portal:document.getElementById("c_portal").value||null,contato_nome:document.getElementById("c_contato").value||null,contato_email:document.getElementById("c_email").value||null,contato_telefone:document.getElementById("c_tel").value||null,cidade:document.getElementById("c_cidade").value||null,estado:document.getElementById("c_estado").value||null,cnpj:document.getElementById("c_cnpj").value||null,logo_url:document.getElementById("c_logo").value||null,observacoes:document.getElementById("c_obs").value||null,pipeline:selClient.pipeline||"lead",ativo:true};
+                  if(selClient.id){var r=await sb.from("tenants").update(d).eq("id",selClient.id);if(r.error){msg("❌ "+r.error.message);return}d.id=selClient.id}
+                  else{d.id=clean;var r=await sb.from("tenants").insert(d);if(r.error){msg("❌ "+r.error.message);return}}
+                  await loadAll();msg("✅ Cadastro salvo!");setSelClient(d);setStep(1);
+                }} style={{width:"100%",padding:"14px",borderRadius:10,background:GR,color:"#fff",fontSize:15,fontWeight:700,border:"none",cursor:"pointer",marginTop:8}}>Salvar e escolher plano →</button>
+              </div>}
+              {/* ═══ STEP 1: Plano ═══ */}
+              {step===1&&<div>
+                <div style={{fontSize:14,color:"#888",marginBottom:12}}>Escolha o plano para <b style={{color:"#fff"}}>{selClient.nome_empresa}</b>:</div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat("+Math.min(planos.length,3)+",1fr)",gap:12,marginBottom:16}}>
+                  {planos.map(function(pl){
+                    var isSel=window._selPlan&&window._selPlan.id===pl.id;
+                    return <div key={pl.id} className="bh" onClick={function(){window._selPlan=pl;setSelClient(Object.assign({},selClient))}} style={{padding:20,borderRadius:14,background:isSel?"rgba(139,111,191,0.08)":"#111114",border:isSel?"2px solid "+P:"1px solid #1a1a1f",textAlign:"center",cursor:"pointer",position:"relative"}}>
+                      {isSel&&<div style={{position:"absolute",top:8,right:8,width:20,height:20,borderRadius:"50%",background:GR,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12}}>✓</div>}
+                      {pl.destaque&&<div style={{fontSize:9,fontWeight:700,color:G,marginBottom:4}}>⭐ POPULAR</div>}
+                      <div style={{fontSize:18,fontWeight:700,color:"#fff"}}>{pl.nome}</div>
+                      <div style={{fontSize:28,fontWeight:700,color:GR,margin:"8px 0"}}>{fmt(pl.valor_mensal)}<span style={{fontSize:12,color:"#555"}}>/mês</span></div>
+                      <div style={{fontSize:11,color:"#555"}}>{pl.max_empreendimentos===-1?"∞":pl.max_empreendimentos} empreend. · {pl.max_corretores===-1?"∞":pl.max_corretores} corretores</div>
+                      {pl.recursos&&<div style={{textAlign:"left",marginTop:8,fontSize:11}}>{(pl.recursos||[]).map(function(r2,j){return <div key={j} style={{color:"#888",padding:"2px 0"}}>✓ {r2}</div>})}</div>}
+                    </div>
+                  })}
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  <button className="bh" onClick={function(){setStep(0)}} style={{flex:1,padding:"12px",borderRadius:10,background:"transparent",color:"#666",fontSize:14,border:"1px solid #222"}}>← Voltar</button>
+                  <button className="bh" onClick={function(){if(!window._selPlan){msg("Selecione um plano");return}setStep(2)}} style={{flex:2,padding:"12px",borderRadius:10,background:P,color:"#fff",fontSize:15,fontWeight:700,border:"none",cursor:"pointer"}}>Ir para fechamento →</button>
+                </div>
+              </div>}
+              {/* ═══ STEP 2: Fechamento ═══ */}
+              {step===2&&<div>
+                <div style={{fontSize:14,color:"#888",marginBottom:4}}>Fechamento — <b style={{color:"#fff"}}>{selClient.nome_empresa}</b> · Plano: <b style={{color:P}}>{window._selPlan?window._selPlan.nome:"—"}</b></div>
+                <div style={{padding:14,borderRadius:10,background:"#111114",border:"1px solid #1a1a1f",marginBottom:12}}>
+                  <div style={{fontSize:22,fontWeight:700,color:GR,textAlign:"center"}}>{window._selPlan?fmt(window._selPlan.valor_mensal):"—"}<span style={{fontSize:13,color:"#555"}}>/mês</span></div>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+                  <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Forma de pagamento</div>
+                    <select id="f_forma" style={iS}><option value="mensal">Mensal (12x)</option><option value="trimestral">Trimestral (4x)</option><option value="semestral">Semestral (2x)</option><option value="anual">Anual (1x — 10% desc.)</option><option value="avista">À Vista (15% desc.)</option><option value="custom">Personalizado</option></select></div>
+                  <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Duração (meses)</div><input id="f_meses" type="number" onKeyDown={function(e){e.stopPropagation()}} style={iS} defaultValue="12"/></div>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:10}}>
+                  <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Valor negociado/parcela</div><input id="f_valor" type="number" onKeyDown={function(e){e.stopPropagation()}} style={iS} placeholder="Vazio = plano"/></div>
+                  <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Dia vencimento</div><input id="f_dia" type="number" onKeyDown={function(e){e.stopPropagation()}} style={iS} defaultValue="10"/></div>
+                  <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Método</div>
+                    <select id="f_metodo" style={iS}><option value="pix">PIX</option><option value="boleto">Boleto</option><option value="cartao">Cartão</option><option value="ted">TED</option></select></div>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+                  <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Desconto (%)</div><input id="f_desconto" type="number" onKeyDown={function(e){e.stopPropagation()}} style={iS} defaultValue="0"/></div>
+                  <div><div style={{fontSize:11,color:"#666",marginBottom:3}}>Data início</div><input id="f_inicio" type="date" onKeyDown={function(e){e.stopPropagation()}} style={iS} defaultValue={new Date().toISOString().split("T")[0]}/></div>
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  <button className="bh" onClick={function(){setStep(1)}} style={{flex:1,padding:"12px",borderRadius:10,background:"transparent",color:"#666",fontSize:14,border:"1px solid #222"}}>← Voltar</button>
+                  <button className="bh" onClick={async function(){
+                    var plan=window._selPlan;if(!plan){msg("Selecione um plano");return}
+                    var forma=document.getElementById("f_forma").value;
+                    var meses=+document.getElementById("f_meses").value||12;
+                    var valorCustom=+document.getElementById("f_valor").value||0;
+                    var dia=+document.getElementById("f_dia").value||10;
+                    var metodo=document.getElementById("f_metodo").value;
+                    var descPct=+document.getElementById("f_desconto").value||0;
+                    var inicio=document.getElementById("f_inicio").value||new Date().toISOString().split("T")[0];
+                    var valorBase=plan.valor_mensal;
+                    if(descPct>0)valorBase=Math.round(valorBase*(1-descPct/100));
+                    var numParc=forma==="mensal"?meses:forma==="trimestral"?Math.ceil(meses/3):forma==="semestral"?Math.ceil(meses/6):forma==="anual"?Math.ceil(meses/12):1;
+                    var mesesPorParc=forma==="mensal"?1:forma==="trimestral"?3:forma==="semestral"?6:forma==="anual"?12:meses;
+                    var valorParc=valorCustom>0?valorCustom:(forma==="anual"?Math.round(valorBase*mesesPorParc*0.9):forma==="avista"?Math.round(valorBase*meses*0.85):valorBase*mesesPorParc);
+                    if(forma==="avista")numParc=1;
+                    if(forma==="custom"){numParc=meses;valorParc=valorCustom>0?valorCustom:valorBase}
+                    var valorTotal=valorParc*numParc;
+                    // Create subscription
+                    var subRes=await sb.from("assinaturas").insert({tenant_id:selClient.id,plano_id:plan.id,plano:plan.nome,valor_mensal:plan.valor_mensal,valor_total:valorTotal,parcelas_total:numParc,parcelas_pagas:0,forma_pagamento:forma,dia_vencimento:dia,status:"ativo",inicio:inicio}).select();
+                    if(subRes.error){msg("❌ "+subRes.error.message);return}
+                    var subId=subRes.data&&subRes.data[0]?subRes.data[0].id:null;
+                    // Generate payments
+                    for(var i=0;i<numParc;i++){var vd=new Date(inicio);vd.setMonth(vd.getMonth()+(i*mesesPorParc));vd.setDate(dia);
+                      await sb.from("pagamentos").insert({tenant_id:selClient.id,assinatura_id:subId,valor:valorParc,valor_original:valorParc,vencimento:vd.toISOString().split("T")[0],metodo:metodo,status:"pendente",observacoes:"Parcela "+(i+1)+"/"+numParc+" — "+plan.nome+(descPct>0?" ("+descPct+"% desc)":"")})
+                    }
+                    await sb.from("tenants").update({valor_mensal:valorBase,pipeline:"ativo"}).eq("id",selClient.id);
+                    await sb.from("interacoes_tenant").insert({tenant_id:selClient.id,tipo:"fechamento",conteudo:"Assinatura fechada: "+plan.nome+" — "+numParc+"x "+fmt(valorParc)+" ("+forma+")"+(descPct>0?" com "+descPct+"% desconto":""),usuario:user?user.nome:"Admin"});
+                    await loadAll();msg("✅ Contrato fechado! "+numParc+" parcelas geradas.");setStep(3);
+                  }} style={{flex:2,padding:"14px",borderRadius:10,background:"linear-gradient(135deg,"+GR+",#2e8b57)",color:"#fff",fontSize:15,fontWeight:700,border:"none",cursor:"pointer"}}>💰 Fechar Contrato e Gerar Parcelas</button>
+                </div>
+              </div>}
+              {/* ═══ STEP 3: Ativação ═══ */}
+              {step===3&&<div style={{textAlign:"center",padding:"20px 0"}}>
+                <div style={{fontSize:48,marginBottom:12}}>🎉</div>
+                <div style={{fontSize:22,fontWeight:700,color:"#fff",marginBottom:8}}>Contrato fechado!</div>
+                <div style={{fontSize:14,color:"#888",marginBottom:20}}>Assinatura criada e parcelas geradas para <b style={{color:"#fff"}}>{selClient.nome_empresa}</b></div>
+                <div style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap"}}>
+                  <button className="bh" disabled={deploying} onClick={function(){deployPortal(selClient)}} style={{padding:"14px 28px",borderRadius:12,background:deploying?"#333":"linear-gradient(135deg,#4CAF7D,#2e8b57)",color:"#fff",fontSize:16,fontWeight:700,border:"none",cursor:deploying?"wait":"pointer"}}>🚀 {deploying?"Criando...":"Criar Portal do Cliente"}</button>
+                  <button className="bh" onClick={function(){setView("payments")}} style={{padding:"14px 28px",borderRadius:12,background:B+"15",color:B,fontSize:14,fontWeight:600,border:"1px solid "+B+"25"}}>💰 Ver Pagamentos</button>
+                  <button className="bh" onClick={function(){setSelClient(null);window._cStep=0;window._selPlan=null}} style={{padding:"14px 28px",borderRadius:12,background:"transparent",color:"#666",fontSize:14,border:"1px solid #222"}}>Voltar à lista</button>
+                </div>
+              </div>}
+            </div>
+          })()}
         </div>:<div>
           {tenants.map(function(t){
             var sub=subs.find(function(s){return s.tenant_id===t.id});
             var pgCount=pagtos.filter(function(p){return p.tenant_id===t.id&&p.status==="pago"}).length;
             return <div key={t.id} className="bh" onClick={function(){
-              setSelClient(t);
+              setSelClient(t);window._cStep=0;
               setTimeout(function(){var f={c_nome:t.nome_empresa,c_slug:t.slug,c_portal:t.nome_portal||"",c_contato:t.contato_nome||"",c_email:t.contato_email||"",c_tel:t.contato_telefone||"",c_cidade:t.cidade||"",c_estado:t.estado||"",c_cnpj:t.cnpj||"",c_valor:t.valor_mensal||"",c_logo:t.logo_url||"",c_obs:t.observacoes||""};Object.keys(f).forEach(function(k){var el=document.getElementById(k);if(el)el.value=f[k]})},100);
             }} style={{display:"flex",alignItems:"center",gap:14,padding:"14px 16px",borderRadius:12,background:"#0f0f12",border:"1px solid #1a1a1f",marginBottom:6,cursor:"pointer"}}>
               {t.logo_url?<img src={t.logo_url} style={{height:36,maxWidth:60,objectFit:"contain"}}/>:<div style={{width:40,height:40,borderRadius:10,background:pC(t.pipeline)+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:700,color:pC(t.pipeline)}}>{(t.nome_empresa||"?")[0]}</div>}
