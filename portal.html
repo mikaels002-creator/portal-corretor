@@ -179,17 +179,17 @@ var DB = {
   _tid: "mk", // tenant_id, set on load
   // --- Site Config ---
   loadConfig: async function(){try{
-    var res = await sb.from("site_config").select("*");
+    var res = await sb.from("site_config").select("*").eq("tenant_id",DB._tid);
     if(res.error || !res.data) return {};
     var cfg = {};
     res.data.forEach(function(r){ cfg[r.key] = r.value; });
     return cfg;}catch(e){return{}}
   },
   saveConfig: async function(key, value){
-    await sb.from("site_config").upsert({key:key, value:String(value)});
+    await sb.from("site_config").upsert({key:key, value:String(value), tenant_id:DB._tid});
   },
   saveConfigAll: async function(cfg){
-    var rows = Object.keys(cfg).map(function(k){return {key:k, value:String(cfg[k])}});
+    var rows = Object.keys(cfg).map(function(k){return {key:k, value:String(cfg[k]), tenant_id:DB._tid}});
     await sb.from("site_config").upsert(rows);
   },
 
@@ -314,22 +314,22 @@ var DB = {
   updateAdminUser: async function(id,c){await sb.from("admin_users").update(c).eq("id",id)},
   deleteAdminUser: async function(id){await sb.from("admin_users").delete().eq("id",id)},
   // --- Analytics ---
-  trackEvent: function(type,data){try{sb.from("portal_analytics").insert({event_type:type,event_data:data||{},page:window.location.hash||"home",user_agent:navigator.userAgent.substring(0,100)})}catch(e){}},
+  trackEvent: function(type,data){try{sb.from("portal_analytics").insert({tenant_id:DB._tid,event_type:type,event_data:data||{},page:window.location.hash||"home",user_agent:navigator.userAgent.substring(0,100)})}catch(e){}},
   loadAnalytics: async function(days){
     var since=new Date();since.setDate(since.getDate()-(days||30));
-    var r=await sb.from("portal_analytics").select("*").gte("created_at",since.toISOString()).order("created_at",{ascending:false}).limit(5000);
+    var r=await sb.from("portal_analytics").select("*").eq("tenant_id",DB._tid).gte("created_at",since.toISOString()).order("created_at",{ascending:false}).limit(5000);
     return r.data||[];
   },
   // --- AI Reports ---
-  saveReport: async function(r){await sb.from("ai_reports").insert(r)},
-  loadReports: async function(){var r=await sb.from("ai_reports").select("*").order("id",{ascending:false}).limit(20);return r.data||[]},
+  saveReport: async function(r){r.tenant_id=DB._tid;await sb.from("ai_reports").insert(r)},
+  loadReports: async function(){var r=await sb.from("ai_reports").select("*").eq("tenant_id",DB._tid).order("id",{ascending:false}).limit(20);return r.data||[]},
   // --- Tasks ---
   loadTasks: async function(){try{var r=await sb.from("tasks").select("*").eq("tenant_id",DB._tid).order("id",{ascending:false});return r.data||[]}catch(e){return[]}},
   addTask: async function(t){await sb.from("tasks").insert(Object.assign({},t,{tenant_id:DB._tid}))},
   updateTask: async function(id,c){await sb.from("tasks").update(c).eq("id",id)},
   deleteTask: async function(id){await sb.from("tasks").delete().eq("id",id)},
   loadTaskComments: async function(taskId){var r=await sb.from("task_comments").select("*").eq("task_id",taskId).order("id",{ascending:true});return r.data||[]},
-  addTaskComment: async function(c){await sb.from("task_comments").insert(c)},
+  addTaskComment: async function(c){c.tenant_id=DB._tid;await sb.from("task_comments").insert(c)},
   // --- Messages ---
   loadMessages: async function(channel){var r=await sb.from("messages").select("*").eq("channel",channel).eq("tenant_id",DB._tid).order("id",{ascending:true}).limit(200);return r.data||[]},
   sendMessage: async function(m){m.tenant_id=DB._tid;await sb.from("messages").insert(m)},
@@ -389,7 +389,7 @@ var WA = {
     var ativos=atendentes.filter(function(a){return a.ativo}).sort(function(a,b){return a.ordem-b.ordem});
     if(ativos.length===0)return null;
     // Get config
-    var cfgAll=await sb.from("config_whatsapp").select("*");
+    var cfgAll=await sb.from("config_whatsapp").select("*").eq("tenant_id",DB._tid);
     var cfg={};(cfgAll.data||[]).forEach(function(c){cfg[c.chave]=c.valor});
     var ultimoId=cfg.ultimo_atendente_distribuido||null;
     var contadorAtual=cfg.distribuicao_contador||0;
@@ -614,6 +614,16 @@ function App(){
       setCfg(results[0]);setBuildings(results[1]||[]);setAllUnits(results[2]||[]);setAllPhotos(results[3]||[]);setAllPlants(results[4]||[]);setAllDocs(results[5]||[]);setAllNotices(results[6]||[]);setBrokers(results[7]||[]);setSales(results[8]||[]);setAdminUsers(results[9]||[]);setTasks(results[10]||[]);
     } catch(e){ console.log("Load error:", e); }
     setRdy(true);
+    // Restore session
+    try{
+      var sess=sessionStorage.getItem("portal_session");
+      if(sess){var s=JSON.parse(sess);if(s.tid===DB._tid&&Date.now()-s.ts<86400000){
+        if(s.userId){var u2=await sb.from("admin_users").select("*").eq("id",s.userId).single();
+        if(u2.data){setAdm(true);setCurrentUser(u2.data)}}
+        else if(s.brokerId){var b2=await sb.from("brokers").select("*").eq("id",s.brokerId).single();
+        if(b2.data){setBroker(b2.data)}}
+      }}
+    }catch(e){}
     // Load tenant contact info
     try{
       var waCfg=await sb.from("config_whatsapp").select("*").eq("tenant_id",DB._tid);
@@ -747,6 +757,7 @@ function App(){
             if(!r.data){r=await sb.from("admin_users").select("*").eq("email",email).single()}
             if(r.data&&(r.data.senha===pass||pass==="admin2024")){
               setAdm(true);setCurrentUser(r.data);
+              sessionStorage.setItem("portal_session",JSON.stringify({userId:r.data.id,email:r.data.email,tid:DB._tid,ts:Date.now()}));
               logAction("login","admin_users",String(r.data.id),null,{nome:r.data.nome});
               msg("Bem-vindo, "+r.data.nome+"!");
             }else{msg("❌ Credenciais inválidas")}
@@ -1762,6 +1773,7 @@ function App(){
       // Check admin users
       var admin=adminUsers.find(function(u){return u.email&&u.email.toLowerCase()===email&&u.senha===p&&u.ativo!==false});
       if(admin){setCurrentUser(admin);setAdm(true);setBroker(null);sb.from("admin_users").update({last_login:new Date().toLocaleString("pt-BR")}).eq("id",admin.id);logAction("login_admin","admin_users",String(admin.id),null,{nome:admin.nome,role:admin.role});
+        sessionStorage.setItem("portal_session",JSON.stringify({userId:admin.id,email:admin.email,tid:DB._tid,ts:Date.now()}));
         // Reset polling state
         window._pollData={taskCount:-1,msgId:-1,ready:false};
         // Query tasks directly
@@ -1773,7 +1785,9 @@ function App(){
         return}
       // Check brokers
       var bk=brokers.find(function(b){return b.email&&b.email.toLowerCase()===email&&b.senha===p});
-      if(bk){setBroker(bk);setAdm(false);setCurrentUser(null);setMdl({t:"brokerDash"});logAction("login_corretor","brokers",String(bk.id),null,{nome:bk.nome});msg("Bem-vindo, "+bk.nome+"!");return}
+      if(bk){setBroker(bk);setAdm(false);setCurrentUser(null);setMdl({t:"brokerDash"});logAction("login_corretor","brokers",String(bk.id),null,{nome:bk.nome});
+        sessionStorage.setItem("portal_session",JSON.stringify({brokerId:bk.id,tid:DB._tid,ts:Date.now()}));
+        msg("Bem-vindo, "+bk.nome+"!");return}
       // Check if maybe admin_users table doesn't exist yet
       if(adminUsers.length===0&&p===PIN){
         setCurrentUser({id:0,nome:"Admin",email:email,role:"super_admin",permissions:{}});
@@ -2126,7 +2140,7 @@ function App(){
           <div style={{fontSize:20,fontWeight:700,color:textColor}}>{broker.nome}</div>
           <div style={{fontSize:13,color:subColor}}>{broker.imobiliaria||""} {broker.creci?"• CRECI "+broker.creci:""}</div>
         </div>
-        <button className="bh" onClick={function(){logAction("logout_corretor");setBroker(null);setMdl(null);msg("Deslogado")}} style={{padding:"6px 14px",borderRadius:8,background:"rgba(213,91,91,0.08)",color:"#D45B5B",border:"1px solid rgba(213,91,91,0.1)",cursor:"pointer",fontSize:12}}>Sair</button>
+        <button className="bh" onClick={function(){logAction("logout_corretor");setBroker(null);setMdl(null);sessionStorage.removeItem("portal_session");msg("Deslogado")}} style={{padding:"6px 14px",borderRadius:8,background:"rgba(213,91,91,0.08)",color:"#D45B5B",border:"1px solid rgba(213,91,91,0.1)",cursor:"pointer",fontSize:12}}>Sair</button>
       </div>
 
       {/* Tabs */}
@@ -4219,7 +4233,7 @@ function App(){
         await sb.from("atendentes_whatsapp").update({nome:att.nome,ordem:att.ordem,ativo:att.ativo,assinatura_personalizada:att.assinatura_personalizada,telefone:att.telefone||null,atualizado_em:new Date().toISOString()}).eq("id",att.id);
         wmsg("✅ Atendente atualizado!");
       }else{
-        await sb.from("atendentes_whatsapp").insert({nome:att.nome,ordem:att.ordem||waAtt.length+1,ativo:true});
+        await sb.from("atendentes_whatsapp").insert({nome:att.nome,ordem:att.ordem||waAtt.length+1,ativo:true,tenant_id:DB._tid});
         wmsg("✅ Atendente criado!");
       }
       setEditAtt(null);setNewAtt({nome:"",ordem:0});await loadData();
