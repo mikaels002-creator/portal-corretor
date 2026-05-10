@@ -79,7 +79,7 @@ function App(){
       // Create admin user for tenant
       var existsAdmin=await sb.from("admin_users").select("id").eq("tenant_id",tenant.slug).limit(1);
       if(!existsAdmin.data||existsAdmin.data.length===0){
-        await sb.from("admin_users").insert({nome:tenant.contato_nome||tenant.nome_empresa,email:tenant.contato_email||tenant.slug+"@portal-corretor.com",password:"portal2024",role:"super_admin",tenant_id:tenant.slug});
+        await sb.from("admin_users").insert({nome:tenant.contato_nome||tenant.nome_empresa,email:tenant.contato_email||tenant.slug+"@portal-corretor.com",senha:"portal2024",role:"super_admin",tenant_id:tenant.slug});
       }
       // Update tenant
       await sb.from("tenants").update({ativo:true,setup_completo:false,setup_step:0,portal_url:portalUrl}).eq("id",tenant.id);
@@ -750,7 +750,7 @@ function App(){
                       <span style={{fontSize:11,color:P,marginLeft:8}}>{a.role}</span>
                     </div>
                     <div style={{display:"flex",gap:4}}>
-                      <button className="bh" onClick={function(){var np=prompt("Nova senha para "+a.nome+":",a.password);if(np){sb.from("admin_users").update({password:np}).eq("id",a.id).then(function(){loadTenantAdmins();msg("🔑 Senha alterada!")})}}} style={{padding:"4px 8px",borderRadius:4,background:W+"12",color:W,border:"none",fontSize:10,cursor:"pointer"}}>🔑 Senha</button>
+                      <button className="bh" onClick={function(){var np=prompt("Nova senha para "+a.nome+":",a.password);if(np){sb.from("admin_users").update({senha:np}).eq("id",a.id).then(function(){loadTenantAdmins();msg("🔑 Senha alterada!")})}}} style={{padding:"4px 8px",borderRadius:4,background:W+"12",color:W,border:"none",fontSize:10,cursor:"pointer"}}>🔑 Senha</button>
                       <button className="bh" onClick={function(){var ne=prompt("Novo email:",a.email);if(ne){sb.from("admin_users").update({email:ne}).eq("id",a.id).then(function(){loadTenantAdmins();msg("📧 Email alterado!")})}}} style={{padding:"4px 8px",borderRadius:4,background:B+"12",color:B,border:"none",fontSize:10,cursor:"pointer"}}>📧</button>
                       <select value={a.role} onChange={function(e){sb.from("admin_users").update({role:e.target.value}).eq("id",a.id).then(function(){loadTenantAdmins();msg("Perfil alterado")})}} style={{padding:"2px 4px",borderRadius:4,fontSize:10,background:inputBg,color:textColor,border:"1px solid "+inputBorder,cursor:"pointer"}}>
                         <option value="super_admin">Super Admin</option><option value="admin">Admin</option><option value="atendente">Atendente</option>
@@ -770,7 +770,7 @@ function App(){
                   <button className="bh" onClick={async function(){
                     var nm=document.getElementById("ca_nome_"+t.id).value;var em=document.getElementById("ca_email_"+t.id).value;
                     if(!nm||!em){msg("Preencha nome e email");return}
-                    var r=await sb.from("admin_users").insert({nome:nm,email:em,password:document.getElementById("ca_pass_"+t.id).value||"portal2024",role:document.getElementById("ca_role_"+t.id).value,tenant_id:t.slug});
+                    var r=await sb.from("admin_users").insert({nome:nm,email:em,senha:document.getElementById("ca_pass_"+t.id).value||"portal2024",role:document.getElementById("ca_role_"+t.id).value,tenant_id:t.slug});
                     if(r.error){msg("❌ "+r.error.message);return}
                     document.getElementById("cred_"+t.id).style.display="none";await loadTenantAdmins();msg("✅ Admin criado!")
                   }} style={{padding:"6px 16px",borderRadius:6,background:P,color:"#fff",border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>💾 Criar</button>
