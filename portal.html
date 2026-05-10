@@ -1542,6 +1542,17 @@ function App(){
           <button className="bh ch" onClick={function(){setMiniChat({channel:"admin_team",title:"Chat Equipe"})}} style={{padding:16,borderRadius:14,fontSize:15,fontWeight:500,background:cardBg,color:"#4CAF7D",border:"1px solid rgba(76,175,125,0.1)",cursor:"pointer",textAlign:"center"}}>💬 Chat Equipe</button>
         </div>
 
+        {/* Plan Upgrade */}
+        {adm&&<div style={{padding:16,background:"linear-gradient(135deg,"+(isDark?"#0d0d18":"#f0ede8")+","+(isDark?"#0f0f12":"#fff")+")",borderRadius:14,marginBottom:16,border:"1px solid "+borderColor}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div>
+              <div style={{fontSize:15,fontWeight:700,color:textColor}}>📦 Seu Plano</div>
+              <div style={{fontSize:13,color:subColor}}>Gerencie seu plano e faça upgrade para desbloquear recursos</div>
+            </div>
+            <button className="bh" onClick={function(){setMdl({t:"upgradePlan"})}} style={{padding:"10px 20px",borderRadius:10,background:"linear-gradient(135deg,"+P+",#6a4fa0)",color:"#fff",fontSize:14,fontWeight:700,border:"none",cursor:"pointer"}}>⬆️ Upgrade</button>
+          </div>
+        </div>}
+
         {/* Portal Access Toggle */}
         {can("manage_settings") && <div style={{padding:16,background:cardBg,borderRadius:14,marginBottom:16,border:"1px solid "+borderColor,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <div>
@@ -1695,6 +1706,7 @@ function App(){
     if(mdl.t==="addBld") return <AddBldM/>;
     if(mdl.t==="editBld") return <EditBldM/>;
     if(mdl.t==="siteSettings") return <SiteSettingsM/>;
+    if(mdl.t==="upgradePlan") return <UpgradePlanM/>;
     if(mdl.t==="companyData") return <div><div style={mT}>🏢 Dados da Empresa</div>
       <div style={{padding:16,borderRadius:12,background:cardBg,border:"1px solid "+borderColor,marginBottom:12}}>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -1908,6 +1920,47 @@ function App(){
         await refreshBuildings();setMdl(null);msg("Salvo!");
       }}>Salvar</button><button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
     </div>;
+  }
+
+  function UpgradePlanM(){
+    var _uPlans=useState([]);var uPlans=_uPlans[0];var setUPlans=_uPlans[1];
+    useEffect(function(){sb.from("planos").select("*").eq("ativo",true).order("valor_mensal").then(function(r){setUPlans(r.data||[])});},[]);
+    return <div><div style={mT}>⬆️ Upgrade de Plano</div>
+      <div style={{fontSize:13,color:subColor,marginBottom:16}}>Escolha um plano. Seus dados serão mantidos.</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat("+Math.min(uPlans.length||1,3)+",1fr)",gap:12}}>
+        {uPlans.map(function(pl){
+          return <div key={pl.id} style={{padding:20,borderRadius:14,background:cardBg,border:pl.destaque?"2px solid "+P:"1px solid "+borderColor,textAlign:"center"}}>
+            {pl.destaque&&<div style={{fontSize:9,fontWeight:700,color:G,marginBottom:4}}>⭐ RECOMENDADO</div>}
+            <div style={{fontSize:18,fontWeight:700,color:textColor}}>{pl.nome}</div>
+            <div style={{fontSize:12,color:subColor,minHeight:30,marginTop:4}}>{pl.descricao||""}</div>
+            <div style={{fontSize:32,fontWeight:700,color:"#4CAF7D",margin:"12px 0"}}>{fmt(pl.valor_mensal)}<span style={{fontSize:12,color:subColor}}>/mês</span></div>
+            <div style={{fontSize:12,color:subColor}}>{pl.max_empreendimentos===-1?"∞":pl.max_empreendimentos} empreend. · {pl.max_corretores===-1?"∞":pl.max_corretores} corretores</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:4,justifyContent:"center",marginTop:10}}>
+              {[{k:"feat_crm",l:"CRM"},{k:"feat_whatsapp",l:"WA"},{k:"feat_agente_ia",l:"IA"},{k:"feat_propostas",l:"Prop"},{k:"feat_visitas",l:"Visit"},{k:"feat_docs",l:"Docs"},{k:"feat_nps",l:"NPS"},{k:"feat_api",l:"API"}].map(function(f2){
+                var on2=pl[f2.k]===true;
+                return <span key={f2.k} style={{fontSize:10,padding:"2px 6px",borderRadius:4,background:on2?"#4CAF7D15":"#D45B5B08",color:on2?"#4CAF7D":subColor}}>{f2.l}{on2?"":"✗"}</span>
+              })}
+            </div>
+            {pl.recursos&&<div style={{textAlign:"left",marginTop:10}}>{(pl.recursos||[]).map(function(r2,j){return <div key={j} style={{fontSize:11,color:subColor,padding:"2px 0"}}>✓ {r2}</div>})}</div>}
+            <button className="bh" onClick={async function(){
+              if(!confirm("Fazer upgrade para "+pl.nome+" ("+fmt(pl.valor_mensal)+"/mês)?\n\nSeu plano será atualizado e novas cobranças serão geradas."))return;
+              var existingSub=await sb.from("assinaturas").select("*").eq("tenant_id",tenant.slug).eq("status","ativo").single();
+              if(existingSub.data){
+                await sb.from("assinaturas").update({plano_id:pl.id,plano:pl.nome,valor_mensal:pl.valor_mensal}).eq("id",existingSub.data.id);
+                await sb.from("pagamentos").update({status:"cancelado",observacoes:"Cancelado — upgrade para "+pl.nome}).eq("tenant_id",tenant.slug).eq("status","pendente");
+              }else{
+                await sb.from("assinaturas").insert({tenant_id:tenant.slug,plano_id:pl.id,plano:pl.nome,valor_mensal:pl.valor_mensal,status:"ativo",inicio:new Date().toISOString().split("T")[0]});
+              }
+              for(var i=0;i<12;i++){var vd=new Date();vd.setMonth(vd.getMonth()+i);vd.setDate(10);
+                await sb.from("pagamentos").insert({tenant_id:tenant.slug,valor:pl.valor_mensal,valor_original:pl.valor_mensal,vencimento:vd.toISOString().split("T")[0],metodo:"pix",status:"pendente",observacoes:"Parcela "+(i+1)+"/12 — "+pl.nome})
+              }
+              await sb.from("tenants").update({valor_mensal:pl.valor_mensal}).eq("id",tenant.id);
+              msg("✅ Upgrade para "+pl.nome+"! Novas cobranças geradas.");setMdl(null);
+            }} style={{width:"100%",marginTop:12,padding:"12px",borderRadius:10,background:"linear-gradient(135deg,"+P+",#6a4fa0)",color:"#fff",fontSize:14,fontWeight:700,border:"none",cursor:"pointer"}}>Escolher {pl.nome}</button>
+          </div>
+        })}
+      </div>
+    </div>
   }
 
   function SiteSettingsM(){
