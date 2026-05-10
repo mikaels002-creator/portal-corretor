@@ -646,8 +646,10 @@ function App(){
       CT.phone=cfgMap.wa_number?"+"+cfgMap.wa_number.replace(/\D/g,""):"";
       CT.wa=cfgMap.wa_number?cfgMap.wa_number.replace(/\D/g,""):"";
       var igUser=cfgMap.instagram||"";
-      if(igUser)CT.ig=[{h:igUser.startsWith("@")?igUser:"@"+igUser,u:"https://www.instagram.com/"+(igUser.replace("@",""))}];
-      else CT.ig=[];
+      var igUser2=cfgMap.instagram2||"";
+      CT.ig=[];
+      if(igUser)CT.ig.push({h:igUser.startsWith("@")?igUser:"@"+igUser,u:"https://www.instagram.com/"+(igUser.replace("@",""))});
+      if(igUser2)CT.ig.push({h:igUser2.startsWith("@")?igUser2:"@"+igUser2,u:"https://www.instagram.com/"+(igUser2.replace("@",""))});
       // WhatsApp Business API config
       WA.PHONE_ID=cfgMap.wa_phone_id||cfgMap.phone_number_id||"";
       WA.TOKEN=cfgMap.wa_token||cfgMap.whatsapp_token||"";
@@ -1624,6 +1626,15 @@ function App(){
           <button className="bh ch" onClick={function(){setMiniChat({channel:"admin_team",title:"Chat Equipe"})}} style={{padding:16,borderRadius:14,fontSize:15,fontWeight:500,background:cardBg,color:"#4CAF7D",border:"1px solid rgba(76,175,125,0.1)",cursor:"pointer",textAlign:"center"}}>💬 Chat Equipe</button>
         </div>
 
+        {/* Plan Upgrade */}
+        {adm&&<div className="bh" onClick={function(){setMdl({t:"upgradePlan"})}} style={{padding:16,background:"linear-gradient(135deg,"+(isDark?"#0d0d18":"#f0ede8")+","+(isDark?"#12101a":"#fff")+")",borderRadius:14,marginBottom:16,border:"1px solid "+P+"20",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer"}}>
+          <div>
+            <div style={{fontSize:15,fontWeight:700,color:textColor}}>📦 Seu Plano</div>
+            <div style={{fontSize:13,color:subColor}}>Faça upgrade para desbloquear mais recursos</div>
+          </div>
+          <div style={{padding:"10px 20px",borderRadius:10,background:"linear-gradient(135deg,"+P+",#6a4fa0)",color:"#fff",fontSize:14,fontWeight:700}}>⬆️ Upgrade</div>
+        </div>}
+
         {/* Portal Access Toggle */}
         {can("manage_settings") && <div style={{padding:16,background:cardBg,borderRadius:14,marginBottom:16,border:"1px solid "+borderColor,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <div>
@@ -1783,7 +1794,8 @@ function App(){
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
           <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Email de contato</div><input id="cd_email" type="email" onKeyDown={function(e){e.stopPropagation()}} style={mI} defaultValue={CT.email} placeholder="contato@empresa.com"/></div>
           <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>WhatsApp (com DDD)</div><input id="cd_whats" onKeyDown={function(e){e.stopPropagation()}} onChange={function(e){e.target.value=V.maskPhone(e.target.value)}} style={mI} defaultValue={CT.wa} placeholder="(47) 99999-9999"/></div>
-          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Instagram</div><input id="cd_insta" onKeyDown={function(e){e.stopPropagation()}} style={mI} defaultValue={CT.ig.length>0?CT.ig[0].h:""} placeholder="@suaempresa"/></div>
+          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Instagram 1</div><input id="cd_insta" onKeyDown={function(e){e.stopPropagation()}} onChange={function(e){if(e.target.value&&!e.target.value.startsWith("@"))e.target.value="@"+e.target.value}} style={mI} defaultValue={CT.ig.length>0?CT.ig[0].h:""} placeholder="@suaempresa"/></div>
+          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Instagram 2</div><input id="cd_insta2" onKeyDown={function(e){e.stopPropagation()}} onChange={function(e){if(e.target.value&&!e.target.value.startsWith("@"))e.target.value="@"+e.target.value}} style={mI} defaultValue={CT.ig.length>1?CT.ig[1].h:""} placeholder="@outraconta (opcional)"/></div>
           <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Telefone fixo</div><input id="cd_tel" onKeyDown={function(e){e.stopPropagation()}} style={mI} defaultValue={CT.phone} placeholder="+55 47 3333-4444"/></div>
           <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Endereço</div><input id="cd_end" onKeyDown={function(e){e.stopPropagation()}} style={mI} defaultValue={CT.address||""} placeholder="Rua Exemplo, 123"/></div>
           <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Cidade/Estado</div><input id="cd_cid" onKeyDown={function(e){e.stopPropagation()}} style={mI} defaultValue={CT.city||""} placeholder="Balneário Camboriú/SC"/></div>
@@ -1815,11 +1827,14 @@ function App(){
         if(emailVal&&!V.email(emailVal)){msg("⚠️ Email inválido");return}
         if(whatsVal&&!V.phone(whatsVal)){msg("⚠️ WhatsApp inválido (mín. 10 dígitos)");return}
         if(cnpjVal&&cnpjVal.replace(/\D/g,"").length>0&&!V.cnpj(cnpjVal)){msg("⚠️ CNPJ inválido");return}
-        var fields3=[{id:"cd_email",k:"contact_email"},{id:"cd_whats",k:"wa_number"},{id:"cd_insta",k:"instagram"},{id:"cd_tel",k:"telefone"},{id:"cd_end",k:"endereco"},{id:"cd_cid",k:"cidade"},{id:"cd_cnpj",k:"cnpj"},{id:"cd_site",k:"site"},{id:"cd_wa_pid",k:"wa_phone_id"},{id:"cd_wa_bid",k:"wa_business_id"},{id:"cd_brand_color",k:"brand_color"}];
+        var fields3=[{id:"cd_email",k:"contact_email"},{id:"cd_whats",k:"wa_number"},{id:"cd_insta",k:"instagram"},{id:"cd_insta2",k:"instagram2"},{id:"cd_tel",k:"telefone"},{id:"cd_end",k:"endereco"},{id:"cd_cid",k:"cidade"},{id:"cd_cnpj",k:"cnpj"},{id:"cd_site",k:"site"},{id:"cd_wa_pid",k:"wa_phone_id"},{id:"cd_wa_bid",k:"wa_business_id"},{id:"cd_brand_color",k:"brand_color"}];
         for(var i=0;i<fields3.length;i++){var v=document.getElementById(fields3[i].id).value;if(v){await sb.from("config_whatsapp").delete().eq("chave",fields3[i].k).eq("tenant_id",DB._tid);await sb.from("config_whatsapp").insert({chave:fields3[i].k,valor:v,tenant_id:DB._tid})}}
         var tok=document.getElementById("cd_wa_tok").value;if(tok&&tok!=="••••••••"){await sb.from("config_whatsapp").delete().eq("chave","wa_token").eq("tenant_id",DB._tid);await sb.from("config_whatsapp").insert({chave:"wa_token",valor:tok,tenant_id:DB._tid});WA.TOKEN=tok}
         CT.email=document.getElementById("cd_email").value||CT.email;CT.wa=document.getElementById("cd_whats").value||CT.wa;CT.phone=document.getElementById("cd_tel").value||CT.phone;
-        var ig=document.getElementById("cd_insta").value;if(ig)CT.ig=[{h:ig.startsWith("@")?ig:"@"+ig,u:"https://www.instagram.com/"+ig.replace("@","")}];
+        var ig=document.getElementById("cd_insta").value;var ig2=document.getElementById("cd_insta2").value;
+        CT.ig=[];
+        if(ig)CT.ig.push({h:ig.startsWith("@")?ig:"@"+ig,u:"https://www.instagram.com/"+ig.replace("@","")});
+        if(ig2)CT.ig.push({h:ig2.startsWith("@")?ig2:"@"+ig2,u:"https://www.instagram.com/"+ig2.replace("@","")});
         CT.address=document.getElementById("cd_end").value;CT.city=document.getElementById("cd_cid").value;CT.cnpj=document.getElementById("cd_cnpj").value;
         var pid=document.getElementById("cd_wa_pid").value;if(pid)WA.PHONE_ID=pid;
         msg("✅ Dados salvos!");setMdl(null);
@@ -4571,7 +4586,7 @@ function App(){
         </div>}
         {/* Status filters */}
         <div style={{display:"flex",gap:4,marginBottom:10}}>
-          {["rascunho","enviada","aceita","recusada"].map(function(s){var cnt=propostas2.filter(function(p){return p.status===s}).length;var cols={rascunho:"#E8A94E",enviada:"#5B8FD4",aceita:"#4CAF7D",recusada:"#D45B5B"};return <span key={s} style={{padding:"4px 10px",borderRadius:8,fontSize:11,background:cols[s]+"10",color:cols[s],fontWeight:600}}>{s} ({cnt})</span>})}
+          {["rascunho","enviada","aceita","assinatura","assinado","recusada"].map(function(s){var cnt=propostas2.filter(function(p){return p.status===s}).length;var cols={rascunho:"#E8A94E",enviada:"#5B8FD4",aceita:"#4CAF7D",assinatura:"#8B6FBF",assinado:"#2e8b57",recusada:"#D45B5B"};if(cnt===0&&(s==="assinatura"||s==="assinado"))return null;return <span key={s} style={{padding:"4px 10px",borderRadius:8,fontSize:11,background:(cols[s]||"#555")+"10",color:cols[s]||"#555",fontWeight:600}}>{s} ({cnt})</span>})}
         </div>
         {propostas2.length===0&&<div style={{padding:30,textAlign:"center",color:subColor}}>Nenhuma proposta</div>}
         {propostas2.map(function(p){var lead=waLeads.find(function(l){return l.id===p.lead_id});var bld2=buildings.find(function(b2){return b2.id===p.building_id});var statusCol={rascunho:"#E8A94E",enviada:"#5B8FD4",aceita:"#4CAF7D",recusada:"#D45B5B"};return <div key={p.id} style={{padding:14,borderRadius:12,background:cardBg,border:"1px solid "+borderColor,marginBottom:8}}>
@@ -4594,6 +4609,20 @@ function App(){
             <div style={{display:"flex",gap:4}}>
               {p.status==="rascunho"&&<button className="bh" onClick={async function(){await sb.from("propostas").update({status:"enviada"}).eq("id",p.id);await loadPropostas();wmsg("📤 Enviada")}} style={{padding:"4px 10px",borderRadius:6,fontSize:11,background:"#5B8FD410",color:"#5B8FD4",border:"none",cursor:"pointer"}}>📤 Enviar</button>}
               {p.status==="enviada"&&<button className="bh" onClick={async function(){await sb.from("propostas").update({status:"aceita"}).eq("id",p.id);await loadPropostas();wmsg("✅ Aceita!")}} style={{padding:"4px 10px",borderRadius:6,fontSize:11,background:"#4CAF7D10",color:"#4CAF7D",border:"none",cursor:"pointer"}}>✅ Aceitar</button>}
+              {p.status==="aceita"&&<button className="bh" onClick={async function(){
+                var signCfg=await sb.from("config_whatsapp").select("valor").eq("chave","sign_platform").eq("tenant_id",DB._tid).single();
+                if(!signCfg.data||!signCfg.data.valor){wmsg("⚠️ Configure a assinatura digital em Integrações (admin)");return}
+                var plat=(signCfg.data.valor||"").replace(/"/g,"");
+                var lead2=waLeads.find(function(l){return l.id===p.lead_id});
+                var bld3=buildings.find(function(b2){return b2.id===p.building_id});
+                var docName="Proposta_"+(bld3?bld3.name:"")+"_"+(lead2?lead2.nome:"")+".pdf";
+                await sb.from("propostas").update({status:"assinatura",sign_platform:plat,sign_sent_at:new Date().toISOString()}).eq("id",p.id);
+                await loadPropostas();
+                wmsg("✍️ Enviado para assinatura via "+plat+"! Acompanhe o status aqui.");
+              }} style={{padding:"4px 10px",borderRadius:6,fontSize:11,background:P+"10",color:P,border:"none",cursor:"pointer"}}>✍️ Enviar p/ Assinatura</button>}
+              {p.status==="assinatura"&&<span style={{padding:"4px 10px",borderRadius:6,fontSize:11,background:P+"10",color:P}}>✍️ Aguardando assinatura...</span>}
+              {p.status==="assinatura"&&<button className="bh" onClick={async function(){await sb.from("propostas").update({status:"assinado",sign_completed_at:new Date().toISOString()}).eq("id",p.id);await loadPropostas();wmsg("✅ Documento assinado!")}} style={{padding:"4px 10px",borderRadius:6,fontSize:11,background:GR+"10",color:GR,border:"none",cursor:"pointer"}}>✅ Confirmar Assinatura</button>}
+              {p.status==="assinado"&&<span style={{padding:"4px 10px",borderRadius:6,fontSize:11,background:GR+"10",color:GR}}>✅ Assinado</span>}
               <button className="bh" onClick={async function(){await sb.from("propostas").delete().eq("id",p.id);await loadPropostas();wmsg("Removida")}} style={{padding:"4px 10px",borderRadius:6,fontSize:11,background:"rgba(213,91,91,0.1)",color:"#D45B5B",border:"none",cursor:"pointer"}}>🗑️</button>
             </div>
           </div>
