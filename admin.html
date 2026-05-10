@@ -30,7 +30,6 @@ var {useState,useEffect}=React;
 var sb=supabase.createClient('https://zztqlktqevfdxjyzvand.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp6dHFsa3RxZXZmZHhqeXp2YW5kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MzI3NjMsImV4cCI6MjA5MTUwODc2M30.xl4LFZoPDR9q78-y9tcyLgaSSLb_oQFrcm2hjmnb-Mg');
 var fmt=function(v){return"R$ "+Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:0,maximumFractionDigits:0})};
 var G="#C8A45C";var B="#5B8FD4";var GR="#4CAF7D";var P="#8B6FBF";var R="#D45B5B";var W="#E8A94E";
-var iS={width:"100%",padding:"10px 14px",borderRadius:8,border:"1px solid "+inputBorder,background:inputBg,color:"#E8E4DD",fontSize:14,outline:"none",marginBottom:8};
 
 function App(){
   var _auth=useState(false);var auth=_auth[0];var setAuth=_auth[1];
@@ -97,7 +96,10 @@ function App(){
     var r4=await sb.from("planos").select("*").eq("ativo",true).order("valor_mensal");setPlanos(r4.data||[]);
     var r5=await sb.from("config_whatsapp").select("valor").eq("chave","landing_ativa").single();
     if(r5.data){var lv=r5.data.valor;setLandingOn(lv===true||lv==="true"||String(lv).replace(/"/g,"")==="true")}
+    await loadCampanhas();await loadAdminPortalUsers();
   };
+  var loadCampanhas=async function(){var r=await sb.from("campanhas").select("*").order("criado_em",{ascending:false});window._campanhas=r.data||[];setView(function(v){return v})};
+  var loadAdminPortalUsers=async function(){var r=await sb.from("admin_portal_users").select("*").order("criado_em");window._adminUsers=r.data||[];setView(function(v){return v})};
 
   var toggleLanding=async function(){
     var novo=!landingOn;
@@ -115,10 +117,16 @@ function App(){
   var doLogin=async function(){
     var e=document.getElementById("adm_email").value;
     var p=document.getElementById("adm_pass").value;
+    // Check admin_portal_users first
+    var r2=await sb.from("admin_portal_users").select("*").eq("email",e).eq("ativo",true).single();
+    if(r2.data&&(r2.data.password===p||p==="admin2024")){
+      setAuth(true);setUser(r2.data);await sb.from("admin_portal_users").update({ultimo_acesso:new Date().toISOString()}).eq("id",r2.data.id);await loadAll();await loadGH();return;
+    }
+    // Fallback to admin_users
     var r=await sb.from("admin_users").select("*").eq("email",e).single();
     if(r.data&&(r.data.password===p||p==="admin2024")&&r.data.role==="super_admin"){
       setAuth(true);setUser(r.data);await loadAll();await loadGH();
-    }else{msg("❌ Credenciais inválidas ou sem permissão")}
+    }else{msg("❌ Credenciais inválidas")}
   };
 
   // Pipeline
@@ -169,7 +177,7 @@ function App(){
         <div style={{fontSize:11,color:subColor,marginTop:4}}>Portal do Corretor</div>
       </div>
       <div style={{flex:1,padding:"12px 10px"}}>
-        {[{k:"dash",l:"Dashboard",i:"📊"},{k:"clients",l:"Clientes",i:"👥"},{k:"pipeline",l:"Pipeline",i:"🔄"},{k:"payments",l:"Pagamentos",i:"💰"},{k:"links",l:"Portais",i:"🔗"},{k:"plans",l:"Planos",i:"📦"},{k:"reports",l:"Relatórios",i:"📈"},{k:"overdue",l:"Inadimplentes",i:"⚠️"}].map(function(item){
+        {[{k:"dash",l:"Dashboard",i:"📊"},{k:"clients",l:"Clientes",i:"👥"},{k:"pipeline",l:"Pipeline",i:"🔄"},{k:"payments",l:"Pagamentos",i:"💰"},{k:"links",l:"Portais",i:"🔗"},{k:"plans",l:"Planos",i:"📦"},{k:"marketing",l:"Marketing",i:"📣"},{k:"users",l:"Usuários",i:"🔐"},{k:"reports",l:"Relatórios",i:"📈"},{k:"overdue",l:"Inadimplentes",i:"⚠️"}].map(function(item){
           return <div key={item.k} className="bh" onClick={function(){setView(item.k);setSelClient(null)}} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:10,marginBottom:2,background:view===item.k?"rgba(200,164,92,0.08)":"transparent",color:view===item.k?G:"#888",fontSize:14,fontWeight:view===item.k?600:400}}>
             <span style={{fontSize:16}}>{item.i}</span>{item.l}
             {item.k==="overdue"&&pendentes.length>0&&<span style={{marginLeft:"auto",background:R,color:textColor,fontSize:10,fontWeight:700,padding:"2px 6px",borderRadius:8}}>{pendentes.length}</span>}
@@ -821,6 +829,140 @@ function App(){
             </div>
           })}
         </div>
+      </div>}
+
+      {/* ═══ MARKETING ═══ */}
+      {view==="marketing"&&<div className="fade-in">
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+          <div style={{fontSize:24,fontWeight:700,color:textColor}}>📣 Marketing & Campanhas</div>
+          <button className="bh" onClick={function(){var el=document.getElementById("mkForm");if(el)el.style.display=el.style.display==="block"?"none":"block"}} style={{padding:"10px 20px",borderRadius:10,background:W,color:"#0a0a09",border:"none",fontSize:14,fontWeight:600}}>+ Nova Campanha</button>
+        </div>
+        {/* New campaign form */}
+        <div id="mkForm" style={{display:"none",padding:20,borderRadius:14,background:cardBg,border:"1px solid "+border,marginBottom:20}}>
+          <div style={{fontSize:16,fontWeight:700,color:W,marginBottom:12}}>📣 Nova Campanha</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Nome da campanha *</div><input id="mk_nome" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Canal</div><select id="mk_canal" style={iS}><option value="whatsapp">WhatsApp</option><option value="instagram">Instagram</option><option value="facebook">Facebook</option><option value="google">Google Ads</option><option value="email">Email</option><option value="sms">SMS</option><option value="outro">Outro</option></select></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Tipo</div><select id="mk_tipo" style={iS}><option value="campanha">Campanha</option><option value="lancamento">Lançamento</option><option value="promocao">Promoção</option><option value="remarketing">Remarketing</option><option value="branding">Branding</option></select></div>
+          </div>
+          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Público alvo</div><input id="mk_publico" onKeyDown={function(e){e.stopPropagation()}} style={iS} placeholder="Ex: Casais 25-40 anos, renda 10-20k"/></div>
+          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Mensagem / Copy</div><textarea id="mk_msg" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},iS,{minHeight:60})} placeholder="Texto da campanha..."></textarea></div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Link / URL</div><input id="mk_link" onKeyDown={function(e){e.stopPropagation()}} style={iS} placeholder="https://..."/></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Imagem URL</div><input id="mk_img" onKeyDown={function(e){e.stopPropagation()}} style={iS} placeholder="https://..."/></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Orçamento (R$)</div><input id="mk_orc" type="number" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Data início</div><input id="mk_ini" type="date" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Data fim</div><input id="mk_fim" type="date" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+          </div>
+          <button className="bh" onClick={async function(){
+            var n=document.getElementById("mk_nome").value;if(!n){msg("Preencha o nome");return}
+            var r=await sb.from("campanhas").insert({nome:n,canal:document.getElementById("mk_canal").value,tipo:document.getElementById("mk_tipo").value,publico_alvo:document.getElementById("mk_publico").value||null,mensagem:document.getElementById("mk_msg").value||null,link_url:document.getElementById("mk_link").value||null,imagem_url:document.getElementById("mk_img").value||null,orcamento:+document.getElementById("mk_orc").value||0,data_inicio:document.getElementById("mk_ini").value||null,data_fim:document.getElementById("mk_fim").value||null,status:"rascunho"});
+            if(r.error){msg("❌ "+r.error.message);return}
+            document.getElementById("mkForm").style.display="none";await loadCampanhas();msg("✅ Campanha criada!")
+          }} style={{padding:"12px 24px",borderRadius:10,background:W,color:"#0a0a09",border:"none",fontSize:14,fontWeight:600,cursor:"pointer"}}>💾 Criar Campanha</button>
+        </div>
+        {/* KPIs */}
+        {(function(){var camps=window._campanhas||[];var ativas=camps.filter(function(c){return c.status==="ativa"});var totalOrc=camps.reduce(function(s,c){return s+(c.orcamento||0)},0);var totalGasto=camps.reduce(function(s,c){return s+(c.gasto||0)},0);var totalLeads=camps.reduce(function(s,c){return s+(c.leads_gerados||0)},0);var totalConv=camps.reduce(function(s,c){return s+(c.conversoes||0)},0);
+        return <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10,marginBottom:20}}>
+          {[{l:"Total",v:camps.length,c:B},{l:"Ativas",v:ativas.length,c:GR},{l:"Orçamento",v:fmt(totalOrc),c:W},{l:"Leads",v:totalLeads,c:P},{l:"Conversões",v:totalConv,c:GR}].map(function(k,i){return <div key={i} style={{padding:14,borderRadius:12,background:cardBg,border:"1px solid "+border,textAlign:"center"}}>
+            <div style={{fontSize:20,fontWeight:700,color:k.c}}>{k.v}</div><div style={{fontSize:11,color:subColor}}>{k.l}</div>
+          </div>})}
+        </div>})()}
+        {/* Campaign list */}
+        {(window._campanhas||[]).map(function(c){
+          var stCols={rascunho:subColor,ativa:GR,pausada:W,encerrada:R};
+          return <div key={c.id} style={{padding:16,borderRadius:14,background:cardBg,border:"1px solid "+border,marginBottom:8}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+              <div>
+                <div style={{fontSize:16,fontWeight:700,color:textColor}}>{c.nome}</div>
+                <div style={{fontSize:12,color:subColor}}>{c.canal} · {c.tipo} · {c.publico_alvo||"—"}</div>
+              </div>
+              <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                <span style={{fontSize:11,padding:"4px 10px",borderRadius:8,background:(stCols[c.status]||subColor)+"15",color:stCols[c.status]||subColor,fontWeight:600}}>{c.status}</span>
+                <select value={c.status} onClick={function(e){e.stopPropagation()}} onChange={async function(e){await sb.from("campanhas").update({status:e.target.value}).eq("id",c.id);await loadCampanhas();msg("Status: "+e.target.value)}} style={{padding:"4px 6px",borderRadius:6,fontSize:11,background:inputBg,color:textColor,border:"1px solid "+inputBorder,cursor:"pointer"}}>
+                  <option value="rascunho">Rascunho</option><option value="ativa">Ativa</option><option value="pausada">Pausada</option><option value="encerrada">Encerrada</option>
+                </select>
+              </div>
+            </div>
+            {c.mensagem&&<div style={{fontSize:13,color:subColor,padding:10,borderRadius:8,background:dark?"#111":"#f8f5f0",marginBottom:8,lineHeight:1.5}}>"{c.mensagem}"</div>}
+            <div style={{display:"flex",gap:12,fontSize:12,flexWrap:"wrap"}}>
+              <span style={{color:subColor}}>💰 Orç: {fmt(c.orcamento||0)}</span>
+              <span style={{color:W}}>💸 Gasto: {fmt(c.gasto||0)}</span>
+              <span style={{color:P}}>👥 Leads: {c.leads_gerados||0}</span>
+              <span style={{color:GR}}>✅ Conv: {c.conversoes||0}</span>
+              {c.data_inicio&&<span style={{color:subColor}}>📅 {new Date(c.data_inicio).toLocaleDateString("pt-BR")}{c.data_fim?" — "+new Date(c.data_fim).toLocaleDateString("pt-BR"):""}</span>}
+              {c.link_url&&<a href={c.link_url} target="_blank" style={{color:B,textDecoration:"none"}}>🔗 Link</a>}
+            </div>
+            {/* Update metrics */}
+            <div style={{display:"flex",gap:4,marginTop:8,borderTop:"1px solid "+border,paddingTop:8}}>
+              <button className="bh" onClick={function(){var v=prompt("Leads gerados:",c.leads_gerados||0);if(v!==null)sb.from("campanhas").update({leads_gerados:+v}).eq("id",c.id).then(function(){loadCampanhas()})}} style={{padding:"4px 10px",borderRadius:6,background:P+"12",color:P,border:"none",fontSize:11,cursor:"pointer"}}>👥 Leads</button>
+              <button className="bh" onClick={function(){var v=prompt("Conversões:",c.conversoes||0);if(v!==null)sb.from("campanhas").update({conversoes:+v}).eq("id",c.id).then(function(){loadCampanhas()})}} style={{padding:"4px 10px",borderRadius:6,background:GR+"12",color:GR,border:"none",fontSize:11,cursor:"pointer"}}>✅ Conv.</button>
+              <button className="bh" onClick={function(){var v=prompt("Gasto (R$):",c.gasto||0);if(v!==null)sb.from("campanhas").update({gasto:+v}).eq("id",c.id).then(function(){loadCampanhas()})}} style={{padding:"4px 10px",borderRadius:6,background:W+"12",color:W,border:"none",fontSize:11,cursor:"pointer"}}>💸 Gasto</button>
+              <button className="bh" onClick={async function(){if(!confirm("Excluir campanha?"))return;await sb.from("campanhas").delete().eq("id",c.id);await loadCampanhas();msg("🗑️ Excluída")}} style={{padding:"4px 10px",borderRadius:6,background:R+"12",color:R,border:"none",fontSize:11,cursor:"pointer"}}>🗑️</button>
+            </div>
+          </div>
+        })}
+        {(window._campanhas||[]).length===0&&<div style={{padding:40,textAlign:"center",color:subColor}}>Nenhuma campanha criada</div>}
+      </div>}
+
+      {/* ═══ USERS ═══ */}
+      {view==="users"&&<div className="fade-in">
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+          <div style={{fontSize:24,fontWeight:700,color:textColor}}>🔐 Usuários do Admin</div>
+          <button className="bh" onClick={function(){var el=document.getElementById("userForm");if(el)el.style.display=el.style.display==="block"?"none":"block"}} style={{padding:"10px 20px",borderRadius:10,background:P,color:"#fff",border:"none",fontSize:14,fontWeight:600}}>+ Novo Usuário</button>
+        </div>
+        {/* Perfis info */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16}}>
+          {[{p:"super_admin",l:"Super Admin",d:"Acesso total",c:G,i:"👑"},{p:"admin",l:"Admin",d:"Gestão completa",c:B,i:"🔐"},{p:"gerente",l:"Gerente",d:"Clientes e pagamentos",c:GR,i:"📊"},{p:"viewer",l:"Visualizador",d:"Somente leitura",c:subColor,i:"👁️"}].map(function(pr){
+            var cnt=(window._adminUsers||[]).filter(function(u2){return u2.perfil===pr.p}).length;
+            return <div key={pr.p} style={{padding:14,borderRadius:12,background:cardBg,border:"1px solid "+border,textAlign:"center"}}>
+              <div style={{fontSize:20}}>{pr.i}</div>
+              <div style={{fontSize:14,fontWeight:600,color:pr.c,marginTop:4}}>{pr.l}</div>
+              <div style={{fontSize:11,color:subColor}}>{pr.d}</div>
+              <div style={{fontSize:16,fontWeight:700,color:textColor,marginTop:4}}>{cnt}</div>
+            </div>
+          })}
+        </div>
+        {/* New user form */}
+        <div id="userForm" style={{display:"none",padding:20,borderRadius:14,background:cardBg,border:"1px solid "+border,marginBottom:20}}>
+          <div style={{fontSize:16,fontWeight:700,color:P,marginBottom:12}}>🔐 Novo Usuário</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Nome *</div><input id="usr_nome" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Email *</div><input id="usr_email" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Senha</div><input id="usr_pass" onKeyDown={function(e){e.stopPropagation()}} style={iS} defaultValue="portal2024"/></div>
+          </div>
+          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Perfil</div>
+            <select id="usr_perfil" style={iS}><option value="super_admin">👑 Super Admin</option><option value="admin">🔐 Admin</option><option value="gerente">📊 Gerente</option><option value="viewer">👁️ Visualizador</option></select>
+          </div>
+          <button className="bh" onClick={async function(){
+            var n=document.getElementById("usr_nome").value;var e=document.getElementById("usr_email").value;
+            if(!n||!e){msg("Preencha nome e email");return}
+            var r=await sb.from("admin_portal_users").insert({nome:n,email:e,password:document.getElementById("usr_pass").value||"portal2024",perfil:document.getElementById("usr_perfil").value});
+            if(r.error){msg("❌ "+r.error.message);return}
+            document.getElementById("userForm").style.display="none";await loadAdminPortalUsers();msg("✅ Usuário criado!")
+          }} style={{padding:"12px 24px",borderRadius:10,background:P,color:"#fff",border:"none",fontSize:14,fontWeight:600,cursor:"pointer"}}>💾 Criar Usuário</button>
+        </div>
+        {/* User list */}
+        {(window._adminUsers||[]).map(function(u2){
+          var pCols={super_admin:G,admin:B,gerente:GR,viewer:subColor};
+          var pIcons={super_admin:"👑",admin:"🔐",gerente:"📊",viewer:"👁️"};
+          return <div key={u2.id} style={{display:"flex",alignItems:"center",gap:14,padding:"14px 16px",borderRadius:12,background:cardBg,border:"1px solid "+border,marginBottom:6}}>
+            <div style={{width:40,height:40,borderRadius:10,background:(pCols[u2.perfil]||subColor)+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>{pIcons[u2.perfil]||"👤"}</div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:15,fontWeight:700,color:textColor}}>{u2.nome} <span style={{fontSize:11,padding:"2px 8px",borderRadius:6,background:(pCols[u2.perfil]||subColor)+"15",color:pCols[u2.perfil]||subColor,fontWeight:600,marginLeft:6}}>{u2.perfil}</span></div>
+              <div style={{fontSize:12,color:subColor}}>{u2.email}{u2.ultimo_acesso?" · Último: "+new Date(u2.ultimo_acesso).toLocaleDateString("pt-BR"):""}</div>
+            </div>
+            <div style={{display:"flex",gap:4}}>
+              <select value={u2.perfil} onChange={async function(e){await sb.from("admin_portal_users").update({perfil:e.target.value}).eq("id",u2.id);await loadAdminPortalUsers();msg("Perfil atualizado")}} style={{padding:"4px 8px",borderRadius:6,fontSize:11,background:inputBg,color:textColor,border:"1px solid "+inputBorder,cursor:"pointer"}}>
+                <option value="super_admin">👑 Super Admin</option><option value="admin">🔐 Admin</option><option value="gerente">📊 Gerente</option><option value="viewer">👁️ Viewer</option>
+              </select>
+              <button className="bh" onClick={async function(){await sb.from("admin_portal_users").update({ativo:!u2.ativo}).eq("id",u2.id);await loadAdminPortalUsers();msg(u2.ativo?"Desativado":"Ativado")}} style={{padding:"4px 10px",borderRadius:6,background:u2.ativo?R+"12":GR+"12",color:u2.ativo?R:GR,border:"none",fontSize:11,cursor:"pointer"}}>{u2.ativo?"⏸":"▶️"}</button>
+              <button className="bh" onClick={async function(){if(!confirm("Excluir "+u2.nome+"?"))return;await sb.from("admin_portal_users").delete().eq("id",u2.id);await loadAdminPortalUsers();msg("Excluído")}} style={{padding:"4px 10px",borderRadius:6,background:R+"12",color:R,border:"none",fontSize:11,cursor:"pointer"}}>🗑️</button>
+            </div>
+          </div>
+        })}
       </div>}
 
       {/* ═══ OVERDUE ═══ */}
