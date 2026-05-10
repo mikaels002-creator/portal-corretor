@@ -10,7 +10,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%230a0a09' width='100' height='100' rx='20'/><text x='50' y='55' text-anchor='middle' dy='.35em' font-size='50'>🏢</text></svg>"/>
 <link rel="manifest" href="data:application/json,{%22name%22:%22Portal%20do%20Corretor%22,%22short_name%22:%22Corretor%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22%230a0a09%22,%22theme_color%22:%22%230a0a09%22,%22icons%22:[{%22src%22:%22data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%230a0a09' width='100' height='100' rx='20'/><text x='50' y='55' text-anchor='middle' dy='.35em' font-size='50'>🏢</text></svg>%22,%22sizes%22:%22512x512%22,%22type%22:%22image/svg+xml%22}]}"/>
-<meta name="description" content="Portal do Corretor - MK Realty & D&SS Incorporação"/>
+<meta name="description" content="Portal do Corretor"/>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏢</text></svg>"/>
 <title>Portal do Corretor</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
@@ -159,7 +159,7 @@ var sC = {available:"#4CAF7D",reserved:"#E8A94E",sold:"#D45B5B"};
 var getSL = function(lang2){var t2=TR[lang2]||TR.pt;return{available:t2.available,reserved:t2.reserved,sold:t2.sold}};
 var EMO = ["🏙️","🌇","⭐","🏛️","🔄","🏢","🏗️","🌆","🏘️","🏠","🏡","🏰"];
 var CLR = ["#5B8FD4","#D4735B","#C8A45C","#8B6FBF","#5BB8B0","#E06090","#7CB342","#FF7043","#5C6BC0"];
-var CT = {email:"contato@mkcrealty.com.br",phone:"+55 47 992134870",wa:"5547992134870",ig:[{h:"@mkcrealty",u:"https://www.instagram.com/mkcrealty"},{h:"@dsincorporacao",u:"https://www.instagram.com/dsincorporacao"}]};
+var CT = {email:"",phone:"",wa:"",ig:[]};
 var G = "#C8A45C";
 var TR = {
   pt:{home:"Início",table:"Tabela",photos:"Fotos",plants:"Plantas",docs:"Docs",notices:"Avisos",back:"Voltar",available:"Disponível",reserved:"Reservado",sold:"Vendido",ready:"Pronto para Morar",construction:"Em Construção",unit:"Unid.",area:"Área",value:"Valor",status:"Status",actions:"Ações",filter:"Filtrar",all:"Todos",export:"Exportar PDF",commission:"comissão",compare:"Comparar",simulator:"Simulador de Financiamento",send:"Enviar via WhatsApp",close:"Fechar",showUsd:"USD",showBrl:"BRL",
@@ -527,8 +527,8 @@ function App(){
   var contactEmail = broker&&broker.email?broker.email:CT.email;
   var contactPhone = broker&&broker.telefone?broker.telefone:CT.phone;
   var contactName = broker?broker.nome:"";
-  var contactLine = broker?"Corretor: "+broker.nome+(broker.creci?" · CRECI "+broker.creci:"")+"<br>"+contactEmail+" · "+contactPhone+"<br><br>MK Realty & D&SS Incorporação":"MK Realty & D&SS Incorporação<br>"+CT.email+" · "+CT.phone;
-  var contactWa = broker?"\n\n👤 Corretor: "+broker.nome+(broker.creci?" · CRECI "+broker.creci:"")+"\n📞 "+contactPhone+"\n✉️ "+contactEmail:"\n\n📞 "+CT.phone+"\n✉️ "+CT.email;
+  var contactLine = broker?"Corretor: "+broker.nome+(broker.creci?" · CRECI "+broker.creci:"")+"<br>"+contactEmail+" · "+contactPhone+"<br><br>"+(tenantName||""):(tenantName||"")+(CT.email?"<br>"+CT.email:"")+(CT.phone?" · "+CT.phone:"");
+  var contactWa = broker?"\n\n👤 Corretor: "+broker.nome+(broker.creci?" · CRECI "+broker.creci:"")+"\n📞 "+contactPhone+"\n✉️ "+contactEmail:(CT.phone?"\n\n📞 "+CT.phone:"")+(CT.email?"\n✉️ "+CT.email:"");
   var getUsdRate = function(){var base=parseFloat(cfg.usd_rate)||5.80;var adj=parseFloat(cfg.usd_ajuste)||0;return base+adj};
   var fmtV = function(v){return showUsd?fmtUsd(Math.round(v/getUsdRate())):fmt(v)};
 
@@ -613,6 +613,17 @@ function App(){
       setCfg(results[0]);setBuildings(results[1]||[]);setAllUnits(results[2]||[]);setAllPhotos(results[3]||[]);setAllPlants(results[4]||[]);setAllDocs(results[5]||[]);setAllNotices(results[6]||[]);setBrokers(results[7]||[]);setSales(results[8]||[]);setAdminUsers(results[9]||[]);setTasks(results[10]||[]);
     } catch(e){ console.log("Load error:", e); }
     setRdy(true);
+    // Load tenant contact info
+    try{
+      var waCfg=await sb.from("config_whatsapp").select("*").eq("tenant_id",DB._tid);
+      var cfgMap={};(waCfg.data||[]).forEach(function(c){cfgMap[c.chave]=String(c.valor||"").replace(/^"|"$/g,"")});
+      CT.email=cfgMap.contact_email||cfgMap.email||"";
+      CT.phone=cfgMap.wa_number?"+"+cfgMap.wa_number.replace(/\D/g,""):"";
+      CT.wa=cfgMap.wa_number?cfgMap.wa_number.replace(/\D/g,""):"";
+      var igUser=cfgMap.instagram||"";
+      if(igUser)CT.ig=[{h:igUser.startsWith("@")?igUser:"@"+igUser,u:"https://www.instagram.com/"+(igUser.replace("@",""))}];
+      else CT.ig=[];
+    }catch(e){}
     refreshPromos();
   };
   useEffect(function(){ loadAll(); }, []);
@@ -770,7 +781,7 @@ function App(){
             <button className="bh" onClick={async function(){
               var n=document.getElementById("sw_empresa").value;var np=document.getElementById("sw_portal_nome").value;var lg=document.getElementById("sw_logo").value;
               await sb.from("tenants").update({nome_empresa:n||tenant.nome_empresa,nome_portal:np||null,logo_url:lg||null}).eq("id",tenant.id);
-              saveSetupStep(1);msg("✅ Dados salvos!");
+              await saveSetupStep(1);msg("✅ Dados salvos!");
             }} style={{width:"100%",padding:14,borderRadius:10,background:G,color:"#0a0a09",fontSize:15,fontWeight:700,border:"none",cursor:"pointer",marginTop:8}}>Próximo →</button>
           </div>}
           {/* Step 1: Contato */}
@@ -786,9 +797,9 @@ function App(){
               <button className="bh" onClick={function(){saveSetupStep(0)}} style={{flex:1,padding:14,borderRadius:10,background:"transparent",color:subColor,fontSize:15,border:"1px solid "+borderColor,cursor:"pointer"}}>← Voltar</button>
               <button className="bh" onClick={async function(){
                 var wh=document.getElementById("sw_whats").value;var ig=document.getElementById("sw_insta").value;var em=document.getElementById("sw_email").value;
-                var cfgData=[{chave:"wa_number",valor:wh,tenant_id:tenant.slug},{chave:"instagram",valor:ig,tenant_id:tenant.slug},{chave:"contact_email",valor:em,tenant_id:tenant.slug}];
-                for(var i=0;i<cfgData.length;i++){if(cfgData[i].valor){await sb.from("config_whatsapp").insert(cfgData[i]).catch(function(){})}}
-                saveSetupStep(2);msg("✅ Contato salvo!");
+                var cfgData=[{chave:"wa_number",valor:wh},{chave:"instagram",valor:ig},{chave:"contact_email",valor:em}];
+                for(var i=0;i<cfgData.length;i++){if(cfgData[i].valor){await sb.from("config_whatsapp").delete().eq("chave",cfgData[i].chave).eq("tenant_id",tenant.slug);await sb.from("config_whatsapp").insert({chave:cfgData[i].chave,valor:cfgData[i].valor,tenant_id:tenant.slug})}}
+                await saveSetupStep(2);msg("✅ Contato salvo!");
               }} style={{flex:2,padding:14,borderRadius:10,background:G,color:"#0a0a09",fontSize:15,fontWeight:700,border:"none",cursor:"pointer"}}>Próximo →</button>
             </div>
           </div>}
@@ -823,7 +834,7 @@ function App(){
                 var slug=nm.toLowerCase().replace(/[^a-z0-9]/g,"-").replace(/--+/g,"-");
                 var res=await sb.from("buildings").insert({id:slug,name:nm,subtitle:document.getElementById("sw_bld_sub").value||"",status:document.getElementById("sw_bld_status").value,construction_pct:+document.getElementById("sw_bld_pct").value||0,cub_base:+document.getElementById("sw_cub_base").value||2400,cub_current:+document.getElementById("sw_cub_atual").value||2400,color:"#C8A45C",active:true,tenant_id:tenant.slug});
                 if(res.error){msg("❌ "+res.error.message);return}
-                saveSetupStep(3);msg("✅ Empreendimento criado!");
+                await saveSetupStep(3);msg("✅ Empreendimento criado!");
               }} style={{flex:2,padding:14,borderRadius:10,background:G,color:"#0a0a09",fontSize:15,fontWeight:700,border:"none",cursor:"pointer"}}>Próximo →</button>
             </div>
           </div>}
@@ -852,7 +863,7 @@ function App(){
             }} style={{width:"100%",padding:10,borderRadius:8,background:"#5B8FD415",color:"#5B8FD4",fontSize:14,fontWeight:600,border:"1px solid #5B8FD425",cursor:"pointer",marginBottom:8}}>+ Adicionar Unidade</button>
             <div style={{display:"flex",gap:8}}>
               <button className="bh" onClick={function(){saveSetupStep(2)}} style={{flex:1,padding:14,borderRadius:10,background:"transparent",color:subColor,fontSize:15,border:"1px solid "+borderColor,cursor:"pointer"}}>← Voltar</button>
-              <button className="bh" onClick={function(){saveSetupStep(4);msg("Quase lá!")}} style={{flex:2,padding:14,borderRadius:10,background:G,color:"#0a0a09",fontSize:15,fontWeight:700,border:"none",cursor:"pointer"}}>Próximo →</button>
+              <button className="bh" onClick={function(){await saveSetupStep(4);msg("Quase lá!")}} style={{flex:2,padding:14,borderRadius:10,background:G,color:"#0a0a09",fontSize:15,fontWeight:700,border:"none",cursor:"pointer"}}>Próximo →</button>
             </div>
           </div>}
           {/* Step 4: Finalizar */}
@@ -2290,7 +2301,7 @@ function App(){
     var sendEmailNotif=function(assignee,taskTitle,taskDesc){
       if(!assignee||!assignee.email)return;
       var subject="Nova tarefa: "+taskTitle;
-      var body="Olá "+assignee.nome+",\n\nVocê recebeu uma nova tarefa no Portal do Corretor.\n\nTarefa: "+taskTitle+"\n"+(taskDesc?"Descrição: "+taskDesc+"\n":"")+"\nAcesse o portal para ver os detalhes.\n\nMK Realty & D&SS Incorporação";
+      var body="Olá "+assignee.nome+",\n\nVocê recebeu uma nova tarefa no Portal do Corretor.\n\nTarefa: "+taskTitle+"\n"+(taskDesc?"Descrição: "+taskDesc+"\n":"")+"\nAcesse o portal para ver os detalhes.\n\n"+( tenantName||"Portal do Corretor");
       window.open("mailto:"+assignee.email+"?subject="+encodeURIComponent(subject)+"&body="+encodeURIComponent(body),"_blank");
     };
 
@@ -4849,7 +4860,7 @@ function App(){
 
       {/* CONTACT BAR */}
       <div style={{display:"flex",borderBottom:"1px solid rgba(200,164,92,0.06)",background:"rgba(200,164,92,0.02)"}}>
-        {[{href:"mailto:"+CT.email,i:"✉️",l:"E-mail"},{href:"tel:"+CT.phone,i:"📞",l:"Ligar"},{href:CT.ig[0].u,l:"MK Realty",t:"_blank",isIg:true},{href:CT.ig[1].u,l:"D&SS",t:"_blank",isIg:true}].map(function(x,i){
+        {[CT.email&&{href:"mailto:"+CT.email,i:"✉️",l:"E-mail"},CT.phone&&{href:"tel:"+CT.phone,i:"📞",l:"Ligar"}].concat(CT.ig.map(function(ig3){return{href:ig3.u,l:ig3.h,t:"_blank",isIg:true}})).filter(Boolean).map(function(x,i){
           return <a key={i} href={x.href} target={x.t} className="bh" style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:5,padding:"12px 6px",fontSize:14,fontWeight:500,color:subColor,textDecoration:"none",borderRight:i<3?"1px solid rgba(255,255,255,0.03)":"none",letterSpacing:.5,transition:"color .2s"}}>{x.isIg?<IgIcon/>:x.i} {x.l}</a>;
         })}
       </div>
@@ -4942,7 +4953,7 @@ function App(){
           <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:26,fontWeight:400,color:textColor,letterSpacing:"0.05em",marginBottom:8}}>{tenantName||"MK REALTY & D&SS"}</div>
           <div style={{width:40,height:1,background:G+"40",margin:"0 auto 12px"}}/>
           <div style={{fontSize:13,color:subColor,lineHeight:2}}>
-            {CT.email}<br/>{CT.phone}<br/>{CT.ig.map(function(i){return i.h}).join(" · ")}
+            {CT.email&&<span>{CT.email}<br/></span>}{CT.phone&&<span>{CT.phone}<br/></span>}{CT.ig.length>0&&CT.ig.map(function(ig2){return ig2.h}).join(" · ")}
           </div>
           {!adm&&!broker&&<div style={{display:"flex",gap:8,justifyContent:"center",marginTop:16}}>
             <button className="bh" onClick={function(){setMdl({t:"login"})}} style={{padding:"12px 32px",borderRadius:50,fontSize:15,fontWeight:600,background:G,color:"#0a0a09",border:"none",cursor:"pointer",letterSpacing:.5}}>👤 {lang==="en"?"Login":lang==="es"?"Acceder":"Entrar"}</button>
