@@ -337,14 +337,27 @@ var DB = {
   // --- File Upload ---
   uploadFile: function(file, folder, callback, msgFn){
     if(msgFn) msgFn("☁️ Enviando...");
-    var fileName = folder + "/" + Date.now() + "-" + file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    sb.storage.from("arquivos").upload(fileName, file, {upsert:true}).then(function(res){
-      if(res.error){if(msgFn) msgFn("Erro: "+res.error.message); return;}
-      var publicUrl = SB_URL + "/storage/v1/object/public/arquivos/" + fileName;
+    var fileName = DB._tid + "/" + folder + "/" + Date.now() + "-" + file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    sb.storage.from("portal-files").upload(fileName, file, {upsert:true}).then(function(res){
+      if(res.error){if(msgFn) msgFn("❌ Erro: "+res.error.message); return;}
+      var publicUrl = SB_URL + "/storage/v1/object/public/portal-files/" + fileName;
       callback(publicUrl, file.name);
-      if(msgFn) msgFn("☁️ Upload concluído!");
-    }).catch(function(e){if(msgFn) msgFn("Erro no upload"); console.log(e);});
+      if(msgFn) msgFn("✅ Upload concluído!");
+    }).catch(function(e){if(msgFn) msgFn("❌ Erro no upload"); console.log(e);});
   }
+};
+
+// ═══════════════════════════════════════
+// VALIDATION HELPERS
+// ═══════════════════════════════════════
+var V={
+  email:function(e){return/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)},
+  phone:function(p){return p.replace(/\D/g,"").length>=10},
+  cnpj:function(c){var n=c.replace(/\D/g,"");if(n.length!==14)return false;if(/^(\d)\1+$/.test(n))return false;var calc=function(n2,l){var s=0;var p2=l+1;for(var i=0;i<l;i++){s+=parseInt(n2[i])*p2--;if(p2<2)p2=9}var r=s%11;return r<2?0:11-r};return parseInt(n[12])===calc(n,12)&&parseInt(n[13])===calc(n,13)},
+  required:function(v){return v&&v.trim&&v.trim().length>0},
+  minLen:function(v,l){return v&&v.length>=l},
+  maskPhone:function(v){var n=v.replace(/\D/g,"").substring(0,11);if(n.length<=2)return"("+n;if(n.length<=7)return"("+n.substring(0,2)+") "+n.substring(2);return"("+n.substring(0,2)+") "+n.substring(2,7)+"-"+n.substring(7)},
+  maskCNPJ:function(v){var n=v.replace(/\D/g,"").substring(0,14);if(n.length<=2)return n;if(n.length<=5)return n.substring(0,2)+"."+n.substring(2);if(n.length<=8)return n.substring(0,2)+"."+n.substring(2,5)+"."+n.substring(5);if(n.length<=12)return n.substring(0,2)+"."+n.substring(2,5)+"."+n.substring(5,8)+"/"+n.substring(8);return n.substring(0,2)+"."+n.substring(2,5)+"."+n.substring(5,8)+"/"+n.substring(8,12)+"-"+n.substring(12)}
 };
 
 // ═══════════════════════════════════════
@@ -794,8 +807,20 @@ function App(){
             <input id="sw_empresa" onKeyDown={function(e){e.stopPropagation()}} defaultValue={tenant.nome_empresa||""} style={mI} placeholder="Construtora ABC"/>
             <div style={{fontSize:11,color:subColor,marginBottom:3}}>Nome no título do Portal</div>
             <input id="sw_portal_nome" onKeyDown={function(e){e.stopPropagation()}} defaultValue={tenant.nome_portal||""} style={Object.assign({},mI,{color:G,fontWeight:600})} placeholder="ABC"/>
-            <div style={{fontSize:11,color:subColor,marginBottom:3}}>Logo (URL)</div>
-            <input id="sw_logo" onKeyDown={function(e){e.stopPropagation()}} defaultValue={tenant.logo_url||""} style={mI} placeholder="https://..."/>
+            <div style={{fontSize:11,color:subColor,marginBottom:3}}>Logo da empresa</div>
+            <label className="bh" style={{display:"block",padding:16,border:"2px dashed "+G+"30",borderRadius:10,textAlign:"center",cursor:"pointer",background:G+"06",marginBottom:8}}>
+              <input type="file" accept="image/*" id="sw_logo_file" style={{display:"none"}} onChange={function(e){
+                if(!e.target.files||!e.target.files[0])return;
+                msg("☁️ Enviando logo...");
+                DB.uploadFile(e.target.files[0],"logos",function(url){
+                  document.getElementById("sw_logo").value=url;
+                  msg("✅ Logo enviada!");
+                },msg);
+              }}/>
+              <div style={{fontSize:14,color:G}}>📁 Clique para enviar logo</div>
+              <div style={{fontSize:11,color:subColor}}>PNG, JPG ou SVG</div>
+            </label>
+            <input id="sw_logo" onKeyDown={function(e){e.stopPropagation()}} defaultValue={tenant.logo_url||""} style={mI} placeholder="Ou cole a URL da imagem"/>
             <button className="bh" onClick={async function(){
               var n=document.getElementById("sw_empresa").value;var np=document.getElementById("sw_portal_nome").value;var lg=document.getElementById("sw_logo").value;
               await sb.from("tenants").update({nome_empresa:n||tenant.nome_empresa,nome_portal:np||null,logo_url:lg||null}).eq("id",tenant.id);
@@ -805,16 +830,18 @@ function App(){
           {/* Step 1: Contato */}
           {setupStep===1&&<div>
             <div style={{fontSize:18,fontWeight:700,color:textColor,marginBottom:16}}>📞 Informações de Contato</div>
-            <div style={{fontSize:11,color:subColor,marginBottom:3}}>WhatsApp</div>
-            <input id="sw_whats" onKeyDown={function(e){e.stopPropagation()}} style={mI} placeholder="47999999999"/>
+            <div style={{fontSize:11,color:subColor,marginBottom:3}}>WhatsApp *</div>
+            <input id="sw_whats" onKeyDown={function(e){e.stopPropagation()}} onChange={function(e){e.target.value=V.maskPhone(e.target.value)}} style={mI} placeholder="(47) 99999-9999"/>
             <div style={{fontSize:11,color:subColor,marginBottom:3}}>Instagram</div>
             <input id="sw_insta" onKeyDown={function(e){e.stopPropagation()}} style={mI} placeholder="@suaconstrutora"/>
-            <div style={{fontSize:11,color:subColor,marginBottom:3}}>Email</div>
-            <input id="sw_email" onKeyDown={function(e){e.stopPropagation()}} style={mI} placeholder="contato@empresa.com"/>
+            <div style={{fontSize:11,color:subColor,marginBottom:3}}>Email *</div>
+            <input id="sw_email" type="email" onKeyDown={function(e){e.stopPropagation()}} style={mI} placeholder="contato@empresa.com"/>
             <div style={{display:"flex",gap:8}}>
               <button className="bh" onClick={function(){saveSetupStep(0)}} style={{flex:1,padding:14,borderRadius:10,background:"transparent",color:subColor,fontSize:15,border:"1px solid "+borderColor,cursor:"pointer"}}>← Voltar</button>
               <button className="bh" onClick={async function(){
-                var wh=document.getElementById("sw_whats").value;var ig=document.getElementById("sw_insta").value;var em=document.getElementById("sw_email").value;
+                var wh=document.getElementById("sw_whats").value.replace(/\D/g,"");var ig=document.getElementById("sw_insta").value;var em=document.getElementById("sw_email").value;
+                if(!V.phone(wh)){msg("⚠️ WhatsApp inválido (mín. 10 dígitos)");return}
+                if(em&&!V.email(em)){msg("⚠️ Email inválido");return}
                 var cfgData=[{chave:"wa_number",valor:wh},{chave:"instagram",valor:ig},{chave:"contact_email",valor:em}];
                 for(var i=0;i<cfgData.length;i++){if(cfgData[i].valor){await sb.from("config_whatsapp").delete().eq("chave",cfgData[i].chave).eq("tenant_id",tenant.slug);await sb.from("config_whatsapp").insert({chave:cfgData[i].chave,valor:cfgData[i].valor,tenant_id:tenant.slug})}}
                 await saveSetupStep(2);msg("✅ Contato salvo!");
@@ -1710,13 +1737,13 @@ function App(){
     if(mdl.t==="companyData") return <div><div style={mT}>🏢 Dados da Empresa</div>
       <div style={{padding:16,borderRadius:12,background:cardBg,border:"1px solid "+borderColor,marginBottom:12}}>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Email de contato</div><input id="cd_email" onKeyDown={function(e){e.stopPropagation()}} style={mI} defaultValue={CT.email} placeholder="contato@empresa.com"/></div>
-          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>WhatsApp (com DDD)</div><input id="cd_whats" onKeyDown={function(e){e.stopPropagation()}} style={mI} defaultValue={CT.wa} placeholder="5547999999999"/></div>
+          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Email de contato</div><input id="cd_email" type="email" onKeyDown={function(e){e.stopPropagation()}} style={mI} defaultValue={CT.email} placeholder="contato@empresa.com"/></div>
+          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>WhatsApp (com DDD)</div><input id="cd_whats" onKeyDown={function(e){e.stopPropagation()}} onChange={function(e){e.target.value=V.maskPhone(e.target.value)}} style={mI} defaultValue={CT.wa} placeholder="(47) 99999-9999"/></div>
           <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Instagram</div><input id="cd_insta" onKeyDown={function(e){e.stopPropagation()}} style={mI} defaultValue={CT.ig.length>0?CT.ig[0].h:""} placeholder="@suaempresa"/></div>
           <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Telefone fixo</div><input id="cd_tel" onKeyDown={function(e){e.stopPropagation()}} style={mI} defaultValue={CT.phone} placeholder="+55 47 3333-4444"/></div>
           <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Endereço</div><input id="cd_end" onKeyDown={function(e){e.stopPropagation()}} style={mI} defaultValue={CT.address||""} placeholder="Rua Exemplo, 123"/></div>
           <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Cidade/Estado</div><input id="cd_cid" onKeyDown={function(e){e.stopPropagation()}} style={mI} defaultValue={CT.city||""} placeholder="Balneário Camboriú/SC"/></div>
-          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>CNPJ</div><input id="cd_cnpj" onKeyDown={function(e){e.stopPropagation()}} style={mI} defaultValue={CT.cnpj||""} placeholder="00.000.000/0001-00"/></div>
+          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>CNPJ</div><input id="cd_cnpj" onKeyDown={function(e){e.stopPropagation()}} onChange={function(e){e.target.value=V.maskCNPJ(e.target.value)}} style={mI} defaultValue={CT.cnpj||""} placeholder="00.000.000/0001-00"/></div>
           <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Site</div><input id="cd_site" onKeyDown={function(e){e.stopPropagation()}} style={mI} defaultValue={""} placeholder="https://suaempresa.com.br"/></div>
         </div>
       </div>
@@ -1730,6 +1757,12 @@ function App(){
         <div style={{padding:8,borderRadius:8,background:isDark?"#1a1a19":"#EFEBE4",fontSize:11,color:subColor}}>Webhook: https://zztqlktqevfdxjyzvand.supabase.co/functions/v1/webhook-whatsapp</div>
       </div>
       <button className="bh" onClick={async function(){
+        var emailVal=document.getElementById("cd_email").value;
+        var whatsVal=document.getElementById("cd_whats").value.replace(/\D/g,"");
+        var cnpjVal=document.getElementById("cd_cnpj").value;
+        if(emailVal&&!V.email(emailVal)){msg("⚠️ Email inválido");return}
+        if(whatsVal&&!V.phone(whatsVal)){msg("⚠️ WhatsApp inválido (mín. 10 dígitos)");return}
+        if(cnpjVal&&cnpjVal.replace(/\D/g,"").length>0&&!V.cnpj(cnpjVal)){msg("⚠️ CNPJ inválido");return}
         var fields3=[{id:"cd_email",k:"contact_email"},{id:"cd_whats",k:"wa_number"},{id:"cd_insta",k:"instagram"},{id:"cd_tel",k:"telefone"},{id:"cd_end",k:"endereco"},{id:"cd_cid",k:"cidade"},{id:"cd_cnpj",k:"cnpj"},{id:"cd_site",k:"site"},{id:"cd_wa_pid",k:"wa_phone_id"},{id:"cd_wa_bid",k:"wa_business_id"}];
         for(var i=0;i<fields3.length;i++){var v=document.getElementById(fields3[i].id).value;if(v){await sb.from("config_whatsapp").delete().eq("chave",fields3[i].k).eq("tenant_id",DB._tid);await sb.from("config_whatsapp").insert({chave:fields3[i].k,valor:v,tenant_id:DB._tid})}}
         var tok=document.getElementById("cd_wa_tok").value;if(tok&&tok!=="••••••••"){await sb.from("config_whatsapp").delete().eq("chave","wa_token").eq("tenant_id",DB._tid);await sb.from("config_whatsapp").insert({chave:"wa_token",valor:tok,tenant_id:DB._tid});WA.TOKEN=tok}
