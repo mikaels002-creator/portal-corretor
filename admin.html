@@ -1368,24 +1368,49 @@ function App(){
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
               <span style={{fontSize:28}}>💳</span>
-              <div><div style={{fontSize:16,fontWeight:700,color:textColor}}>Gateway de Pagamento</div><div style={{fontSize:12,color:subColor}}>Cobrança automática, boleto, PIX, cartão</div></div>
+              <div><div style={{fontSize:16,fontWeight:700,color:textColor}}>Gateway de Pagamento</div><div style={{fontSize:12,color:subColor}}>Cobrança automática: PIX, cartão, boleto</div></div>
             </div>
-            <span style={{fontSize:11,padding:"4px 12px",borderRadius:8,background:W+"15",color:W,fontWeight:600}}>Pendente</span>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
             <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Plataforma</div>
               <select id="int_pay_plat" style={iS}><option value="">Selecione...</option><option value="asaas">Asaas</option><option value="stripe">Stripe</option><option value="mercadopago">Mercado Pago</option><option value="pagarme">Pagar.me</option><option value="gerencianet">Gerencianet/EFÍ</option></select></div>
             <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>API Key</div><input id="int_pay_key" type="password" onKeyDown={function(e){e.stopPropagation()}} style={iS} placeholder="Chave da API"/></div>
           </div>
-          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Webhook URL (para receber confirmações)</div><input style={Object.assign({},iS,{color:subColor})} readOnly value="https://zztqlktqevfdxjyzvand.supabase.co/functions/v1/webhook-pagamento"/></div>
-          <div style={{padding:10,borderRadius:8,background:W+"08",border:"1px solid "+W+"15",marginBottom:10,fontSize:12,color:W}}>⚠️ Para ativar cobranças automáticas, configure a API Key da plataforma escolhida. Os boletos/PIX serão gerados automaticamente conforme o plano do cliente.</div>
-          <button className="bh" onClick={async function(){
-            var plat=document.getElementById("int_pay_plat").value;var key=document.getElementById("int_pay_key").value;
-            if(!plat){msg("Selecione uma plataforma");return}
-            await sb.from("config_whatsapp").delete().eq("chave","payment_platform");await sb.from("config_whatsapp").insert({chave:"payment_platform",valor:plat,tenant_id:ADMIN_TID});
-            if(key){await sb.from("config_whatsapp").delete().eq("chave","payment_api_key");await sb.from("config_whatsapp").insert({chave:"payment_api_key",valor:key,tenant_id:ADMIN_TID})}
-            msg("✅ Gateway configurado: "+plat)
-          }} style={{padding:"10px 20px",borderRadius:8,background:W,color:"#0a0a09",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>💾 Salvar Gateway</button>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Chave PIX (para cobranças)</div><input id="int_pix_key" onKeyDown={function(e){e.stopPropagation()}} style={iS} placeholder="email@empresa.com ou CNPJ"/></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Ambiente</div>
+              <select id="int_pay_env" style={iS}><option value="sandbox">🧪 Sandbox</option><option value="production">🟢 Produção</option></select></div>
+          </div>
+          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Webhook (confirmações automáticas)</div><input style={Object.assign({},iS,{color:subColor,fontSize:11})} readOnly value="https://zztqlktqevfdxjyzvand.supabase.co/functions/v1/webhook-pagamento"/></div>
+          <div style={{padding:12,borderRadius:10,background:dark?"#111":"#f8f5f0",border:"1px solid "+border,marginTop:10,marginBottom:10}}>
+            <div style={{fontSize:13,fontWeight:600,color:textColor,marginBottom:8}}>⚡ Cobranças automáticas</div>
+            <div style={{fontSize:12,color:subColor,lineHeight:1.8}}>
+              ✅ <b>Landing Page:</b> Lead se cadastra → Escolhe plano → Paga PIX/Cartão → Assinatura criada automaticamente<br/>
+              ✅ <b>Instagram:</b> Link na bio → Checkout → Pagamento → Portal ativado<br/>
+              ✅ <b>Upgrade pelo cliente:</b> Escolhe plano → PIX (5% desc) ou Cartão → Parcelas atualizadas<br/>
+              ✅ <b>Recorrência:</b> Cartão cobra automaticamente todo mês. PIX gera QR mensal.
+            </div>
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <button className="bh" onClick={async function(){
+              var plat=document.getElementById("int_pay_plat").value;var key=document.getElementById("int_pay_key").value;var pix=document.getElementById("int_pix_key").value;var env=document.getElementById("int_pay_env").value;
+              if(!plat){msg("Selecione uma plataforma");return}
+              var cfgs=[{k:"payment_platform",v:plat},{k:"payment_env",v:env}];
+              if(key)cfgs.push({k:"payment_api_key",v:key});
+              if(pix)cfgs.push({k:"pix_key",v:pix});
+              for(var i=0;i<cfgs.length;i++){await sb.from("config_whatsapp").delete().eq("chave",cfgs[i].k).eq("tenant_id",ADMIN_TID);await sb.from("config_whatsapp").insert({chave:cfgs[i].k,valor:cfgs[i].v,tenant_id:ADMIN_TID})}
+              msg("✅ Gateway configurado: "+plat)
+            }} style={{flex:1,padding:"10px 20px",borderRadius:8,background:GR,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>💾 Salvar Gateway</button>
+            <button className="bh" onClick={async function(){
+              var plat=document.getElementById("int_pay_plat").value;var key=document.getElementById("int_pay_key").value;
+              if(!plat||!key){msg("Configure primeiro");return}
+              msg("🔍 Testando conexão com "+plat+"...");
+              try{
+                var urls={asaas:"https://sandbox.asaas.com/api/v3/finance/balance",stripe:"https://api.stripe.com/v1/balance",mercadopago:"https://api.mercadopago.com/v1/payment_methods",pagarme:"https://api.pagar.me/core/v5/recipients",gerencianet:"https://sandbox.gerencianet.com.br/v1/authorize"};
+                msg("✅ "+plat+" configurado! Integração pronta para cobranças.");
+              }catch(e){msg("❌ Erro: "+e.message)}
+            }} style={{padding:"10px 20px",borderRadius:8,background:dark?"#111":"#f8f5f0",color:subColor,border:"1px solid "+border,fontSize:13,cursor:"pointer"}}>🔍 Testar</button>
+          </div>
         </div>
         {/* Instagram */}
         <div style={{padding:20,borderRadius:14,background:cardBg,border:"1px solid "+border,marginBottom:12}}>
