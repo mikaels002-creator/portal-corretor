@@ -159,7 +159,7 @@ var sC = {available:"#4CAF7D",reserved:"#E8A94E",sold:"#D45B5B"};
 var getSL = function(lang2){var t2=TR[lang2]||TR.pt;return{available:t2.available,reserved:t2.reserved,sold:t2.sold}};
 var EMO = ["🏙️","🌇","⭐","🏛️","🔄","🏢","🏗️","🌆","🏘️","🏠","🏡","🏰"];
 var CLR = ["#5B8FD4","#D4735B","#C8A45C","#8B6FBF","#5BB8B0","#E06090","#7CB342","#FF7043","#5C6BC0"];
-var CT = {email:"",phone:"",wa:"",ig:[]};
+var CT = {email:"",phone:"",wa:"",ig:[]}; // Loaded per tenant
 var G = "#C8A45C";
 var TR = {
   pt:{home:"Início",table:"Tabela",photos:"Fotos",plants:"Plantas",docs:"Docs",notices:"Avisos",back:"Voltar",available:"Disponível",reserved:"Reservado",sold:"Vendido",ready:"Pronto para Morar",construction:"Em Construção",unit:"Unid.",area:"Área",value:"Valor",status:"Status",actions:"Ações",filter:"Filtrar",all:"Todos",export:"Exportar PDF",commission:"comissão",compare:"Comparar",simulator:"Simulador de Financiamento",send:"Enviar via WhatsApp",close:"Fechar",showUsd:"USD",showBrl:"BRL",
@@ -4860,9 +4860,9 @@ function App(){
 
       {/* CONTACT BAR */}
       <div style={{display:"flex",borderBottom:"1px solid rgba(200,164,92,0.06)",background:"rgba(200,164,92,0.02)"}}>
-        {[CT.email&&{href:"mailto:"+CT.email,i:"✉️",l:"E-mail"},CT.phone&&{href:"tel:"+CT.phone,i:"📞",l:"Ligar"}].concat(CT.ig.map(function(ig3){return{href:ig3.u,l:ig3.h,t:"_blank",isIg:true}})).filter(Boolean).map(function(x,i){
-          return <a key={i} href={x.href} target={x.t} className="bh" style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:5,padding:"12px 6px",fontSize:14,fontWeight:500,color:subColor,textDecoration:"none",borderRight:i<3?"1px solid rgba(255,255,255,0.03)":"none",letterSpacing:.5,transition:"color .2s"}}>{x.isIg?<IgIcon/>:x.i} {x.l}</a>;
-        })}
+        {CT.email&&<a href={"mailto:"+CT.email} className="bh" style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:5,padding:"12px 6px",fontSize:14,fontWeight:500,color:subColor,textDecoration:"none"}}>✉️ E-mail</a>}
+        {CT.phone&&<a href={"tel:"+CT.phone} className="bh" style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:5,padding:"12px 6px",fontSize:14,fontWeight:500,color:subColor,textDecoration:"none"}}>📞 Ligar</a>}
+        {CT.ig.map(function(ig4,idx){return <a key={idx} href={ig4.u} target="_blank" className="bh" style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:5,padding:"12px 6px",fontSize:14,fontWeight:500,color:subColor,textDecoration:"none"}}><IgIcon/> {ig4.h}</a>})}
       </div>
 
       {/* NAV */}
@@ -4950,10 +4950,10 @@ function App(){
         </div>
         {/* Brand */}
         <div style={{textAlign:"center"}}>
-          <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:26,fontWeight:400,color:textColor,letterSpacing:"0.05em",marginBottom:8}}>{tenantName||"MK REALTY & D&SS"}</div>
+          <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:26,fontWeight:400,color:textColor,letterSpacing:"0.05em",marginBottom:8}}>{tenantName||""}</div>
           <div style={{width:40,height:1,background:G+"40",margin:"0 auto 12px"}}/>
           <div style={{fontSize:13,color:subColor,lineHeight:2}}>
-            {CT.email&&<span>{CT.email}<br/></span>}{CT.phone&&<span>{CT.phone}<br/></span>}{CT.ig.length>0&&CT.ig.map(function(ig2){return ig2.h}).join(" · ")}
+            {CT.email?<span>{CT.email}<br/></span>:null}{CT.phone?<span>{CT.phone}<br/></span>:null}{CT.ig.length>0?CT.ig.map(function(ig5){return ig5.h}).join(" · "):null}
           </div>
           {!adm&&!broker&&<div style={{display:"flex",gap:8,justifyContent:"center",marginTop:16}}>
             <button className="bh" onClick={function(){setMdl({t:"login"})}} style={{padding:"12px 32px",borderRadius:50,fontSize:15,fontWeight:600,background:G,color:"#0a0a09",border:"none",cursor:"pointer",letterSpacing:.5}}>👤 {lang==="en"?"Login":lang==="es"?"Acceder":"Entrar"}</button>
