@@ -86,6 +86,8 @@ function App(){
       await sb.from("interacoes_tenant").insert({tenant_id:tenant.id,tipo:"deploy",conteudo:"Portal ativado: "+portalUrl+"\nLogin: "+(tenant.contato_email||tenant.slug+"@portal-corretor.com")+" / portal2024",usuario:user?user.nome:"Admin"});
       await loadAll();setDeploying(false);
       var updated=Object.assign({},tenant,{portal_url:portalUrl});setSelClient(updated);
+      // Send welcome email
+      sendWelcomeEmail(tenant,portalUrl);
       msg("✅ Portal ativado! "+portalUrl);
     }catch(e){setDeploying(false);msg("❌ "+e.message)}
   };
@@ -104,6 +106,78 @@ function App(){
   var loadTenantAdmins=async function(){var r=await sb.from("admin_users").select("*").order("tenant_id,nome");var byTenant={};(r.data||[]).forEach(function(a){if(!byTenant[a.tenant_id])byTenant[a.tenant_id]=[];byTenant[a.tenant_id].push(a)});window._tenantAdmins=byTenant;setView(function(v){return v})};
 
   var toggleLanding=async function(){
+
+  // ═══ WELCOME EMAIL ═══
+  var welcomeEmailBody=function(tenant,portalUrl){
+    var login=tenant.contato_email||tenant.slug+"@portal-corretor.com";
+    return "Olá "+( tenant.contato_nome||tenant.nome_empresa)+"!\n\n"+
+    "Seja bem-vindo(a) ao Portal do Corretor! 🎉\n\n"+
+    "Seu portal está pronto e esperando por você. Aqui estão seus dados de acesso:\n\n"+
+    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"+
+    "🔗 SEU PORTAL\n"+
+    portalUrl+"\n\n"+
+    "🔐 DADOS DE ACESSO\n"+
+    "Email: "+login+"\n"+
+    "Senha: portal2024\n"+
+    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"+
+    "📋 PRIMEIROS PASSOS\n\n"+
+    "1️⃣ ACESSE SEU PORTAL\n"+
+    "Abra o link acima no navegador e faça login com suas credenciais.\n\n"+
+    "2️⃣ CONFIGURE SUA EMPRESA\n"+
+    "Ao fazer o primeiro login, um assistente de configuração vai guiá-lo:\n"+
+    "   • Nome e logo da sua empresa\n"+
+    "   • Dados de contato (WhatsApp, Instagram, email)\n"+
+    "   • Cadastro do primeiro empreendimento\n"+
+    "   • Tabela de preços inicial\n\n"+
+    "3️⃣ ADICIONE SEUS EMPREENDIMENTOS\n"+
+    "No menu Gerenciar, adicione seus empreendimentos com:\n"+
+    "   • Fotos e plantas\n"+
+    "   • Tabela de unidades com preços\n"+
+    "   • Status de cada unidade (disponível, reservada, vendida)\n"+
+    "   • Informações do empreendimento\n\n"+
+    "4️⃣ CADASTRE SEUS CORRETORES\n"+
+    "Cada corretor terá acesso exclusivo ao portal com:\n"+
+    "   • Visualização da tabela de preços atualizada\n"+
+    "   • Simulador de financiamento\n"+
+    "   • Registro de vendas\n"+
+    "   • Dashboard individual com ranking\n\n"+
+    "5️⃣ ATIVE O CRM\n"+
+    "Configure o CRM integrado para:\n"+
+    "   • Receber leads automaticamente\n"+
+    "   • Gerenciar atendimentos\n"+
+    "   • Acompanhar o funil de vendas\n"+
+    "   • Enviar propostas digitais\n\n"+
+    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"+
+    "📱 RECURSOS DISPONÍVEIS\n\n"+
+    "✅ Tabela de vendas interativa com preços atualizados\n"+
+    "✅ Simulador de financiamento completo\n"+
+    "✅ CRM com funil Kanban\n"+
+    "✅ Gestão de corretores com ranking\n"+
+    "✅ Propostas digitais\n"+
+    "✅ Agendamento de visitas\n"+
+    "✅ Relatórios e analytics\n"+
+    "✅ Modo claro e escuro\n"+
+    "✅ Funciona em desktop, tablet e celular\n\n"+
+    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"+
+    "📞 SUPORTE\n\n"+
+    "Qualquer dúvida, entre em contato:\n"+
+    "📱 WhatsApp: (47) 98802-0495\n"+
+    "📧 Email: contato@portal-corretor.com\n\n"+
+    "Estamos à disposição para ajudá-lo a configurar seu portal e maximizar suas vendas!\n\n"+
+    "Abraços,\n"+
+    "Equipe Portal do Corretor 🏢"
+  };
+
+  var sendWelcomeEmail=function(tenant,portalUrl){
+    var email=tenant.contato_email;
+    if(!email)return;
+    var subject="🏢 Bem-vindo ao Portal do Corretor — Seus dados de acesso";
+    var body=welcomeEmailBody(tenant,portalUrl);
+    // Open in email client
+    window.open("mailto:"+encodeURIComponent(email)+"?subject="+encodeURIComponent(subject)+"&body="+encodeURIComponent(body),"_blank");
+    // Log
+    sb.from("interacoes_tenant").insert({tenant_id:tenant.id,tipo:"email",conteudo:"Email de boas-vindas enviado para "+email,usuario:user?user.nome:"Admin"});
+  };
     var novo=!landingOn;
     // Delete and re-insert (most reliable)
     await sb.from("config_whatsapp").delete().eq("chave","landing_ativa");
@@ -458,7 +532,8 @@ function App(){
                 </div>}
                 <div style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap"}}>
                   <button className="bh" disabled={deploying} onClick={function(){deployPortal(selClient)}} style={{padding:"14px 28px",borderRadius:12,background:deploying?"#333":"linear-gradient(135deg,#4CAF7D,#2e8b57)",color:textColor,fontSize:16,fontWeight:700,border:"none",cursor:deploying?"wait":"pointer"}}>🚀 {deploying?"Criando...":"Criar Portal do Cliente"}</button>
-                  <button className="bh" onClick={function(){setView("payments")}} style={{padding:"14px 28px",borderRadius:12,background:B+"15",color:B,fontSize:14,fontWeight:600,border:"1px solid "+B+"25"}}>💰 Ver Pagamentos</button>
+                  {selClient.portal_url&&selClient.contato_email&&<button className="bh" onClick={function(){sendWelcomeEmail(selClient,selClient.portal_url)}} style={{padding:"14px 28px",borderRadius:12,background:B+"15",color:B,fontSize:14,fontWeight:600,border:"1px solid "+B+"25"}}>📧 Email Boas-Vindas</button>}
+                  <button className="bh" onClick={function(){setView("payments")}} style={{padding:"14px 28px",borderRadius:12,background:W+"15",color:W,fontSize:14,fontWeight:600,border:"1px solid "+W+"25"}}>💰 Ver Pagamentos</button>
                   <button className="bh" onClick={function(){setSelClient(null);window._cStep=0;window._selPlan=null}} style={{padding:"14px 28px",borderRadius:12,background:"transparent",color:subColor,fontSize:14,border:"1px solid "+inputBorder}}>Voltar à lista</button>
                 </div>
               </div>}
@@ -780,6 +855,7 @@ function App(){
               <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
                 <button className="bh" onClick={async function(){await sb.from("tenants").update({ativo:!t.ativo}).eq("id",t.id);await loadAll();msg(t.ativo?"⏸ Portal pausado":"▶️ Portal ativado")}} style={{padding:"6px 14px",borderRadius:6,background:t.ativo?R+"12":GR+"12",color:t.ativo?R:GR,border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>{t.ativo?"⏸ Pausar Portal":"▶️ Ativar Portal"}</button>
                 {!t.portal_url&&<button className="bh" disabled={deploying} onClick={function(){deployPortal(t)}} style={{padding:"6px 14px",borderRadius:6,background:GR+"12",color:GR,border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>🚀 Criar Portal</button>}
+                {t.portal_url&&t.contato_email&&<button className="bh" onClick={function(){sendWelcomeEmail(t,t.portal_url)}} style={{padding:"6px 14px",borderRadius:6,background:B+"12",color:B,border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>📧 Enviar Boas-Vindas</button>}
                 <button className="bh" onClick={async function(){await sb.from("tenants").update({setup_completo:false,setup_step:0}).eq("id",t.id);await loadAll();msg("🔄 Setup resetado — cliente verá wizard")}} style={{padding:"6px 14px",borderRadius:6,background:W+"12",color:W,border:"none",fontSize:12,cursor:"pointer"}}>🔄 Resetar Setup</button>
                 <button className="bh" onClick={function(){var u=prompt("Nova URL do portal:",t.portal_url||"https://portal-corretor.com/"+t.slug);if(u){sb.from("tenants").update({portal_url:u}).eq("id",t.id).then(function(){loadAll();msg("URL atualizada")})}}} style={{padding:"6px 14px",borderRadius:6,background:B+"12",color:B,border:"none",fontSize:12,cursor:"pointer"}}>✏️ Editar URL</button>
               </div>
