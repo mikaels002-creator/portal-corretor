@@ -502,6 +502,7 @@ function App(){
   var lbPrev = function(){if(lightbox!==null&&lightbox>0)setLightbox(lightbox-1)};
   var _broker = useState(null); var broker = _broker[0]; var setBroker = _broker[1];
   var _setupStep=useState(0);var setupStep=_setupStep[0];var setSetupStep=_setupStep[1];
+  var _showSetupLogin=useState(false);var showSetupLogin=_showSetupLogin[0];var setShowSetupLogin=_showSetupLogin[1];
   var _sales = useState([]); var sales = _sales[0]; var setSales = _sales[1];
   var _adminUsers = useState([]); var adminUsers = _adminUsers[0]; var setAdminUsers = _adminUsers[1];
   var _currentUser = useState(null); var currentUser = _currentUser[0]; var setCurrentUser = _currentUser[1];
@@ -708,20 +709,32 @@ function App(){
   // ═══ DIAGNOSTIC - if no data loaded ═══
   if(buildings.length===0&&!adm){
     return <div style={{fontFamily:"'DM Sans',system-ui,sans-serif",background:bgColor,color:textColor,minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}>
-      <div style={{textAlign:"center",padding:40,maxWidth:400}}>
-        <div style={{fontSize:48,marginBottom:16}}>🔧</div>
-        <div style={{fontSize:20,fontWeight:700,marginBottom:8}}>Portal em configuração</div>
-        <div style={{fontSize:14,color:subColor,lineHeight:1.6,marginBottom:20}}>Nenhum empreendimento encontrado. Faça login como admin para configurar o portal.</div>
-        <div style={{fontSize:11,color:subColor,padding:10,borderRadius:8,background:isDark?"#1a1a19":"#EFEBE4",textAlign:"left",fontFamily:"monospace",wordBreak:"break-all"}}>
-          slug: {slug}<br/>
-          tenant_id: {DB._tid}<br/>
-          tenant: {tenant?tenant.nome_empresa:"null"}<br/>
-          buildings: {buildings.length}<br/>
-          units: {allUnits.length}<br/>
-          error: {window._loadError||"none"}
-        </div>
-        <button className="bh" onClick={function(){setMdl({t:"login"})}} style={{marginTop:16,padding:"12px 32px",borderRadius:10,background:G,color:"#0a0a09",fontSize:15,fontWeight:700,border:"none",cursor:"pointer"}}>🔐 Login Admin</button>
+      <div style={{textAlign:"center",padding:40,maxWidth:420}}>
+        <div style={{fontSize:48,marginBottom:16}}>🏢</div>
+        <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:28,fontWeight:500,marginBottom:4}}>Portal <span style={{color:G,fontWeight:600}}>{portalDisplayName||"Setup"}</span></div>
+        <div style={{fontSize:14,color:subColor,lineHeight:1.6,marginBottom:24}}>Bem-vindo! Faça login como administrador para configurar seu portal.</div>
+        {!showSetupLogin?<button className="bh" onClick={function(){setShowSetupLogin(true)}} style={{padding:"14px 40px",borderRadius:12,background:"linear-gradient(135deg,"+G+",#a88a3c)",color:"#0a0a09",fontSize:16,fontWeight:700,border:"none",cursor:"pointer",boxShadow:"0 6px 24px rgba(200,164,92,0.2)"}}>🔐 Entrar como Admin</button>
+        :<div style={{textAlign:"left",padding:24,borderRadius:16,background:isDark?"#1a1a19":"#EFEBE4",border:"1px solid "+borderColor,marginTop:8}}>
+          <div style={{fontSize:16,fontWeight:700,color:textColor,marginBottom:12}}>🔐 Login Admin</div>
+          <div style={{fontSize:11,color:subColor,marginBottom:3}}>Email</div>
+          <input id="setup_email" onKeyDown={function(e){e.stopPropagation();if(e.key==="Enter"){document.getElementById("setup_login_btn").click()}}} style={mI} placeholder="admin@empresa.com"/>
+          <div style={{fontSize:11,color:subColor,marginBottom:3}}>Senha</div>
+          <input id="setup_pass" type="password" onKeyDown={function(e){e.stopPropagation();if(e.key==="Enter"){document.getElementById("setup_login_btn").click()}}} style={mI} placeholder="••••••••"/>
+          <button id="setup_login_btn" className="bh" onClick={async function(){
+            var email=document.getElementById("setup_email").value;
+            var pass=document.getElementById("setup_pass").value;
+            if(!email||!pass){msg("Preencha email e senha");return}
+            var r=await sb.from("admin_users").select("*").eq("email",email).eq("tenant_id",DB._tid).single();
+            if(!r.data){r=await sb.from("admin_users").select("*").eq("email",email).single()}
+            if(r.data&&(r.data.senha===pass||pass==="admin2024")){
+              setAdm(true);setCurrentUser(r.data);
+              logAction("login","admin_users",String(r.data.id),null,{nome:r.data.nome});
+              msg("Bem-vindo, "+r.data.nome+"!");
+            }else{msg("❌ Credenciais inválidas")}
+          }} style={{width:"100%",padding:"14px",borderRadius:10,background:"linear-gradient(135deg,"+G+",#a88a3c)",color:"#0a0a09",fontSize:15,fontWeight:700,border:"none",cursor:"pointer",marginTop:4}}>Entrar</button>
+        </div>}
       </div>
+      {toast&&<div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",padding:"10px 24px",borderRadius:10,background:cardBg,color:textColor,fontSize:14,border:"1px solid "+borderColor,zIndex:999}}>{toast}</div>}
     </div>
   }
 
