@@ -28,6 +28,7 @@ input,select,textarea{font-family:inherit}
 <script type="text/babel">
 var {useState,useEffect}=React;
 var sb=supabase.createClient('https://zztqlktqevfdxjyzvand.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp6dHFsa3RxZXZmZHhqeXp2YW5kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MzI3NjMsImV4cCI6MjA5MTUwODc2M30.xl4LFZoPDR9q78-y9tcyLgaSSLb_oQFrcm2hjmnb-Mg');
+var ADMIN_TID="mk"; // Tenant do admin SaaS — configurável
 var fmt=function(v){return"R$ "+Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:0,maximumFractionDigits:0})};
 var G="#C8A45C";var B="#5B8FD4";var GR="#4CAF7D";var P="#8B6FBF";var R="#D45B5B";var W="#E8A94E";
 
@@ -181,7 +182,7 @@ function App(){
     var novo=!landingOn;
     // Delete and re-insert (most reliable)
     await sb.from("config_whatsapp").delete().eq("chave","landing_ativa");
-    var ins=await sb.from("config_whatsapp").insert({chave:"landing_ativa",valor:novo,tenant_id:"mk"});
+    var ins=await sb.from("config_whatsapp").insert({chave:"landing_ativa",valor:novo,tenant_id:ADMIN_TID});
     if(ins.error){msg("❌ Erro: "+ins.error.message);return}
     // Verify
     var check=await sb.from("config_whatsapp").select("valor").eq("chave","landing_ativa").limit(1);
@@ -1228,7 +1229,7 @@ function App(){
           <button className="bh" onClick={async function(){
             var configs=[{chave:"wa_phone_id",valor:document.getElementById("int_wa_phone").value},{chave:"wa_business_id",valor:document.getElementById("int_wa_biz").value}];
             var tk=document.getElementById("int_wa_token").value;if(tk)configs.push({chave:"wa_token",valor:tk});
-            for(var i=0;i<configs.length;i++){await sb.from("config_whatsapp").delete().eq("chave",configs[i].chave);await sb.from("config_whatsapp").insert({chave:configs[i].chave,valor:configs[i].valor,tenant_id:"mk"})}
+            for(var i=0;i<configs.length;i++){await sb.from("config_whatsapp").delete().eq("chave",configs[i].chave);await sb.from("config_whatsapp").insert({chave:configs[i].chave,valor:configs[i].valor,tenant_id:ADMIN_TID})}
             msg("✅ WhatsApp atualizado!")
           }} style={{padding:"10px 20px",borderRadius:8,background:GR,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>💾 Salvar Configurações</button>
         </div>
@@ -1251,8 +1252,8 @@ function App(){
           <button className="bh" onClick={async function(){
             var plat=document.getElementById("int_pay_plat").value;var key=document.getElementById("int_pay_key").value;
             if(!plat){msg("Selecione uma plataforma");return}
-            await sb.from("config_whatsapp").delete().eq("chave","payment_platform");await sb.from("config_whatsapp").insert({chave:"payment_platform",valor:plat,tenant_id:"mk"});
-            if(key){await sb.from("config_whatsapp").delete().eq("chave","payment_api_key");await sb.from("config_whatsapp").insert({chave:"payment_api_key",valor:key,tenant_id:"mk"})}
+            await sb.from("config_whatsapp").delete().eq("chave","payment_platform");await sb.from("config_whatsapp").insert({chave:"payment_platform",valor:plat,tenant_id:ADMIN_TID});
+            if(key){await sb.from("config_whatsapp").delete().eq("chave","payment_api_key");await sb.from("config_whatsapp").insert({chave:"payment_api_key",valor:key,tenant_id:ADMIN_TID})}
             msg("✅ Gateway configurado: "+plat)
           }} style={{padding:"10px 20px",borderRadius:8,background:W,color:"#0a0a09",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>💾 Salvar Gateway</button>
         </div>
@@ -1271,8 +1272,8 @@ function App(){
           </div>
           <button className="bh" onClick={async function(){
             var usr=document.getElementById("int_ig_user").value;var tk=document.getElementById("int_ig_token").value;
-            if(usr){await sb.from("config_whatsapp").delete().eq("chave","instagram_user");await sb.from("config_whatsapp").insert({chave:"instagram_user",valor:usr,tenant_id:"mk"})}
-            if(tk){await sb.from("config_whatsapp").delete().eq("chave","instagram_token");await sb.from("config_whatsapp").insert({chave:"instagram_token",valor:tk,tenant_id:"mk"})}
+            if(usr){await sb.from("config_whatsapp").delete().eq("chave","instagram_user");await sb.from("config_whatsapp").insert({chave:"instagram_user",valor:usr,tenant_id:ADMIN_TID})}
+            if(tk){await sb.from("config_whatsapp").delete().eq("chave","instagram_token");await sb.from("config_whatsapp").insert({chave:"instagram_token",valor:tk,tenant_id:ADMIN_TID})}
             msg("✅ Instagram salvo!")
           }} style={{padding:"10px 20px",borderRadius:8,background:P,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>💾 Salvar</button>
         </div>
@@ -1292,8 +1293,8 @@ function App(){
           </div>
           <button className="bh" onClick={async function(){
             var plat=document.getElementById("int_email_plat").value;var key=document.getElementById("int_email_key").value;
-            if(plat){await sb.from("config_whatsapp").delete().eq("chave","email_platform");await sb.from("config_whatsapp").insert({chave:"email_platform",valor:plat,tenant_id:"mk"})}
-            if(key){await sb.from("config_whatsapp").delete().eq("chave","email_api_key");await sb.from("config_whatsapp").insert({chave:"email_api_key",valor:key,tenant_id:"mk"})}
+            if(plat){await sb.from("config_whatsapp").delete().eq("chave","email_platform");await sb.from("config_whatsapp").insert({chave:"email_platform",valor:plat,tenant_id:ADMIN_TID})}
+            if(key){await sb.from("config_whatsapp").delete().eq("chave","email_api_key");await sb.from("config_whatsapp").insert({chave:"email_api_key",valor:key,tenant_id:ADMIN_TID})}
             msg("✅ Email salvo!")
           }} style={{padding:"10px 20px",borderRadius:8,background:B,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>💾 Salvar</button>
         </div>
