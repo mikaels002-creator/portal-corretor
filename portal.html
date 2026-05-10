@@ -351,8 +351,8 @@ var DB = {
 // WHATSAPP DB LAYER
 // ═══════════════════════════════════════
 var WA = {
-  TOKEN:"EAAX7CZAnuN8UBRYtPtRxTZCQOZCldkyhqWGiBlRrBBQupR0qiw9IZCgQnpWNs42ZCXL9jFzxuPsGFeWKxL0nZBWTJKAoreGcEHSpoSjQHKe9NYwZAzbsefu1dsnqZCpeODCkiJ5eUj4ea5Qyesp0YlGK3jjJmHZBxJFZCWzhfiErFWZAB2KonlovDk3zZCoJkSaZCVXhltcOYpMLUOteHRZB659gYCb7fh9dSpcKzrOuOVXfeGwO9qYv93hGqAkqAiOy1xSX07IZBbZCPt1pRSWXZBkEHaNhI",
-  PHONE_ID:"1064884910048060",
+  TOKEN:"",
+  PHONE_ID:"",
   API:"https://graph.facebook.com/v21.0",
   getAtendentes:async function(){var r=await sb.from("atendentes_whatsapp").select("*").eq("tenant_id",DB._tid).order("ordem");return r.data||[]},
   getLeads:async function(atendenteId){
@@ -623,6 +623,13 @@ function App(){
       var igUser=cfgMap.instagram||"";
       if(igUser)CT.ig=[{h:igUser.startsWith("@")?igUser:"@"+igUser,u:"https://www.instagram.com/"+(igUser.replace("@",""))}];
       else CT.ig=[];
+      // WhatsApp Business API config
+      WA.PHONE_ID=cfgMap.wa_phone_id||cfgMap.phone_number_id||"";
+      WA.TOKEN=cfgMap.wa_token||cfgMap.whatsapp_token||"";
+      // Extra contact info
+      CT.address=cfgMap.endereco||cfgMap.address||"";
+      CT.city=cfgMap.cidade||cfgMap.city||"";
+      CT.cnpj=cfgMap.cnpj||"";
     }catch(e){}
     refreshPromos();
   };
@@ -4554,12 +4561,54 @@ function App(){
           <div style={{padding:"8px 12px",borderRadius:8,background:isDark?"#1a1a19":"#EFEBE4",fontSize:13,color:subColor}}>Preview: <b style={{color:WA_GREEN}}>*Monique:*</b> Olá, tudo bem?</div>
         </div>
 
-        {/* ═══ API STATUS ═══ */}
-        <div style={{fontSize:16,fontWeight:700,color:textColor,marginTop:20,marginBottom:12}}>📡 Conexão</div>
+        {/* ═══ DADOS DA EMPRESA ═══ */}
+        <div style={{fontSize:16,fontWeight:700,color:textColor,marginTop:20,marginBottom:12}}>🏢 Dados da Empresa</div>
+        <div style={{padding:16,borderRadius:12,background:cardBg,border:"1px solid "+borderColor,marginBottom:10}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Email de contato</div><input id="cfg_email" onKeyDown={function(e){e.stopPropagation()}} style={mI} defaultValue={CT.email} placeholder="contato@empresa.com"/></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>WhatsApp</div><input id="cfg_whats" onKeyDown={function(e){e.stopPropagation()}} style={mI} defaultValue={CT.wa} placeholder="5547999999999"/></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Instagram</div><input id="cfg_insta" onKeyDown={function(e){e.stopPropagation()}} style={mI} defaultValue={CT.ig.length>0?CT.ig[0].h:""} placeholder="@suaempresa"/></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Telefone fixo</div><input id="cfg_tel" onKeyDown={function(e){e.stopPropagation()}} style={mI} defaultValue={CT.phone} placeholder="+55 47 3333-4444"/></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Endereço</div><input id="cfg_end" onKeyDown={function(e){e.stopPropagation()}} style={mI} defaultValue={CT.address||""} placeholder="Rua Exemplo, 123"/></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Cidade/Estado</div><input id="cfg_cid" onKeyDown={function(e){e.stopPropagation()}} style={mI} defaultValue={CT.city||""} placeholder="Balneário Camboriú/SC"/></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>CNPJ</div><input id="cfg_cnpj" onKeyDown={function(e){e.stopPropagation()}} style={mI} defaultValue={CT.cnpj||""} placeholder="00.000.000/0001-00"/></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Site</div><input id="cfg_site" onKeyDown={function(e){e.stopPropagation()}} style={mI} defaultValue={""} placeholder="https://suaempresa.com.br"/></div>
+          </div>
+          <button className="bh" onClick={async function(){
+            var fields=[{id:"cfg_email",k:"contact_email"},{id:"cfg_whats",k:"wa_number"},{id:"cfg_insta",k:"instagram"},{id:"cfg_tel",k:"telefone"},{id:"cfg_end",k:"endereco"},{id:"cfg_cid",k:"cidade"},{id:"cfg_cnpj",k:"cnpj"},{id:"cfg_site",k:"site"}];
+            for(var i=0;i<fields.length;i++){var v=document.getElementById(fields[i].id).value;if(v){await sb.from("config_whatsapp").delete().eq("chave",fields[i].k).eq("tenant_id",DB._tid);await sb.from("config_whatsapp").insert({chave:fields[i].k,valor:v,tenant_id:DB._tid})}}
+            CT.email=document.getElementById("cfg_email").value;CT.wa=document.getElementById("cfg_whats").value;CT.phone=document.getElementById("cfg_tel").value||CT.phone;
+            var ig=document.getElementById("cfg_insta").value;if(ig)CT.ig=[{h:ig.startsWith("@")?ig:"@"+ig,u:"https://www.instagram.com/"+ig.replace("@","")}];
+            CT.address=document.getElementById("cfg_end").value;CT.city=document.getElementById("cfg_cid").value;CT.cnpj=document.getElementById("cfg_cnpj").value;
+            wmsg("✅ Dados da empresa salvos!")
+          }} style={{width:"100%",padding:"12px",borderRadius:10,background:G,color:"#0a0a09",fontSize:14,fontWeight:700,border:"none",cursor:"pointer",marginTop:4}}>💾 Salvar Dados</button>
+        </div>
+
+        {/* ═══ API WHATSAPP ═══ */}
+        <div style={{fontSize:16,fontWeight:700,color:textColor,marginTop:20,marginBottom:12}}>📡 WhatsApp Business API</div>
         <div style={{padding:16,borderRadius:12,background:cardBg,border:"1px solid "+borderColor}}>
-          <div style={{fontSize:13,color:subColor,marginBottom:4}}>Phone ID: <span style={{fontFamily:"monospace",color:textColor}}>{WA.PHONE_ID}</span></div>
-          <div style={{fontSize:13,color:"#4CAF7D",marginTop:6}}>✅ Webhook ativo · Edge Functions deployadas</div>
-          <div style={{fontSize:11,color:subColor,marginTop:4}}>⚠️ Token temporário — gerar permanente via Usuário do Sistema no Meta Business</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Phone Number ID</div><input id="cfg_wa_pid" onKeyDown={function(e){e.stopPropagation()}} style={mI} defaultValue={WA.PHONE_ID} placeholder="Ex: 1064884910048060"/></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Business Account ID</div><input id="cfg_wa_bid" onKeyDown={function(e){e.stopPropagation()}} style={mI} defaultValue={""} placeholder="Ex: 963918186561932"/></div>
+          </div>
+          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Token de Acesso</div><input id="cfg_wa_tok" type="password" onKeyDown={function(e){e.stopPropagation()}} style={mI} defaultValue={WA.TOKEN?"••••••••":""} placeholder="Token permanente do WhatsApp"/></div>
+          <div style={{padding:8,borderRadius:8,background:isDark?"#1a1a19":"#EFEBE4",fontSize:12,color:subColor,marginBottom:8}}>
+            Webhook: https://zztqlktqevfdxjyzvand.supabase.co/functions/v1/webhook-whatsapp
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <button className="bh" onClick={async function(){
+              var pid=document.getElementById("cfg_wa_pid").value;var bid=document.getElementById("cfg_wa_bid").value;var tok=document.getElementById("cfg_wa_tok").value;
+              var fields2=[{k:"wa_phone_id",v:pid},{k:"wa_business_id",v:bid}];
+              if(tok&&tok!=="••••••••")fields2.push({k:"wa_token",v:tok});
+              for(var i=0;i<fields2.length;i++){if(fields2[i].v){await sb.from("config_whatsapp").delete().eq("chave",fields2[i].k).eq("tenant_id",DB._tid);await sb.from("config_whatsapp").insert({chave:fields2[i].k,valor:fields2[i].v,tenant_id:DB._tid})}}
+              if(pid)WA.PHONE_ID=pid;if(tok&&tok!=="••••••••")WA.TOKEN=tok;
+              wmsg("✅ WhatsApp configurado!")
+            }} style={{flex:1,padding:"12px",borderRadius:10,background:"#25D366",color:"#fff",fontSize:14,fontWeight:700,border:"none",cursor:"pointer"}}>💾 Salvar WhatsApp</button>
+            <button className="bh" onClick={async function(){
+              if(!WA.PHONE_ID||!WA.TOKEN){wmsg("Preencha Phone ID e Token primeiro");return}
+              try{var r=await fetch(WA.API+"/"+WA.PHONE_ID+"?access_token="+WA.TOKEN);var d=await r.json();wmsg(d.verified_name?"✅ Conectado: "+d.verified_name:"❌ "+JSON.stringify(d.error||d))}catch(e2){wmsg("❌ "+e2.message)}
+            }} style={{padding:"12px 20px",borderRadius:10,background:isDark?"#1a1a19":"#EFEBE4",color:subColor,fontSize:13,border:"none",cursor:"pointer"}}>🔍 Testar Conexão</button>
+          </div>
         </div>
 
         {/* Quick Messages Manager */}
