@@ -67,9 +67,9 @@ function App(){
     var p=user.perfil||user.role||"viewer";
     if(p==="super_admin")return true;
     var perms={
-      admin:{dash:true,clients:true,pipeline:true,payments:true,links:true,plans:true,marketing:true,users:false,integrations:false,reports:true,overdue:true},
-      gerente:{dash:true,clients:true,pipeline:true,payments:true,links:false,plans:false,marketing:false,users:false,integrations:false,reports:true,overdue:true},
-      viewer:{dash:true,clients:false,pipeline:false,payments:false,links:false,plans:false,marketing:false,users:false,integrations:false,reports:true,overdue:false}
+      admin:{dash:true,clients:true,pipeline:true,payments:true,links:true,plans:true,landing:true,marketing:true,users:false,integrations:false,reports:true,overdue:true},
+      gerente:{dash:true,clients:true,pipeline:true,payments:true,links:false,plans:false,landing:false,marketing:false,users:false,integrations:false,reports:true,overdue:true},
+      viewer:{dash:true,clients:false,pipeline:false,payments:false,links:false,plans:false,landing:false,marketing:false,users:false,integrations:false,reports:true,overdue:false}
     };
     return perms[p]?perms[p][section]===true:false;
   };
@@ -262,7 +262,7 @@ function App(){
         <div style={{fontSize:11,color:subColor,marginTop:4}}>Portal do Corretor</div>
       </div>
       <div style={{flex:1,padding:"12px 10px"}}>
-        {[{k:"dash",l:"Dashboard",i:"📊"},{k:"clients",l:"Clientes",i:"👥"},{k:"pipeline",l:"Pipeline",i:"🔄"},{k:"payments",l:"Pagamentos",i:"💰"},{k:"links",l:"Portais",i:"🔗"},{k:"plans",l:"Planos",i:"📦"},{k:"marketing",l:"Marketing",i:"📣"},{k:"users",l:"Usuários",i:"🔐"},{k:"integrations",l:"Integrações",i:"⚡"},{k:"reports",l:"Relatórios",i:"📈"},{k:"overdue",l:"Inadimplentes",i:"⚠️"}].filter(function(item){return canAdmin(item.k)}).map(function(item){
+        {[{k:"dash",l:"Dashboard",i:"📊"},{k:"clients",l:"Clientes",i:"👥"},{k:"pipeline",l:"Pipeline",i:"🔄"},{k:"payments",l:"Pagamentos",i:"💰"},{k:"links",l:"Portais",i:"🔗"},{k:"plans",l:"Planos",i:"📦"},{k:"landing",l:"Landing Page",i:"🌐"},{k:"marketing",l:"Marketing",i:"📣"},{k:"users",l:"Usuários",i:"🔐"},{k:"integrations",l:"Integrações",i:"⚡"},{k:"reports",l:"Relatórios",i:"📈"},{k:"overdue",l:"Inadimplentes",i:"⚠️"}].filter(function(item){return canAdmin(item.k)}).map(function(item){
           return <div key={item.k} className="bh" onClick={function(){setView(item.k);setSelClient(null)}} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:10,marginBottom:2,background:view===item.k?"rgba(200,164,92,0.08)":"transparent",color:view===item.k?G:"#888",fontSize:14,fontWeight:view===item.k?600:400}}>
             <span style={{fontSize:16}}>{item.i}</span>{item.l}
             {item.k==="overdue"&&pendentes.length>0&&<span style={{marginLeft:"auto",background:R,color:textColor,fontSize:10,fontWeight:700,padding:"2px 6px",borderRadius:8}}>{pendentes.length}</span>}
@@ -1140,6 +1140,56 @@ function App(){
         </div>
       </div>}
 
+      {/* ═══ LANDING PAGE ═══ */}
+      {view==="landing"&&<div className="fade-in">
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+          <div style={{fontSize:24,fontWeight:700,color:textColor}}>🌐 Landing Page</div>
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            <a href="/" target="_blank" className="bh" style={{padding:"8px 16px",borderRadius:8,background:B+"12",color:B,textDecoration:"none",fontSize:13,fontWeight:600}}>👁️ Visualizar</a>
+            <div className="bh" onClick={toggleLanding} style={{padding:"8px 16px",borderRadius:8,background:landingOn?GR+"12":R+"12",color:landingOn?GR:R,cursor:"pointer",fontSize:13,fontWeight:600}}>{landingOn?"🟢 Ativa":"🔴 Desativada"}</div>
+          </div>
+        </div>
+        {/* Hero Section */}
+        <div style={{padding:20,borderRadius:14,background:cardBg,border:"1px solid "+border,marginBottom:12}}>
+          <div style={{fontSize:16,fontWeight:700,color:textColor,marginBottom:12}}>🎯 Hero (Topo)</div>
+          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Título principal</div><input id="lp_title" onKeyDown={function(e){e.stopPropagation()}} style={iS} defaultValue="" placeholder="Gestão completa para sua incorporadora"/></div>
+          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Subtítulo</div><input id="lp_subtitle" onKeyDown={function(e){e.stopPropagation()}} style={iS} defaultValue="" placeholder="CRM, tabela de vendas, corretores..."/></div>
+          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Texto do botão CTA</div><input id="lp_cta" onKeyDown={function(e){e.stopPropagation()}} style={iS} defaultValue="" placeholder="Começar agora"/></div>
+          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Imagem/vídeo de fundo (URL)</div><input id="lp_hero_bg" onKeyDown={function(e){e.stopPropagation()}} style={iS} defaultValue="" placeholder="https://..."/></div>
+        </div>
+        {/* Features */}
+        <div style={{padding:20,borderRadius:14,background:cardBg,border:"1px solid "+border,marginBottom:12}}>
+          <div style={{fontSize:16,fontWeight:700,color:textColor,marginBottom:12}}>⚡ Recursos (Cards)</div>
+          <div style={{fontSize:12,color:subColor,marginBottom:8}}>6 cards de recursos. Um por linha no formato: emoji | título | descrição</div>
+          <textarea id="lp_features" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},iS,{minHeight:120,fontFamily:"monospace",fontSize:12})} placeholder={"📊 | Tabela de Vendas | Preços atualizados em tempo real\n💬 | CRM Integrado | WhatsApp Business com funil Kanban\n🤖 | Agente IA | Relatórios automáticos inteligentes\n📄 | Propostas Digitais | Gere e envie com 1 clique\n📅 | Visitas | Agende e controle visitas ao empreendimento\n👥 | Gestão de Corretores | Ranking, comissões e dashboard"}></textarea>
+        </div>
+        {/* How it works */}
+        <div style={{padding:20,borderRadius:14,background:cardBg,border:"1px solid "+border,marginBottom:12}}>
+          <div style={{fontSize:16,fontWeight:700,color:textColor,marginBottom:12}}>🔄 Como Funciona (Passos)</div>
+          <textarea id="lp_steps" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},iS,{minHeight:80,fontFamily:"monospace",fontSize:12})} placeholder={"1 | Cadastre-se | Crie sua conta em minutos\n2 | Configure | Adicione empreendimentos e equipe\n3 | Venda | Gerencie leads e propostas\n4 | Cresça | Relatórios e analytics"}></textarea>
+        </div>
+        {/* Testimonials */}
+        <div style={{padding:20,borderRadius:14,background:cardBg,border:"1px solid "+border,marginBottom:12}}>
+          <div style={{fontSize:16,fontWeight:700,color:textColor,marginBottom:12}}>💬 Depoimentos</div>
+          <textarea id="lp_testimonials" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},iS,{minHeight:80,fontFamily:"monospace",fontSize:12})} placeholder={"João Silva | CEO Construtora ABC | O portal revolucionou nossa gestão de vendas\nMaria Santos | Dir. Comercial XYZ | Nossos corretores adoraram o sistema"}></textarea>
+        </div>
+        {/* Contact / CTA */}
+        <div style={{padding:20,borderRadius:14,background:cardBg,border:"1px solid "+border,marginBottom:12}}>
+          <div style={{fontSize:16,fontWeight:700,color:textColor,marginBottom:12}}>📞 Rodapé / Contato</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>WhatsApp vendas</div><input id="lp_whats" onKeyDown={function(e){e.stopPropagation()}} style={iS} placeholder="5547988020495"/></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Email comercial</div><input id="lp_email" onKeyDown={function(e){e.stopPropagation()}} style={iS} placeholder="vendas@portal-corretor.com"/></div>
+          </div>
+          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Texto final CTA</div><input id="lp_final_cta" onKeyDown={function(e){e.stopPropagation()}} style={iS} placeholder="Pronto para transformar sua incorporadora?"/></div>
+        </div>
+        {/* Save */}
+        <button className="bh" onClick={async function(){
+          var lpFields=[{id:"lp_title",k:"lp_title"},{id:"lp_subtitle",k:"lp_subtitle"},{id:"lp_cta",k:"lp_cta"},{id:"lp_hero_bg",k:"lp_hero_bg"},{id:"lp_features",k:"lp_features"},{id:"lp_steps",k:"lp_steps"},{id:"lp_testimonials",k:"lp_testimonials"},{id:"lp_whats",k:"lp_whats"},{id:"lp_email",k:"lp_email"},{id:"lp_final_cta",k:"lp_final_cta"}];
+          for(var i=0;i<lpFields.length;i++){var v2=document.getElementById(lpFields[i].id).value;if(v2){await sb.from("config_whatsapp").delete().eq("chave",lpFields[i].k).eq("tenant_id",ADMIN_TID);await sb.from("config_whatsapp").insert({chave:lpFields[i].k,valor:v2,tenant_id:ADMIN_TID})}}
+          msg("✅ Landing page salva! Atualize a página para ver as mudanças.");
+        }} style={{width:"100%",padding:"14px",borderRadius:10,background:GR,color:"#fff",fontSize:15,fontWeight:700,border:"none",cursor:"pointer"}}>💾 Salvar Landing Page</button>
+      </div>}
+
       {/* ═══ MARKETING ═══ */}
       {view==="marketing"&&<div className="fade-in">
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
@@ -1377,6 +1427,62 @@ function App(){
             if(key){await sb.from("config_whatsapp").delete().eq("chave","email_api_key");await sb.from("config_whatsapp").insert({chave:"email_api_key",valor:key,tenant_id:ADMIN_TID})}
             msg("✅ Email salvo!")
           }} style={{padding:"10px 20px",borderRadius:8,background:B,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>💾 Salvar</button>
+        </div>
+
+        {/* Signing Integration */}
+        <div style={{padding:20,borderRadius:14,background:cardBg,border:"1px solid "+border,marginBottom:16}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+            <div><div style={{fontSize:16,fontWeight:700,color:textColor}}>✍️ Assinatura Digital</div><div style={{fontSize:12,color:subColor}}>ClickSign, DocuSign, D4Sign ou Autentique</div></div>
+            <span style={{fontSize:10,padding:"4px 10px",borderRadius:6,background:P+"12",color:P,fontWeight:600}}>Propostas</span>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Plataforma</div>
+              <select id="sign_platform" style={iS}><option value="">Selecione...</option><option value="clicksign">ClickSign</option><option value="docusign">DocuSign</option><option value="d4sign">D4Sign</option><option value="autentique">Autentique</option></select>
+            </div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>API Token</div><input id="sign_token" type="password" onKeyDown={function(e){e.stopPropagation()}} style={iS} placeholder="Token de acesso da API"/></div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:8}}>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Ambiente</div>
+              <select id="sign_env" style={iS}><option value="sandbox">🧪 Sandbox (teste)</option><option value="production">🟢 Produção</option></select>
+            </div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Webhook URL (opcional)</div><input id="sign_webhook" onKeyDown={function(e){e.stopPropagation()}} style={iS} placeholder="https://..." disabled/></div>
+          </div>
+          <div style={{padding:10,borderRadius:8,background:dark?"#111":"#f8f5f0",marginTop:10,fontSize:12,color:subColor}}>
+            📋 <b>Fluxo:</b> Proposta aceita → Gera documento → Envia para assinatura (cliente + corretor + construtora) → Status acompanhado no portal → Documento assinado salvo automaticamente
+          </div>
+          <div style={{display:"flex",gap:8,marginTop:10}}>
+            <button className="bh" onClick={async function(){
+              var plat=document.getElementById("sign_platform").value;var tok=document.getElementById("sign_token").value;var env=document.getElementById("sign_env").value;
+              if(!plat||!tok){msg("Selecione plataforma e informe o token");return}
+              var configs=[{k:"sign_platform",v:plat},{k:"sign_token",v:tok},{k:"sign_env",v:env}];
+              for(var i=0;i<configs.length;i++){await sb.from("config_whatsapp").delete().eq("chave",configs[i].k).eq("tenant_id",ADMIN_TID);await sb.from("config_whatsapp").insert({chave:configs[i].k,valor:configs[i].v,tenant_id:ADMIN_TID})}
+              msg("✅ Assinatura digital configurada!")
+            }} style={{flex:1,padding:"10px 20px",borderRadius:8,background:P,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>💾 Salvar</button>
+            <button className="bh" onClick={async function(){
+              var plat=document.getElementById("sign_platform").value;var tok=document.getElementById("sign_token").value;
+              if(!plat||!tok){msg("Configure primeiro");return}
+              var urls={clicksign:"https://app.clicksign.com/api/v1/documents?access_token="+tok,docusign:"https://demo.docusign.net/restapi/v2.1/accounts",d4sign:"https://sandbox.d4sign.com.br/api/v1/documents?tokenAPI="+tok,autentique:"https://api.autentique.com.br/v2/graphql"};
+              try{var r=await fetch(urls[plat]||"",{method:"GET",headers:{"Content-Type":"application/json"}});msg(r.ok?"✅ Conexão OK!":"❌ Erro: "+r.status)}catch(e){msg("❌ "+e.message)}
+            }} style={{padding:"10px 20px",borderRadius:8,background:dark?"#111":"#f8f5f0",color:subColor,border:"1px solid "+border,fontSize:13,cursor:"pointer"}}>🔍 Testar</button>
+          </div>
+        </div>
+
+        {/* Document Repository */}
+        <div style={{padding:20,borderRadius:14,background:cardBg,border:"1px solid "+border}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+            <div><div style={{fontSize:16,fontWeight:700,color:textColor}}>📁 Repositório de Documentos</div><div style={{fontSize:12,color:subColor}}>Templates para envio de assinatura</div></div>
+            <button className="bh" onClick={async function(){
+              var nome=prompt("Nome do template (ex: Contrato de Compra e Venda):");if(!nome)return;
+              var desc=prompt("Descrição curta:");
+              await sb.from("config_whatsapp").insert({chave:"doc_template_"+Date.now(),valor:JSON.stringify({nome:nome,descricao:desc||"",tipo:"contrato",ativo:true,criado_em:new Date().toISOString()}),tenant_id:ADMIN_TID});
+              msg("✅ Template adicionado!");
+            }} style={{padding:"8px 16px",borderRadius:8,background:P+"12",color:P,border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>+ Template</button>
+          </div>
+          <div style={{fontSize:12,color:subColor,padding:12,borderRadius:8,background:dark?"#111":"#f8f5f0"}}>
+            📄 Configure templates de documentos para envio automático nas propostas. Cada template pode ser enviado via ClickSign/DocuSign quando a proposta é aceita.
+            <br/><br/>
+            <b>Tipos sugeridos:</b> Contrato de Compra e Venda, Termo de Aceite, NDA, Proposta Comercial, Procuração
+          </div>
         </div>
       </div>}
 
