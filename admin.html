@@ -886,6 +886,38 @@ function App(){
                 <button className="bh" onClick={async function(){await sb.from("tenants").update({setup_completo:false,setup_step:0}).eq("id",t.id);await loadAll();msg("🔄 Setup resetado — cliente verá wizard")}} style={{padding:"6px 14px",borderRadius:6,background:W+"12",color:W,border:"none",fontSize:12,cursor:"pointer"}}>🔄 Resetar Setup</button>
                 <button className="bh" onClick={function(){var u=prompt("Nova URL do portal:",t.portal_url||"https://portal-corretor.com/"+t.slug);if(u){sb.from("tenants").update({portal_url:u}).eq("id",t.id).then(function(){loadAll();msg("URL atualizada")})}}} style={{padding:"6px 14px",borderRadius:6,background:B+"12",color:B,border:"none",fontSize:12,cursor:"pointer"}}>✏️ Editar URL</button>
               </div>
+              {/* Plan management */}
+              <div style={{padding:12,borderRadius:10,background:dark?"#111":"#f8f5f0",border:"1px solid "+border,marginBottom:10}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                  <div style={{fontSize:13,fontWeight:600,color:textColor}}>📦 Plano atual: <span style={{color:P}}>{sub?sub.plano:"Sem plano"}</span> {sub&&<span style={{color:GR}}>({fmt(sub.valor_mensal||0)}/mês)</span>}</div>
+                  <button className="bh" onClick={async function(){
+                    var opts=planos.map(function(p,i){return(i+1)+". "+p.nome+" — "+fmt(p.valor_mensal)+"/mês"}).join("\n");
+                    var choice=prompt("Alterar plano de "+t.nome_empresa+":\n\n"+opts+"\n\nDigite o número:");
+                    if(!choice)return;
+                    var idx=parseInt(choice)-1;if(idx<0||idx>=planos.length){msg("Plano inválido");return}
+                    var newPlan=planos[idx];
+                    var confirm2=confirm("Confirma alteração para "+newPlan.nome+" ("+fmt(newPlan.valor_mensal)+"/mês)?\n\nIsso vai:\n• Atualizar a assinatura\n• Cancelar parcelas pendentes antigas\n• Gerar novas parcelas com o novo valor");
+                    if(!confirm2)return;
+                    // Update subscription
+                    if(sub){
+                      await sb.from("assinaturas").update({plano_id:newPlan.id,plano:newPlan.nome,valor_mensal:newPlan.valor_mensal,status:"ativo"}).eq("id",sub.id);
+                    }else{
+                      await sb.from("assinaturas").insert({tenant_id:t.id,plano_id:newPlan.id,plano:newPlan.nome,valor_mensal:newPlan.valor_mensal,status:"ativo",inicio:new Date().toISOString().split("T")[0]});
+                    }
+                    // Cancel old pending payments
+                    await sb.from("pagamentos").update({status:"cancelado",observacoes:"Cancelado — mudança de plano para "+newPlan.nome}).eq("tenant_id",t.id).eq("status","pendente");
+                    // Generate new payments (12 months)
+                    var dia=10;var metodo="pix";
+                    for(var i=0;i<12;i++){var vd=new Date();vd.setMonth(vd.getMonth()+i);vd.setDate(dia);
+                      await sb.from("pagamentos").insert({tenant_id:t.id,valor:newPlan.valor_mensal,valor_original:newPlan.valor_mensal,vencimento:vd.toISOString().split("T")[0],metodo:metodo,status:"pendente",observacoes:"Parcela "+(i+1)+"/12 — "+newPlan.nome})
+                    }
+                    await sb.from("tenants").update({valor_mensal:newPlan.valor_mensal}).eq("id",t.id);
+                    await sb.from("interacoes_tenant").insert({tenant_id:t.id,tipo:"plano",conteudo:"Plano alterado para "+newPlan.nome+" ("+fmt(newPlan.valor_mensal)+"/mês). 12 novas parcelas geradas.",usuario:user?user.nome:"Admin"});
+                    await loadAll();msg("✅ Plano alterado para "+newPlan.nome+"! 12 parcelas geradas.");
+                  }} style={{padding:"6px 14px",borderRadius:6,background:P+"12",color:P,border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>🔄 Alterar Plano</button>
+                </div>
+                {sub&&<div style={{fontSize:12,color:subColor}}>Início: {sub.inicio?new Date(sub.inicio).toLocaleDateString("pt-BR"):"—"} · Status: {sub.status} · {sub.forma_pagamento||"mensal"}</div>}
+              </div>
               {/* Feature overrides */}
               <div style={{padding:12,borderRadius:10,background:dark?"#111":"#f8f5f0",border:"1px solid "+border,marginBottom:10}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
