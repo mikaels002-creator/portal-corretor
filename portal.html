@@ -161,6 +161,7 @@ var EMO = ["🏙️","🌇","⭐","🏛️","🔄","🏢","🏗️","🌆","🏘
 var CLR = ["#5B8FD4","#D4735B","#C8A45C","#8B6FBF","#5BB8B0","#E06090","#7CB342","#FF7043","#5C6BC0"];
 var CT = {email:"",phone:"",wa:"",ig:[]}; // Loaded per tenant
 var G = "#C8A45C";var B="#5B8FD4";var GR="#4CAF7D";var P="#8B6FBF";var R="#D45B5B";var W="#E8A94E";
+var BRAND_COLORS=["#C8A45C","#5B8FD4","#4CAF7D","#8B6FBF","#D45B5B","#E8A94E","#2196F3","#FF5722","#009688","#E91E63","#3F51B5","#795548"];
 var TR = {
   pt:{home:"Início",table:"Tabela",photos:"Fotos",plants:"Plantas",docs:"Docs",notices:"Avisos",back:"Voltar",available:"Disponível",reserved:"Reservado",sold:"Vendido",ready:"Pronto para Morar",construction:"Em Construção",unit:"Unid.",area:"Área",value:"Valor",status:"Status",actions:"Ações",filter:"Filtrar",all:"Todos",export:"Exportar PDF",commission:"comissão",compare:"Comparar",simulator:"Simulador de Financiamento",send:"Enviar via WhatsApp",close:"Fechar",showUsd:"USD",showBrl:"BRL",
     invest:"Proposta de Investimento",client:"Cliente",downPay:"Entrada",balance:"Saldo",monthly:"Mensal",balloon:"Parcela Reforço",total:"Total Geral",rate:"Taxa",noRate:"Sem juros",correction:"Correção",prop:"Proposta",sendProp:"Enviar Proposta via WhatsApp",genPdf:"Gerar Proposta em PDF",disp:"disp.",exclusive:"Conteúdo Exclusivo",exclusiveMsg:"As tabelas de vendas são exclusivas para corretores parceiros. Cadastre-se para ter acesso completo.",loginBroker:"Entrar como Corretor",register:"Não tem conta? Cadastre-se gratuitamente",search:"Buscar unidade...",enter:"Entrar",belowTable:"Proposta abaixo do valor de tabela",discountReq:"Desconto solicitado",boardApproval:"Esta proposta deverá ser remetida à diretoria para análise e aprovação",noParcels:"Sem parcelas mensais",maxParcels:"máx",parcels:"Parcelas Mensais",bem:"Entrada com Bem",bemVal:"Valor",bemDesc:"Descrição",rateLabel:"Taxa mensal",index:"Índice",freq:"Frequência",none:"Nenhum",quarterly:"Trimestral",semiannual:"Semestral",annual:"Anual",pctBalance:"% do saldo",fixedVal:"Valor fixo",summary:"Resumo da Proposta",tableValue:"Valor tabela",proposal:"Proposta",ready2:"Pronto",obra:"Obra",preLaunch:"Pré-Lanç."},
@@ -654,6 +655,8 @@ function App(){
       CT.address=cfgMap.endereco||cfgMap.address||"";
       CT.city=cfgMap.cidade||cfgMap.city||"";
       CT.cnpj=cfgMap.cnpj||"";
+      // Brand color
+      if(cfgMap.brand_color)G=cfgMap.brand_color;
     }catch(e){}
     refreshPromos();
   };
@@ -1565,6 +1568,47 @@ function App(){
         </div>
 
         {/* ═══ ACTIONS ═══ */}
+        {/* Onboarding checklist */}
+        {adm&&buildings.length<=1&&<div style={{padding:16,borderRadius:14,background:"linear-gradient(135deg,"+(isDark?"#0d1a13":"#f0f8f4")+","+(isDark?"#0f0f12":"#fff")+")",border:"1px solid "+GR+"20",marginBottom:16}}>
+          <div style={{fontSize:16,fontWeight:700,color:textColor,marginBottom:12}}>📋 Checklist de Configuração</div>
+          {[
+            {done:tenant&&tenant.nome_empresa,l:"Dados da empresa",a:function(){setMdl({t:"companyData"})},i:"🏢"},
+            {done:CT.email||CT.wa,l:"Contato (email, WhatsApp, Instagram)",a:function(){setMdl({t:"companyData"})},i:"📞"},
+            {done:tenant&&tenant.logo_url,l:"Logo da empresa",a:function(){setMdl({t:"companyData"})},i:"🎨"},
+            {done:buildings.length>0,l:"Primeiro empreendimento",a:function(){setMdl({t:"addBld"})},i:"🏗️"},
+            {done:allUnits.length>0,l:"Unidades cadastradas",a:null,i:"📊"},
+            {done:allPhotos.length>0,l:"Fotos dos empreendimentos",a:null,i:"📸"},
+            {done:brokers.length>0,l:"Corretores cadastrados",a:function(){setMdl({t:"brokerList"})},i:"👥"},
+            {done:WA.PHONE_ID,l:"WhatsApp Business integrado",a:function(){setMdl({t:"companyData"})},i:"💬"}
+          ].map(function(item,idx){
+            var total=8;var doneCount=[tenant&&tenant.nome_empresa,CT.email||CT.wa,tenant&&tenant.logo_url,buildings.length>0,allUnits.length>0,allPhotos.length>0,brokers.length>0,WA.PHONE_ID].filter(Boolean).length;
+            return idx===0?<div key="progress" style={{marginBottom:12}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                <span style={{fontSize:13,color:subColor}}>{doneCount}/{total} configurados</span>
+                <span style={{fontSize:13,fontWeight:700,color:doneCount===total?GR:W}}>{Math.round(doneCount/total*100)}%</span>
+              </div>
+              <div style={{height:6,borderRadius:3,background:isDark?"#1a1a19":"#ddd",overflow:"hidden"}}>
+                <div style={{height:"100%",width:Math.round(doneCount/total*100)+"%",background:"linear-gradient(90deg,"+GR+",#2e8b57)",borderRadius:3,transition:"width .8s ease"}}/>
+              </div>
+            </div>:null
+          })}
+          {[
+            {done:tenant&&tenant.nome_empresa,l:"Dados da empresa",a:function(){setMdl({t:"companyData"})},i:"🏢"},
+            {done:CT.email||CT.wa,l:"Contato (email, WhatsApp, Instagram)",a:function(){setMdl({t:"companyData"})},i:"📞"},
+            {done:tenant&&tenant.logo_url,l:"Logo da empresa",a:function(){setMdl({t:"companyData"})},i:"🎨"},
+            {done:buildings.length>0,l:"Primeiro empreendimento",a:function(){setMdl({t:"addBld"})},i:"🏗️"},
+            {done:allUnits.length>0,l:"Unidades cadastradas",a:null,i:"📊"},
+            {done:allPhotos.length>0,l:"Fotos dos empreendimentos",a:null,i:"📸"},
+            {done:brokers.length>0,l:"Corretores cadastrados",a:function(){setMdl({t:"brokerList"})},i:"👥"},
+            {done:WA.PHONE_ID,l:"WhatsApp Business integrado",a:function(){setMdl({t:"companyData"})},i:"💬"}
+          ].map(function(item,idx){
+            return <div key={idx} className={item.a&&!item.done?"bh":""} onClick={item.a&&!item.done?item.a:null} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:idx<7?"1px solid "+(isDark?"#1a1a19":"#eee"):"none",cursor:item.a&&!item.done?"pointer":"default"}}>
+              <span style={{fontSize:16,opacity:item.done?1:0.4}}>{item.done?"✅":item.i}</span>
+              <span style={{fontSize:13,color:item.done?subColor:textColor,textDecoration:item.done?"line-through":"none",flex:1}}>{item.l}</span>
+              {!item.done&&item.a&&<span style={{fontSize:11,color:G,fontWeight:600}}>Configurar →</span>}
+            </div>
+          })}
+        </div>}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:24}}>
           {can("manage_buildings") && <button className="bh ch" onClick={function(){setMdl({t:"addBld"})}} style={{padding:16,borderRadius:14,fontSize:15,fontWeight:500,background:cardBg,color:"#6BAF8D",border:"1px solid rgba(76,175,125,0.1)",cursor:"pointer",textAlign:"center"}}>＋ Empreendimento</button>}
           {can("manage_brokers") && <button className="bh ch" onClick={function(){setMdl({t:"brokerList"})}} style={{padding:16,borderRadius:14,fontSize:15,fontWeight:500,background:cardBg,color:G,border:"1px solid rgba(200,164,92,0.1)",cursor:"pointer",textAlign:"center"}}>👥 Corretores · {brokers.length}</button>}
@@ -1746,6 +1790,14 @@ function App(){
           <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>CNPJ</div><input id="cd_cnpj" onKeyDown={function(e){e.stopPropagation()}} onChange={function(e){e.target.value=V.maskCNPJ(e.target.value)}} style={mI} defaultValue={CT.cnpj||""} placeholder="00.000.000/0001-00"/></div>
           <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Site</div><input id="cd_site" onKeyDown={function(e){e.stopPropagation()}} style={mI} defaultValue={""} placeholder="https://suaempresa.com.br"/></div>
         </div>
+        {/* Brand color */}
+        <div style={{marginTop:8,marginBottom:8}}>
+          <div style={{fontSize:11,color:subColor,marginBottom:6}}>🎨 Cor do Portal</div>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+            {BRAND_COLORS.map(function(c2){return <button key={c2} className="bh" onClick={function(){G=c2;document.getElementById("cd_brand_color").value=c2;msg("Cor: "+c2)}} style={{width:32,height:32,borderRadius:8,background:c2,border:G===c2?"3px solid #fff":"2px solid transparent",cursor:"pointer"}}/>})}
+            <input id="cd_brand_color" type="color" defaultValue={G} onChange={function(e){G=e.target.value}} style={{width:32,height:32,borderRadius:8,border:"none",cursor:"pointer",padding:0}}/>
+          </div>
+        </div>
       </div>
       <div style={{fontSize:15,fontWeight:600,color:textColor,marginBottom:10}}>📡 Integração WhatsApp Business</div>
       <div style={{padding:16,borderRadius:12,background:cardBg,border:"1px solid "+borderColor,marginBottom:12}}>
@@ -1763,7 +1815,7 @@ function App(){
         if(emailVal&&!V.email(emailVal)){msg("⚠️ Email inválido");return}
         if(whatsVal&&!V.phone(whatsVal)){msg("⚠️ WhatsApp inválido (mín. 10 dígitos)");return}
         if(cnpjVal&&cnpjVal.replace(/\D/g,"").length>0&&!V.cnpj(cnpjVal)){msg("⚠️ CNPJ inválido");return}
-        var fields3=[{id:"cd_email",k:"contact_email"},{id:"cd_whats",k:"wa_number"},{id:"cd_insta",k:"instagram"},{id:"cd_tel",k:"telefone"},{id:"cd_end",k:"endereco"},{id:"cd_cid",k:"cidade"},{id:"cd_cnpj",k:"cnpj"},{id:"cd_site",k:"site"},{id:"cd_wa_pid",k:"wa_phone_id"},{id:"cd_wa_bid",k:"wa_business_id"}];
+        var fields3=[{id:"cd_email",k:"contact_email"},{id:"cd_whats",k:"wa_number"},{id:"cd_insta",k:"instagram"},{id:"cd_tel",k:"telefone"},{id:"cd_end",k:"endereco"},{id:"cd_cid",k:"cidade"},{id:"cd_cnpj",k:"cnpj"},{id:"cd_site",k:"site"},{id:"cd_wa_pid",k:"wa_phone_id"},{id:"cd_wa_bid",k:"wa_business_id"},{id:"cd_brand_color",k:"brand_color"}];
         for(var i=0;i<fields3.length;i++){var v=document.getElementById(fields3[i].id).value;if(v){await sb.from("config_whatsapp").delete().eq("chave",fields3[i].k).eq("tenant_id",DB._tid);await sb.from("config_whatsapp").insert({chave:fields3[i].k,valor:v,tenant_id:DB._tid})}}
         var tok=document.getElementById("cd_wa_tok").value;if(tok&&tok!=="••••••••"){await sb.from("config_whatsapp").delete().eq("chave","wa_token").eq("tenant_id",DB._tid);await sb.from("config_whatsapp").insert({chave:"wa_token",valor:tok,tenant_id:DB._tid});WA.TOKEN=tok}
         CT.email=document.getElementById("cd_email").value||CT.email;CT.wa=document.getElementById("cd_whats").value||CT.wa;CT.phone=document.getElementById("cd_tel").value||CT.phone;
@@ -2195,8 +2247,41 @@ function App(){
           })}
         </div>
         {/* Quick actions */}
-        <button className="bh" style={mP("#4CAF7D")} onClick={function(){setMdl({t:"registerSale"})}}>＋ Registrar Venda</button>
-        <button className="bh" style={Object.assign({},mP("#5B8FD4"),{marginTop:4})} onClick={function(){setMiniChat({channel:"broker_"+broker.id,title:"Chat Admin"})}}>💬 Chat com Administração</button>
+        <div style={{display:"flex",gap:6,marginBottom:14}}>
+          <button className="bh" style={Object.assign({},mP("#4CAF7D"),{flex:1})} onClick={function(){setMdl({t:"registerSale"})}}>＋ Registrar Venda</button>
+          <button className="bh" style={Object.assign({},mP("#5B8FD4"),{flex:1})} onClick={function(){setMiniChat({channel:"broker_"+broker.id,title:"Chat Admin"})}}>💬 Chat Admin</button>
+          <button className="bh" style={Object.assign({},mP(G),{flex:1})} onClick={function(){setMdl(null)}}>🏢 Ver Tabelas</button>
+        </div>
+        {/* Monthly goal */}
+        {(function(){
+          var metaMensal=broker.meta_mensal||3;
+          var vendasMes=mySales.filter(function(s){var d=new Date(s.sale_date||s.created_at);var now=new Date();return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()}).length;
+          var pctMeta=Math.min(100,Math.round(vendasMes/metaMensal*100));
+          return <div style={{padding:14,borderRadius:12,background:cardBg,border:"1px solid "+borderColor,marginBottom:14}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+              <div style={{fontSize:14,fontWeight:600,color:textColor}}>🎯 Meta Mensal</div>
+              <span style={{fontSize:13,fontWeight:700,color:pctMeta>=100?GR:pctMeta>=50?W:R}}>{vendasMes}/{metaMensal} vendas ({pctMeta}%)</span>
+            </div>
+            <div style={{height:8,borderRadius:4,background:isDark?"#1a1a19":"#EFEBE4",overflow:"hidden"}}>
+              <div style={{height:"100%",width:pctMeta+"%",background:pctMeta>=100?"linear-gradient(90deg,"+GR+",#2e8b57)":pctMeta>=50?"linear-gradient(90deg,"+W+",#c49630)":"linear-gradient(90deg,"+R+",#c44040)",borderRadius:4,transition:"width .8s ease"}}/>
+            </div>
+            {pctMeta>=100&&<div style={{fontSize:12,color:GR,marginTop:6,textAlign:"center"}}>🎉 Meta atingida! Parabéns!</div>}
+          </div>
+        })()}
+        {/* Commissions breakdown */}
+        <div style={{padding:14,borderRadius:12,background:cardBg,border:"1px solid "+borderColor,marginBottom:14}}>
+          <div style={{fontSize:14,fontWeight:600,color:textColor,marginBottom:10}}>💰 Comissões</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+            <div style={{padding:10,borderRadius:8,background:isDark?"#1a1a19":"#EFEBE4",textAlign:"center"}}>
+              <div style={{fontSize:18,fontWeight:700,color:GR}}>{fmt(totalComm)}</div>
+              <div style={{fontSize:11,color:subColor}}>Total recebido</div>
+            </div>
+            <div style={{padding:10,borderRadius:8,background:isDark?"#1a1a19":"#EFEBE4",textAlign:"center"}}>
+              <div style={{fontSize:18,fontWeight:700,color:W}}>{fmt(pending.reduce(function(t,s){return t+(s.commission_value||0)},0))}</div>
+              <div style={{fontSize:11,color:subColor}}>Pendente</div>
+            </div>
+          </div>
+        </div>
         {/* Summary */}
         <div style={{marginTop:14,padding:14,borderRadius:12,background:cardBg,border:"1px solid "+borderColor}}>
           <div style={{fontSize:14,fontWeight:600,color:textColor,marginBottom:8}}>📈 Resumo</div>
