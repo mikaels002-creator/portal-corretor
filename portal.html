@@ -863,7 +863,7 @@ function App(){
             }} style={{width:"100%",padding:10,borderRadius:8,background:"#5B8FD415",color:"#5B8FD4",fontSize:14,fontWeight:600,border:"1px solid #5B8FD425",cursor:"pointer",marginBottom:8}}>+ Adicionar Unidade</button>
             <div style={{display:"flex",gap:8}}>
               <button className="bh" onClick={function(){saveSetupStep(2)}} style={{flex:1,padding:14,borderRadius:10,background:"transparent",color:subColor,fontSize:15,border:"1px solid "+borderColor,cursor:"pointer"}}>← Voltar</button>
-              <button className="bh" onClick={function(){await saveSetupStep(4);msg("Quase lá!")}} style={{flex:2,padding:14,borderRadius:10,background:G,color:"#0a0a09",fontSize:15,fontWeight:700,border:"none",cursor:"pointer"}}>Próximo →</button>
+              <button className="bh" onClick={async function(){await saveSetupStep(4);msg("Quase lá!")}} style={{flex:2,padding:14,borderRadius:10,background:G,color:"#0a0a09",fontSize:15,fontWeight:700,border:"none",cursor:"pointer"}}>Próximo →</button>
             </div>
           </div>}
           {/* Step 4: Finalizar */}
