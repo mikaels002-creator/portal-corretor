@@ -886,6 +886,48 @@ function App(){
                 <button className="bh" onClick={async function(){await sb.from("tenants").update({setup_completo:false,setup_step:0}).eq("id",t.id);await loadAll();msg("🔄 Setup resetado — cliente verá wizard")}} style={{padding:"6px 14px",borderRadius:6,background:W+"12",color:W,border:"none",fontSize:12,cursor:"pointer"}}>🔄 Resetar Setup</button>
                 <button className="bh" onClick={function(){var u=prompt("Nova URL do portal:",t.portal_url||"https://portal-corretor.com/"+t.slug);if(u){sb.from("tenants").update({portal_url:u}).eq("id",t.id).then(function(){loadAll();msg("URL atualizada")})}}} style={{padding:"6px 14px",borderRadius:6,background:B+"12",color:B,border:"none",fontSize:12,cursor:"pointer"}}>✏️ Editar URL</button>
               </div>
+              {/* Feature overrides */}
+              <div style={{padding:12,borderRadius:10,background:dark?"#111":"#f8f5f0",border:"1px solid "+border,marginBottom:10}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                  <div style={{fontSize:13,fontWeight:600,color:textColor}}>⚡ Recursos habilitados</div>
+                  <span style={{fontSize:11,color:subColor}}>Plano: {sub?sub.plano:"—"}</span>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:6}}>
+                  {[{k:"feat_crm",l:"💼 CRM"},{k:"feat_whatsapp",l:"💬 WhatsApp"},{k:"feat_agente_ia",l:"🤖 Agente IA"},{k:"feat_propostas",l:"📄 Propostas"},{k:"feat_visitas",l:"📅 Visitas"},{k:"feat_docs",l:"📁 Docs"},{k:"feat_nps",l:"📊 NPS"},{k:"feat_api",l:"⚡ API"}].map(function(f){
+                    var override=(t.feat_override||{})[f.k];
+                    var planOn=sub?planos.find(function(p2){return p2.id===(sub.plano_id||null)}):null;
+                    var fromPlan=planOn?planOn[f.k]:false;
+                    var isOn=override!==undefined?(override.enabled||override===true):fromPlan;
+                    var isTrial=override&&override.trial;
+                    var trialEnd=isTrial?new Date(override.trial_end):null;
+                    var trialExpired=trialEnd&&trialEnd<new Date();
+                    return <div key={f.k} className="bh" onClick={function(){
+                      if(isOn&&!override){msg("Recurso do plano — não pode desativar");return}
+                      if(isOn){
+                        var ov=Object.assign({},t.feat_override||{});delete ov[f.k];
+                        sb.from("tenants").update({feat_override:ov}).eq("id",t.id).then(function(){loadAll();msg("Recurso removido")});
+                        return;
+                      }
+                      var tipo=prompt("Habilitar "+f.l+":\n\n1 = Definitivo\n2 = Teste (trial)\n\nDigite 1 ou 2:");
+                      if(!tipo)return;
+                      var ov2=Object.assign({},t.feat_override||{});
+                      if(tipo==="2"){
+                        var dias=prompt("Quantos dias de teste?","7");if(!dias)return;
+                        var end=new Date();end.setDate(end.getDate()+parseInt(dias));
+                        ov2[f.k]={enabled:true,trial:true,trial_days:parseInt(dias),trial_end:end.toISOString(),activated:new Date().toISOString()};
+                      }else{
+                        ov2[f.k]={enabled:true,trial:false,activated:new Date().toISOString()};
+                      }
+                      sb.from("tenants").update({feat_override:ov2}).eq("id",t.id).then(function(){loadAll();msg("✅ "+f.l+" habilitado!")});
+                    }} style={{padding:8,borderRadius:8,background:isOn?(trialExpired?R+"10":GR+"10"):"transparent",border:"1px solid "+(isOn?(trialExpired?R+"20":GR+"20"):border),cursor:"pointer",textAlign:"center"}}>
+                      <div style={{fontSize:12,fontWeight:600,color:isOn?(trialExpired?R:GR):subColor}}>{f.l}</div>
+                      <div style={{fontSize:9,color:isOn?(trialExpired?R:subColor):subColor,marginTop:2}}>
+                        {isOn?(isTrial?(trialExpired?"⏰ Expirado":"🔄 Trial "+override.trial_days+"d"):(override?"✅ Extra":"📦 Plano")):"❌ Off"}
+                      </div>
+                    </div>
+                  })}
+                </div>
+              </div>
               {/* Stats */}
               <div style={{display:"flex",gap:16,fontSize:12}}>
                 <span style={{color:subColor}}>💰 {fmt(t.valor_mensal||0)}/mês</span>
