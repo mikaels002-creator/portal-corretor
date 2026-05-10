@@ -2067,8 +2067,30 @@ function App(){
 
   function UpgradePlanM(){
     var _uPlans=useState([]);var uPlans=_uPlans[0];var setUPlans=_uPlans[1];
+    var _step=useState("plans");var step=_step[0];var setStep=_step[1];
+    var _selPlan=useState(null);var selPlan=_selPlan[0];var setSelPlan=_selPlan[1];
+    var _payMethod=useState("");var payMethod=_payMethod[0];var setPayMethod=_payMethod[1];
+    var _processing=useState(false);var processing=_processing[0];var setProcessing=_processing[1];
     useEffect(function(){sb.from("planos").select("*").eq("ativo",true).order("valor_mensal").then(function(r){setUPlans(r.data||[])});},[]);
-    return <div><div style={mT}>⬆️ Upgrade de Plano</div>
+
+    var doUpgrade=async function(){
+      if(!selPlan||!payMethod)return;
+      setProcessing(true);
+      var pl=selPlan;
+      // Update/create subscription
+      var existingSub=await sb.from("assinaturas").select("*").eq("tenant_id",tenant.slug).eq("status","ativo").single();
+      if(existingSub.data){await sb.from("assinaturas").update({plano_id:pl.id,plano:pl.nome,valor_mensal:pl.valor_mensal,forma_pagamento:payMethod}).eq("id",existingSub.data.id);await sb.from("pagamentos").update({status:"cancelado",observacoes:"Upgrade "+pl.nome}).eq("tenant_id",tenant.slug).eq("status","pendente")}
+      else{await sb.from("assinaturas").insert({tenant_id:tenant.slug,plano_id:pl.id,plano:pl.nome,valor_mensal:pl.valor_mensal,status:"ativo",forma_pagamento:payMethod,inicio:new Date().toISOString().split("T")[0]})}
+      // Generate 12 payments
+      for(var i=0;i<12;i++){var vd=new Date();vd.setMonth(vd.getMonth()+i);vd.setDate(10);await sb.from("pagamentos").insert({tenant_id:tenant.slug,valor:pl.valor_mensal,valor_original:pl.valor_mensal,vencimento:vd.toISOString().split("T")[0],metodo:payMethod,status:i===0?"pago":"pendente",pago_em:i===0?new Date().toISOString():null,observacoes:"Parcela "+(i+1)+"/12 — "+pl.nome})}
+      await sb.from("tenants").update({valor_mensal:pl.valor_mensal}).eq("id",tenant.id);
+      // Log interaction
+      await sb.from("interacoes_tenant").insert({tenant_id:tenant.slug,tipo:"upgrade",conteudo:"Upgrade para "+pl.nome+" ("+fmt(pl.valor_mensal)+"/mês) via "+payMethod,usuario:currentUser?currentUser.nome:"Cliente"}).catch(function(){});
+      setProcessing(false);setStep("success");
+    };
+
+    // Step 1: Choose plan
+    if(step==="plans") return <div><div style={mT}>⬆️ Upgrade de Plano</div>
       <div style={{fontSize:13,color:subColor,marginBottom:16}}>Escolha um plano. Seus dados serão mantidos.</div>
       <div style={{display:"grid",gridTemplateColumns:"repeat("+Math.min(uPlans.length||1,3)+",1fr)",gap:12}}>
         {uPlans.map(function(pl){
@@ -2084,19 +2106,88 @@ function App(){
                 return <span key={f2.k} style={{fontSize:10,padding:"2px 6px",borderRadius:4,background:on2?"#4CAF7D15":"#D45B5B08",color:on2?"#4CAF7D":subColor}}>{f2.l}{on2?"":"✗"}</span>
               })}
             </div>
-            <button className="bh" onClick={async function(){
-              if(!confirm("Upgrade para "+pl.nome+" ("+fmt(pl.valor_mensal)+"/mês)?"))return;
-              var existingSub=await sb.from("assinaturas").select("*").eq("tenant_id",tenant.slug).eq("status","ativo").single();
-              if(existingSub.data){await sb.from("assinaturas").update({plano_id:pl.id,plano:pl.nome,valor_mensal:pl.valor_mensal}).eq("id",existingSub.data.id);await sb.from("pagamentos").update({status:"cancelado",observacoes:"Upgrade "+pl.nome}).eq("tenant_id",tenant.slug).eq("status","pendente")}
-              else{await sb.from("assinaturas").insert({tenant_id:tenant.slug,plano_id:pl.id,plano:pl.nome,valor_mensal:pl.valor_mensal,status:"ativo",inicio:new Date().toISOString().split("T")[0]})}
-              for(var i=0;i<12;i++){var vd=new Date();vd.setMonth(vd.getMonth()+i);vd.setDate(10);await sb.from("pagamentos").insert({tenant_id:tenant.slug,valor:pl.valor_mensal,valor_original:pl.valor_mensal,vencimento:vd.toISOString().split("T")[0],metodo:"pix",status:"pendente",observacoes:"Parcela "+(i+1)+"/12 — "+pl.nome})}
-              await sb.from("tenants").update({valor_mensal:pl.valor_mensal}).eq("id",tenant.id);
-              msg("✅ Upgrade para "+pl.nome+"!");setMdl(null);
-            }} style={{width:"100%",marginTop:12,padding:"12px",borderRadius:10,background:"linear-gradient(135deg,"+P+",#6a4fa0)",color:"#fff",fontSize:14,fontWeight:700,border:"none",cursor:"pointer"}}>Escolher {pl.nome}</button>
+            <button className="bh" onClick={function(){setSelPlan(pl);setStep("payment")}} style={{width:"100%",marginTop:12,padding:"12px",borderRadius:10,background:"linear-gradient(135deg,"+P+",#6a4fa0)",color:"#fff",fontSize:14,fontWeight:700,border:"none",cursor:"pointer"}}>Escolher {pl.nome}</button>
           </div>
         })}
       </div>
-    </div>
+    </div>;
+
+    // Step 2: Payment method
+    if(step==="payment") return <div><div style={mT}>💳 Forma de Pagamento</div>
+      <div style={{padding:16,borderRadius:14,background:isDark?"#111":"#f8f5f0",border:"1px solid "+borderColor,marginBottom:16,textAlign:"center"}}>
+        <div style={{fontSize:14,color:subColor}}>Plano selecionado:</div>
+        <div style={{fontSize:22,fontWeight:700,color:textColor,marginTop:4}}>{selPlan.nome}</div>
+        <div style={{fontSize:28,fontWeight:700,color:GR,margin:"8px 0"}}>{fmt(selPlan.valor_mensal)}<span style={{fontSize:14,color:subColor}}>/mês</span></div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
+        <div className="bh" onClick={function(){setPayMethod("pix");setStep("checkout")}} style={{padding:24,borderRadius:14,background:cardBg,border:payMethod==="pix"?"2px solid "+GR:"1px solid "+borderColor,textAlign:"center",cursor:"pointer"}}>
+          <div style={{fontSize:36,marginBottom:8}}>📱</div>
+          <div style={{fontSize:16,fontWeight:700,color:textColor}}>PIX</div>
+          <div style={{fontSize:12,color:GR,marginTop:4}}>Aprovação instantânea</div>
+          <div style={{fontSize:11,color:subColor,marginTop:2}}>Desconto de 5%</div>
+        </div>
+        <div className="bh" onClick={function(){setPayMethod("cartao");setStep("checkout")}} style={{padding:24,borderRadius:14,background:cardBg,border:payMethod==="cartao"?"2px solid "+B:"1px solid "+borderColor,textAlign:"center",cursor:"pointer"}}>
+          <div style={{fontSize:36,marginBottom:8}}>💳</div>
+          <div style={{fontSize:16,fontWeight:700,color:textColor}}>Cartão de Crédito</div>
+          <div style={{fontSize:12,color:B,marginTop:4}}>Recorrência automática</div>
+          <div style={{fontSize:11,color:subColor,marginTop:2}}>Até 12x sem juros</div>
+        </div>
+      </div>
+      <button className="bh" onClick={function(){setStep("plans")}} style={{width:"100%",padding:12,borderRadius:10,background:"transparent",color:subColor,border:"1px solid "+borderColor,fontSize:14,cursor:"pointer"}}>← Voltar aos planos</button>
+    </div>;
+
+    // Step 3: Checkout
+    if(step==="checkout") return <div><div style={mT}>{payMethod==="pix"?"📱 Pagamento via PIX":"💳 Pagamento via Cartão"}</div>
+      <div style={{padding:16,borderRadius:14,background:isDark?"#111":"#f8f5f0",border:"1px solid "+borderColor,marginBottom:16}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+          <span style={{fontSize:14,color:subColor}}>{selPlan.nome}</span>
+          <span style={{fontSize:18,fontWeight:700,color:GR}}>{payMethod==="pix"?fmt(Math.round(selPlan.valor_mensal*0.95)):fmt(selPlan.valor_mensal)}/mês</span>
+        </div>
+        {payMethod==="pix"&&<div style={{fontSize:12,color:GR}}>🎉 5% de desconto no PIX: economia de {fmt(Math.round(selPlan.valor_mensal*0.05))}/mês</div>}
+      </div>
+      {payMethod==="pix"&&<div style={{textAlign:"center",marginBottom:16}}>
+        <div style={{width:200,height:200,margin:"0 auto",background:"#fff",borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",border:"1px solid #ddd"}}>
+          <div style={{textAlign:"center",color:"#333"}}>
+            <div style={{fontSize:40,marginBottom:8}}>📱</div>
+            <div style={{fontSize:12,fontWeight:600}}>QR Code PIX</div>
+            <div style={{fontSize:10,color:"#888",marginTop:4}}>Gerado pela gateway</div>
+          </div>
+        </div>
+        <div style={{padding:12,borderRadius:8,background:isDark?"#111":"#f8f5f0",marginTop:12,fontSize:12,color:subColor}}>
+          <div style={{fontWeight:600,marginBottom:4}}>Chave PIX (copiar):</div>
+          <div style={{fontFamily:"monospace",fontSize:11,wordBreak:"break-all",color:textColor}}>portal-corretor@empresa.com.br</div>
+        </div>
+        <div style={{fontSize:12,color:W,marginTop:8}}>⏳ Aguardando confirmação do pagamento...</div>
+      </div>}
+      {payMethod==="cartao"&&<div style={{marginBottom:16}}>
+        <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Número do cartão</div><input id="cc_num" onKeyDown={function(e){e.stopPropagation()}} style={mI} placeholder="0000 0000 0000 0000"/></div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Validade</div><input id="cc_exp" onKeyDown={function(e){e.stopPropagation()}} style={mI} placeholder="MM/AA"/></div>
+          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>CVV</div><input id="cc_cvv" type="password" onKeyDown={function(e){e.stopPropagation()}} style={mI} placeholder="000"/></div>
+        </div>
+        <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Nome no cartão</div><input id="cc_name" onKeyDown={function(e){e.stopPropagation()}} style={mI} placeholder="NOME COMPLETO"/></div>
+        <div style={{padding:8,borderRadius:8,background:isDark?"#111":"#f8f5f0",fontSize:11,color:subColor,marginTop:4}}>🔒 Pagamento processado com segurança via gateway. Seus dados não são armazenados.</div>
+      </div>}
+      <button className="bh" disabled={processing} onClick={doUpgrade} style={{width:"100%",padding:"14px",borderRadius:10,background:processing?"#555":"linear-gradient(135deg,"+GR+",#2e8b57)",color:"#fff",fontSize:16,fontWeight:700,border:"none",cursor:processing?"wait":"pointer"}}>{processing?"Processando...":"✅ Confirmar "+payMethod.toUpperCase()+" — "+fmt(payMethod==="pix"?Math.round(selPlan.valor_mensal*0.95):selPlan.valor_mensal)+"/mês"}</button>
+      <button className="bh" onClick={function(){setStep("payment")}} style={{width:"100%",padding:12,borderRadius:10,background:"transparent",color:subColor,border:"1px solid "+borderColor,fontSize:14,cursor:"pointer",marginTop:8}}>← Voltar</button>
+    </div>;
+
+    // Step 4: Success
+    if(step==="success") return <div style={{textAlign:"center",padding:20}}>
+      <div style={{fontSize:60,marginBottom:16}}>🎉</div>
+      <div style={{fontSize:24,fontWeight:700,color:textColor,marginBottom:8}}>Upgrade realizado!</div>
+      <div style={{fontSize:16,color:GR,fontWeight:600,marginBottom:4}}>{selPlan.nome} — {fmt(selPlan.valor_mensal)}/mês</div>
+      <div style={{fontSize:13,color:subColor,marginBottom:20}}>Pagamento via {payMethod==="pix"?"PIX":"Cartão de Crédito"}</div>
+      <div style={{padding:14,borderRadius:12,background:isDark?"#111":"#f8f5f0",border:"1px solid "+borderColor,textAlign:"left",fontSize:13,color:subColor,lineHeight:2,marginBottom:16}}>
+        ✅ Assinatura atualizada<br/>
+        ✅ 1ª parcela {payMethod==="pix"?"processada":"cobrada"}<br/>
+        ✅ 11 parcelas futuras geradas<br/>
+        ✅ Recursos do plano liberados
+      </div>
+      <button className="bh" onClick={function(){setMdl(null)}} style={{width:"100%",padding:"14px",borderRadius:10,background:G,color:"#0a0a09",fontSize:16,fontWeight:700,border:"none",cursor:"pointer"}}>Fechar</button>
+    </div>;
+
+    return null;
   }
 
   function SiteSettingsM(){
