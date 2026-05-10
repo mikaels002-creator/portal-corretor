@@ -179,7 +179,7 @@ function App(){
         <div style={{fontSize:11,color:subColor,marginTop:4}}>Portal do Corretor</div>
       </div>
       <div style={{flex:1,padding:"12px 10px"}}>
-        {[{k:"dash",l:"Dashboard",i:"📊"},{k:"clients",l:"Clientes",i:"👥"},{k:"pipeline",l:"Pipeline",i:"🔄"},{k:"payments",l:"Pagamentos",i:"💰"},{k:"links",l:"Portais",i:"🔗"},{k:"plans",l:"Planos",i:"📦"},{k:"marketing",l:"Marketing",i:"📣"},{k:"users",l:"Usuários",i:"🔐"},{k:"reports",l:"Relatórios",i:"📈"},{k:"overdue",l:"Inadimplentes",i:"⚠️"}].map(function(item){
+        {[{k:"dash",l:"Dashboard",i:"📊"},{k:"clients",l:"Clientes",i:"👥"},{k:"pipeline",l:"Pipeline",i:"🔄"},{k:"payments",l:"Pagamentos",i:"💰"},{k:"links",l:"Portais",i:"🔗"},{k:"plans",l:"Planos",i:"📦"},{k:"marketing",l:"Marketing",i:"📣"},{k:"users",l:"Usuários",i:"🔐"},{k:"integrations",l:"Integrações",i:"⚡"},{k:"reports",l:"Relatórios",i:"📈"},{k:"overdue",l:"Inadimplentes",i:"⚠️"}].map(function(item){
           return <div key={item.k} className="bh" onClick={function(){setView(item.k);setSelClient(null)}} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:10,marginBottom:2,background:view===item.k?"rgba(200,164,92,0.08)":"transparent",color:view===item.k?G:"#888",fontSize:14,fontWeight:view===item.k?600:400}}>
             <span style={{fontSize:16}}>{item.i}</span>{item.l}
             {item.k==="overdue"&&pendentes.length>0&&<span style={{marginLeft:"auto",background:R,color:textColor,fontSize:10,fontWeight:700,padding:"2px 6px",borderRadius:8}}>{pendentes.length}</span>}
@@ -970,58 +970,156 @@ function App(){
       {view==="users"&&<div className="fade-in">
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
           <div style={{fontSize:24,fontWeight:700,color:textColor}}>🔐 Usuários do Admin</div>
-          <button className="bh" onClick={function(){var el=document.getElementById("userForm");if(el)el.style.display=el.style.display==="block"?"none":"block"}} style={{padding:"10px 20px",borderRadius:10,background:P,color:"#fff",border:"none",fontSize:14,fontWeight:600}}>+ Novo Usuário</button>
+          <button className="bh" onClick={function(){window._editUser=null;var el=document.getElementById("userForm");if(el)el.style.display=el.style.display==="block"?"none":"block";setTimeout(function(){["usr_nome","usr_email","usr_pass"].forEach(function(id){var el2=document.getElementById(id);if(el2)el2.value=""});document.getElementById("usr_pass").value="portal2024";document.getElementById("usr_perfil").value="viewer"},50)}} style={{padding:"10px 20px",borderRadius:10,background:P,color:"#fff",border:"none",fontSize:14,fontWeight:600}}>+ Novo Usuário</button>
         </div>
         {/* Perfis info */}
         <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16}}>
-          {[{p:"super_admin",l:"Super Admin",d:"Acesso total",c:G,i:"👑"},{p:"admin",l:"Admin",d:"Gestão completa",c:B,i:"🔐"},{p:"gerente",l:"Gerente",d:"Clientes e pagamentos",c:GR,i:"📊"},{p:"viewer",l:"Visualizador",d:"Somente leitura",c:subColor,i:"👁️"}].map(function(pr){
+          {[{p:"super_admin",l:"Super Admin",d:"Acesso total, configurações, integrações",c:G,i:"👑"},{p:"admin",l:"Admin",d:"Gestão de clientes, pagamentos, marketing",c:B,i:"🔐"},{p:"gerente",l:"Gerente",d:"Clientes e pagamentos",c:GR,i:"📊"},{p:"viewer",l:"Visualizador",d:"Dashboard e relatórios (somente leitura)",c:subColor,i:"👁️"}].map(function(pr){
             var cnt=(window._adminUsers||[]).filter(function(u2){return u2.perfil===pr.p}).length;
             return <div key={pr.p} style={{padding:14,borderRadius:12,background:cardBg,border:"1px solid "+border,textAlign:"center"}}>
               <div style={{fontSize:20}}>{pr.i}</div>
               <div style={{fontSize:14,fontWeight:600,color:pr.c,marginTop:4}}>{pr.l}</div>
-              <div style={{fontSize:11,color:subColor}}>{pr.d}</div>
+              <div style={{fontSize:11,color:subColor,minHeight:28}}>{pr.d}</div>
               <div style={{fontSize:16,fontWeight:700,color:textColor,marginTop:4}}>{cnt}</div>
             </div>
           })}
         </div>
-        {/* New user form */}
-        <div id="userForm" style={{display:"none",padding:20,borderRadius:14,background:cardBg,border:"1px solid "+border,marginBottom:20}}>
-          <div style={{fontSize:16,fontWeight:700,color:P,marginBottom:12}}>🔐 Novo Usuário</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+        {/* User form (create/edit) */}
+        <div id="userForm" style={{display:"none",padding:20,borderRadius:14,background:cardBg,border:"1px solid "+P+"30",marginBottom:20}}>
+          <div style={{fontSize:16,fontWeight:700,color:P,marginBottom:12}}>{window._editUser?"✏️ Editar":"➕ Novo"} Usuário</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
             <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Nome *</div><input id="usr_nome" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
             <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Email *</div><input id="usr_email" onKeyDown={function(e){e.stopPropagation()}} style={iS}/></div>
-            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Senha</div><input id="usr_pass" onKeyDown={function(e){e.stopPropagation()}} style={iS} defaultValue="portal2024"/></div>
           </div>
-          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Perfil</div>
-            <select id="usr_perfil" style={iS}><option value="super_admin">👑 Super Admin</option><option value="admin">🔐 Admin</option><option value="gerente">📊 Gerente</option><option value="viewer">👁️ Visualizador</option></select>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Senha</div><input id="usr_pass" type="text" onKeyDown={function(e){e.stopPropagation()}} style={iS} defaultValue="portal2024"/></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Perfil</div>
+              <select id="usr_perfil" style={iS}><option value="super_admin">👑 Super Admin</option><option value="admin">🔐 Admin</option><option value="gerente">📊 Gerente</option><option value="viewer">👁️ Visualizador</option></select>
+            </div>
           </div>
-          <button className="bh" onClick={async function(){
-            var n=document.getElementById("usr_nome").value;var e=document.getElementById("usr_email").value;
-            if(!n||!e){msg("Preencha nome e email");return}
-            var r=await sb.from("admin_portal_users").insert({nome:n,email:e,password:document.getElementById("usr_pass").value||"portal2024",perfil:document.getElementById("usr_perfil").value});
-            if(r.error){msg("❌ "+r.error.message);return}
-            document.getElementById("userForm").style.display="none";await loadAdminPortalUsers();msg("✅ Usuário criado!")
-          }} style={{padding:"12px 24px",borderRadius:10,background:P,color:"#fff",border:"none",fontSize:14,fontWeight:600,cursor:"pointer"}}>💾 Criar Usuário</button>
+          <div style={{display:"flex",gap:8}}>
+            <button className="bh" onClick={async function(){
+              var n=document.getElementById("usr_nome").value;var e2=document.getElementById("usr_email").value;
+              if(!n||!e2){msg("Preencha nome e email");return}
+              var data2={nome:n,email:e2,password:document.getElementById("usr_pass").value||"portal2024",perfil:document.getElementById("usr_perfil").value};
+              if(window._editUser){var r=await sb.from("admin_portal_users").update(data2).eq("id",window._editUser);if(r.error){msg("❌ "+r.error.message);return}msg("✅ Atualizado!")}
+              else{var r=await sb.from("admin_portal_users").insert(data2);if(r.error){msg("❌ "+r.error.message);return}msg("✅ Criado!")}
+              document.getElementById("userForm").style.display="none";window._editUser=null;await loadAdminPortalUsers();
+            }} style={{padding:"12px 24px",borderRadius:10,background:P,color:"#fff",border:"none",fontSize:14,fontWeight:600,cursor:"pointer"}}>💾 {window._editUser?"Atualizar":"Criar"}</button>
+            <button className="bh" onClick={function(){document.getElementById("userForm").style.display="none";window._editUser=null}} style={{padding:"12px 24px",borderRadius:10,background:"transparent",color:subColor,border:"1px solid "+border,fontSize:14,cursor:"pointer"}}>Cancelar</button>
+          </div>
         </div>
         {/* User list */}
         {(window._adminUsers||[]).map(function(u2){
           var pCols={super_admin:G,admin:B,gerente:GR,viewer:subColor};
           var pIcons={super_admin:"👑",admin:"🔐",gerente:"📊",viewer:"👁️"};
-          return <div key={u2.id} style={{display:"flex",alignItems:"center",gap:14,padding:"14px 16px",borderRadius:12,background:cardBg,border:"1px solid "+border,marginBottom:6}}>
-            <div style={{width:40,height:40,borderRadius:10,background:(pCols[u2.perfil]||subColor)+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>{pIcons[u2.perfil]||"👤"}</div>
-            <div style={{flex:1}}>
-              <div style={{fontSize:15,fontWeight:700,color:textColor}}>{u2.nome} <span style={{fontSize:11,padding:"2px 8px",borderRadius:6,background:(pCols[u2.perfil]||subColor)+"15",color:pCols[u2.perfil]||subColor,fontWeight:600,marginLeft:6}}>{u2.perfil}</span></div>
-              <div style={{fontSize:12,color:subColor}}>{u2.email}{u2.ultimo_acesso?" · Último: "+new Date(u2.ultimo_acesso).toLocaleDateString("pt-BR"):""}</div>
-            </div>
-            <div style={{display:"flex",gap:4}}>
-              <select value={u2.perfil} onChange={async function(e){await sb.from("admin_portal_users").update({perfil:e.target.value}).eq("id",u2.id);await loadAdminPortalUsers();msg("Perfil atualizado")}} style={{padding:"4px 8px",borderRadius:6,fontSize:11,background:inputBg,color:textColor,border:"1px solid "+inputBorder,cursor:"pointer"}}>
-                <option value="super_admin">👑 Super Admin</option><option value="admin">🔐 Admin</option><option value="gerente">📊 Gerente</option><option value="viewer">👁️ Viewer</option>
-              </select>
-              <button className="bh" onClick={async function(){await sb.from("admin_portal_users").update({ativo:!u2.ativo}).eq("id",u2.id);await loadAdminPortalUsers();msg(u2.ativo?"Desativado":"Ativado")}} style={{padding:"4px 10px",borderRadius:6,background:u2.ativo?R+"12":GR+"12",color:u2.ativo?R:GR,border:"none",fontSize:11,cursor:"pointer"}}>{u2.ativo?"⏸":"▶️"}</button>
-              <button className="bh" onClick={async function(){if(!confirm("Excluir "+u2.nome+"?"))return;await sb.from("admin_portal_users").delete().eq("id",u2.id);await loadAdminPortalUsers();msg("Excluído")}} style={{padding:"4px 10px",borderRadius:6,background:R+"12",color:R,border:"none",fontSize:11,cursor:"pointer"}}>🗑️</button>
+          return <div key={u2.id} style={{padding:"14px 16px",borderRadius:12,background:cardBg,border:"1px solid "+border,marginBottom:6}}>
+            <div style={{display:"flex",alignItems:"center",gap:14}}>
+              <div style={{width:40,height:40,borderRadius:10,background:(pCols[u2.perfil]||subColor)+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>{pIcons[u2.perfil]||"👤"}</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:15,fontWeight:700,color:textColor}}>{u2.nome} <span style={{fontSize:11,padding:"2px 8px",borderRadius:6,background:(pCols[u2.perfil]||subColor)+"15",color:pCols[u2.perfil]||subColor,fontWeight:600,marginLeft:4}}>{u2.perfil}</span> {!u2.ativo&&<span style={{fontSize:11,color:R}}>· Inativo</span>}</div>
+                <div style={{fontSize:12,color:subColor}}>{u2.email} · Senha: {u2.password}{u2.ultimo_acesso?" · Último acesso: "+new Date(u2.ultimo_acesso).toLocaleDateString("pt-BR"):""}</div>
+              </div>
+              <div style={{display:"flex",gap:4}}>
+                <button className="bh" onClick={function(){window._editUser=u2.id;document.getElementById("userForm").style.display="block";setTimeout(function(){document.getElementById("usr_nome").value=u2.nome;document.getElementById("usr_email").value=u2.email;document.getElementById("usr_pass").value=u2.password||"";document.getElementById("usr_perfil").value=u2.perfil},50)}} style={{padding:"4px 10px",borderRadius:6,background:B+"12",color:B,border:"none",fontSize:11,cursor:"pointer"}}>✏️ Editar</button>
+                <button className="bh" onClick={async function(){await sb.from("admin_portal_users").update({ativo:!u2.ativo}).eq("id",u2.id);await loadAdminPortalUsers();msg(u2.ativo?"⏸ Desativado":"▶️ Ativado")}} style={{padding:"4px 10px",borderRadius:6,background:u2.ativo?R+"12":GR+"12",color:u2.ativo?R:GR,border:"none",fontSize:11,cursor:"pointer"}}>{u2.ativo?"⏸":"▶️"}</button>
+                <button className="bh" onClick={async function(){if(!confirm("Excluir "+u2.nome+"?"))return;await sb.from("admin_portal_users").delete().eq("id",u2.id);await loadAdminPortalUsers();msg("🗑️ Excluído")}} style={{padding:"4px 10px",borderRadius:6,background:R+"12",color:R,border:"none",fontSize:11,cursor:"pointer"}}>🗑️</button>
+              </div>
             </div>
           </div>
         })}
+      </div>}
+
+      {/* ═══ INTEGRATIONS ═══ */}
+      {view==="integrations"&&<div className="fade-in">
+        <div style={{fontSize:24,fontWeight:700,color:textColor,marginBottom:20}}>⚡ Integrações</div>
+        {/* WhatsApp */}
+        <div style={{padding:20,borderRadius:14,background:cardBg,border:"1px solid "+border,marginBottom:12}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <span style={{fontSize:28}}>💬</span>
+              <div><div style={{fontSize:16,fontWeight:700,color:textColor}}>WhatsApp Business API</div><div style={{fontSize:12,color:subColor}}>CRM integrado, envio automático, chatbot</div></div>
+            </div>
+            <span style={{fontSize:11,padding:"4px 12px",borderRadius:8,background:GR+"15",color:GR,fontWeight:600}}>Configurado</span>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Phone Number ID</div><input id="int_wa_phone" onKeyDown={function(e){e.stopPropagation()}} style={iS} defaultValue="1064884910048060"/></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Business Account ID</div><input id="int_wa_biz" onKeyDown={function(e){e.stopPropagation()}} style={iS} defaultValue="963918186561932"/></div>
+          </div>
+          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Token de Acesso</div><input id="int_wa_token" type="password" onKeyDown={function(e){e.stopPropagation()}} style={iS} placeholder="Token permanente do WhatsApp"/></div>
+          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Webhook URL</div><input style={Object.assign({},iS,{color:subColor})} readOnly value="https://zztqlktqevfdxjyzvand.supabase.co/functions/v1/webhook-whatsapp"/></div>
+          <button className="bh" onClick={async function(){
+            var configs=[{chave:"wa_phone_id",valor:document.getElementById("int_wa_phone").value},{chave:"wa_business_id",valor:document.getElementById("int_wa_biz").value}];
+            var tk=document.getElementById("int_wa_token").value;if(tk)configs.push({chave:"wa_token",valor:tk});
+            for(var i=0;i<configs.length;i++){await sb.from("config_whatsapp").delete().eq("chave",configs[i].chave);await sb.from("config_whatsapp").insert({chave:configs[i].chave,valor:configs[i].valor,tenant_id:"mk"})}
+            msg("✅ WhatsApp atualizado!")
+          }} style={{padding:"10px 20px",borderRadius:8,background:GR,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>💾 Salvar Configurações</button>
+        </div>
+        {/* Payment gateway */}
+        <div style={{padding:20,borderRadius:14,background:cardBg,border:"1px solid "+border,marginBottom:12}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <span style={{fontSize:28}}>💳</span>
+              <div><div style={{fontSize:16,fontWeight:700,color:textColor}}>Gateway de Pagamento</div><div style={{fontSize:12,color:subColor}}>Cobrança automática, boleto, PIX, cartão</div></div>
+            </div>
+            <span style={{fontSize:11,padding:"4px 12px",borderRadius:8,background:W+"15",color:W,fontWeight:600}}>Pendente</span>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Plataforma</div>
+              <select id="int_pay_plat" style={iS}><option value="">Selecione...</option><option value="asaas">Asaas</option><option value="stripe">Stripe</option><option value="mercadopago">Mercado Pago</option><option value="pagarme">Pagar.me</option><option value="gerencianet">Gerencianet/EFÍ</option></select></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>API Key</div><input id="int_pay_key" type="password" onKeyDown={function(e){e.stopPropagation()}} style={iS} placeholder="Chave da API"/></div>
+          </div>
+          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Webhook URL (para receber confirmações)</div><input style={Object.assign({},iS,{color:subColor})} readOnly value="https://zztqlktqevfdxjyzvand.supabase.co/functions/v1/webhook-pagamento"/></div>
+          <div style={{padding:10,borderRadius:8,background:W+"08",border:"1px solid "+W+"15",marginBottom:10,fontSize:12,color:W}}>⚠️ Para ativar cobranças automáticas, configure a API Key da plataforma escolhida. Os boletos/PIX serão gerados automaticamente conforme o plano do cliente.</div>
+          <button className="bh" onClick={async function(){
+            var plat=document.getElementById("int_pay_plat").value;var key=document.getElementById("int_pay_key").value;
+            if(!plat){msg("Selecione uma plataforma");return}
+            await sb.from("config_whatsapp").delete().eq("chave","payment_platform");await sb.from("config_whatsapp").insert({chave:"payment_platform",valor:plat,tenant_id:"mk"});
+            if(key){await sb.from("config_whatsapp").delete().eq("chave","payment_api_key");await sb.from("config_whatsapp").insert({chave:"payment_api_key",valor:key,tenant_id:"mk"})}
+            msg("✅ Gateway configurado: "+plat)
+          }} style={{padding:"10px 20px",borderRadius:8,background:W,color:"#0a0a09",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>💾 Salvar Gateway</button>
+        </div>
+        {/* Instagram */}
+        <div style={{padding:20,borderRadius:14,background:cardBg,border:"1px solid "+border,marginBottom:12}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <span style={{fontSize:28}}>📸</span>
+              <div><div style={{fontSize:16,fontWeight:700,color:textColor}}>Instagram API</div><div style={{fontSize:12,color:subColor}}>Publicação automática, stories, métricas</div></div>
+            </div>
+            <span style={{fontSize:11,padding:"4px 12px",borderRadius:8,background:subColor+"15",color:subColor,fontWeight:600}}>Em breve</span>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Instagram Username</div><input id="int_ig_user" onKeyDown={function(e){e.stopPropagation()}} style={iS} placeholder="@suaempresa"/></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Access Token</div><input id="int_ig_token" type="password" onKeyDown={function(e){e.stopPropagation()}} style={iS} placeholder="Token Meta Graph API"/></div>
+          </div>
+          <button className="bh" onClick={async function(){
+            var usr=document.getElementById("int_ig_user").value;var tk=document.getElementById("int_ig_token").value;
+            if(usr){await sb.from("config_whatsapp").delete().eq("chave","instagram_user");await sb.from("config_whatsapp").insert({chave:"instagram_user",valor:usr,tenant_id:"mk"})}
+            if(tk){await sb.from("config_whatsapp").delete().eq("chave","instagram_token");await sb.from("config_whatsapp").insert({chave:"instagram_token",valor:tk,tenant_id:"mk"})}
+            msg("✅ Instagram salvo!")
+          }} style={{padding:"10px 20px",borderRadius:8,background:P,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>💾 Salvar</button>
+        </div>
+        {/* Email */}
+        <div style={{padding:20,borderRadius:14,background:cardBg,border:"1px solid "+border}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <span style={{fontSize:28}}>📧</span>
+              <div><div style={{fontSize:16,fontWeight:700,color:textColor}}>Email Marketing</div><div style={{fontSize:12,color:subColor}}>Envio automático, templates, sequências</div></div>
+            </div>
+            <span style={{fontSize:11,padding:"4px 12px",borderRadius:8,background:subColor+"15",color:subColor,fontWeight:600}}>Em breve</span>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Plataforma</div>
+              <select id="int_email_plat" style={iS}><option value="">Selecione...</option><option value="mailchimp">Mailchimp</option><option value="sendgrid">SendGrid</option><option value="resend">Resend</option><option value="brevo">Brevo</option></select></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>API Key</div><input id="int_email_key" type="password" onKeyDown={function(e){e.stopPropagation()}} style={iS} placeholder="API Key"/></div>
+          </div>
+          <button className="bh" onClick={async function(){
+            var plat=document.getElementById("int_email_plat").value;var key=document.getElementById("int_email_key").value;
+            if(plat){await sb.from("config_whatsapp").delete().eq("chave","email_platform");await sb.from("config_whatsapp").insert({chave:"email_platform",valor:plat,tenant_id:"mk"})}
+            if(key){await sb.from("config_whatsapp").delete().eq("chave","email_api_key");await sb.from("config_whatsapp").insert({chave:"email_api_key",valor:key,tenant_id:"mk"})}
+            msg("✅ Email salvo!")
+          }} style={{padding:"10px 20px",borderRadius:8,background:B,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>💾 Salvar</button>
+        </div>
       </div>}
 
       {/* ═══ OVERDUE ═══ */}
