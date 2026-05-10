@@ -96,10 +96,11 @@ function App(){
     var r4=await sb.from("planos").select("*").eq("ativo",true).order("valor_mensal");setPlanos(r4.data||[]);
     var r5=await sb.from("config_whatsapp").select("valor").eq("chave","landing_ativa").single();
     if(r5.data){var lv=r5.data.valor;setLandingOn(lv===true||lv==="true"||String(lv).replace(/"/g,"")==="true")}
-    await loadCampanhas();await loadAdminPortalUsers();
+    await loadCampanhas();await loadAdminPortalUsers();await loadTenantAdmins();
   };
   var loadCampanhas=async function(){var r=await sb.from("campanhas").select("*").order("criado_em",{ascending:false});window._campanhas=r.data||[];setView(function(v){return v})};
   var loadAdminPortalUsers=async function(){var r=await sb.from("admin_portal_users").select("*").order("criado_em");window._adminUsers=r.data||[];setView(function(v){return v})};
+  var loadTenantAdmins=async function(){var r=await sb.from("admin_users").select("*").order("tenant_id,nome");var byTenant={};(r.data||[]).forEach(function(a){if(!byTenant[a.tenant_id])byTenant[a.tenant_id]=[];byTenant[a.tenant_id].push(a)});window._tenantAdmins=byTenant;setView(function(v){return v})};
 
   var toggleLanding=async function(){
     var novo=!landingOn;
@@ -677,7 +678,7 @@ function App(){
 
       {/* ═══ PORTAIS / LINKS ═══ */}
       {view==="links"&&<div className="fade-in">
-        <div style={{fontSize:24,fontWeight:700,color:textColor,marginBottom:20}}>🔗 Portais dos Clientes</div>
+        <div style={{fontSize:24,fontWeight:700,color:textColor,marginBottom:20}}>🔗 Gestão de Portais</div>
         {/* Stats */}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:10,marginBottom:20}}>
           {[
@@ -690,50 +691,107 @@ function App(){
             <div style={{fontSize:11,color:subColor}}>{k.l}</div>
           </div>})}
         </div>
-        {/* Client list with links */}
+        {/* Client portals */}
         {tenants.map(function(t){
           var sub=subs.find(function(s){return s.tenant_id===t.id});
           var pgTotal=pagtos.filter(function(p){return p.tenant_id===t.id}).length;
           var pgPagos=pagtos.filter(function(p){return p.tenant_id===t.id&&p.status==="pago"}).length;
           var pgPend=pagtos.filter(function(p){return p.tenant_id===t.id&&p.status==="pendente"}).length;
           var isLate=pagtos.some(function(p){return p.tenant_id===t.id&&p.status==="pendente"&&p.vencimento&&p.vencimento<hoje});
-          var statusColor=!t.ativo?R:isLate?W:t.portal_url?GR:"#555";
+          var statusColor=!t.ativo?R:isLate?W:t.portal_url?GR:subColor;
           var statusLabel=!t.ativo?"Inativo":isLate?"Inadimplente":t.portal_url?"Ativo":"Sem portal";
-          return <div key={t.id} style={{padding:16,borderRadius:14,background:cardBg,border:"1px solid "+(isLate?"rgba(232,169,78,0.15)":border),marginBottom:8}}>
-            {/* Header */}
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+          var expanded=window._expandedPortal===t.id;
+          return <div key={t.id} style={{borderRadius:14,background:cardBg,border:"1px solid "+(isLate?W+"30":border),marginBottom:8,overflow:"hidden"}}>
+            {/* Header - clickable */}
+            <div className="bh" onClick={function(){window._expandedPortal=expanded?null:t.id;setView("links")}} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px",cursor:"pointer"}}>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
                 <div style={{width:10,height:10,borderRadius:"50%",background:statusColor}}/>
                 <div>
                   <div style={{fontSize:16,fontWeight:700,color:textColor}}>{t.nome_empresa}</div>
-                  <div style={{fontSize:12,color:subColor}}>{t.contato_nome||"—"} · {t.contato_email||"—"} · {t.cidade||""}{t.estado?"/"+t.estado:""}</div>
+                  <div style={{fontSize:12,color:subColor}}>{t.contato_nome||"—"} · {t.slug}</div>
                 </div>
               </div>
               <div style={{display:"flex",alignItems:"center",gap:8}}>
                 <span style={{fontSize:11,padding:"4px 10px",borderRadius:8,background:statusColor+"15",color:statusColor,fontWeight:600}}>{statusLabel}</span>
                 {sub&&<span style={{fontSize:11,padding:"4px 10px",borderRadius:8,background:P+"15",color:P}}>{sub.plano}</span>}
+                <span style={{fontSize:14,color:subColor}}>{expanded?"▲":"▼"}</span>
               </div>
             </div>
-            {/* Portal URL */}
-            <div style={{padding:12,borderRadius:10,background:cardBg,border:"1px solid "+border,marginBottom:10}}>
-              {t.portal_url?<div style={{display:"flex",alignItems:"center",gap:8}}>
-                <div style={{width:8,height:8,borderRadius:"50%",background:GR,flexShrink:0}}/>
-                <a href={t.portal_url} target="_blank" style={{fontSize:14,color:B,textDecoration:"none",flex:1,wordBreak:"break-all"}}>{t.portal_url}</a>
-                <button className="bh" onClick={function(){navigator.clipboard.writeText(t.portal_url);msg("📋 Copiado!")}} style={{padding:"6px 12px",borderRadius:6,background:B+"12",color:B,border:"none",fontSize:12,cursor:"pointer",flexShrink:0}}>📋 Copiar</button>
-                <a href={t.portal_url} target="_blank" className="bh" style={{padding:"6px 12px",borderRadius:6,background:GR+"12",color:GR,border:"none",fontSize:12,cursor:"pointer",textDecoration:"none",flexShrink:0}}>🔗 Abrir</a>
-              </div>:<div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                <span style={{fontSize:13,color:subColor}}>Portal não criado</span>
-                <button className="bh" disabled={deploying} onClick={function(){deployPortal(t)}} style={{padding:"6px 14px",borderRadius:6,background:GR+"12",color:GR,border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>🚀 Criar Portal</button>
-              </div>}
-            </div>
-            {/* Stats */}
-            <div style={{display:"flex",gap:16,fontSize:12}}>
-              <span style={{color:subColor}}>💰 {fmt(t.valor_mensal||0)}/mês</span>
-              <span style={{color:GR}}>✅ {pgPagos} pagos</span>
-              <span style={{color:pgPend>0?W:"#555"}}>⏳ {pgPend} pendentes</span>
-              <span style={{color:subColor}}>📊 {pgTotal} total</span>
-              {sub&&<span style={{color:subColor}}>📋 {sub.forma_pagamento} · {sub.parcelas_total}x</span>}
-            </div>
+            {/* Expanded details */}
+            {expanded&&<div style={{padding:"0 16px 16px",borderTop:"1px solid "+border}}>
+              {/* Portal URL */}
+              <div style={{padding:12,borderRadius:10,background:dark?"#111":"#f8f5f0",marginTop:12,marginBottom:12}}>
+                <div style={{fontSize:11,color:subColor,marginBottom:4}}>URL do Portal</div>
+                {t.portal_url?<div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <div style={{width:8,height:8,borderRadius:"50%",background:GR,flexShrink:0}}/>
+                  <a href={t.portal_url} target="_blank" style={{fontSize:14,color:B,textDecoration:"none",flex:1,wordBreak:"break-all"}}>{t.portal_url}</a>
+                  <button className="bh" onClick={function(){navigator.clipboard.writeText(t.portal_url);msg("📋 Copiado!")}} style={{padding:"6px 12px",borderRadius:6,background:B+"12",color:B,border:"none",fontSize:12,cursor:"pointer"}}>📋</button>
+                  <a href={t.portal_url} target="_blank" className="bh" style={{padding:"6px 12px",borderRadius:6,background:GR+"12",color:GR,border:"none",fontSize:12,cursor:"pointer",textDecoration:"none"}}>🔗 Abrir</a>
+                </div>:<div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <span style={{fontSize:13,color:subColor}}>Portal não criado</span>
+                  <button className="bh" disabled={deploying} onClick={function(){deployPortal(t)}} style={{padding:"6px 14px",borderRadius:6,background:GR+"12",color:GR,border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>🚀 Ativar Portal</button>
+                </div>}
+              </div>
+              {/* Admin credentials */}
+              <div style={{padding:12,borderRadius:10,background:dark?"#111":"#f8f5f0",marginBottom:12}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                  <div style={{fontSize:13,fontWeight:600,color:textColor}}>🔐 Acesso Admin do Portal</div>
+                  <button className="bh" onClick={function(){var el=document.getElementById("cred_"+t.id);if(el)el.style.display=el.style.display==="block"?"none":"block"}} style={{padding:"4px 10px",borderRadius:6,background:P+"12",color:P,border:"none",fontSize:11,cursor:"pointer"}}>+ Novo Admin</button>
+                </div>
+                {/* Existing admins for this tenant */}
+                {(function(){
+                  var tAdmins=(window._tenantAdmins||{})[t.slug]||[];
+                  if(tAdmins.length===0) return <div style={{fontSize:12,color:subColor}}>Nenhum admin cadastrado para este portal</div>;
+                  return tAdmins.map(function(a){return <div key={a.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid "+border}}>
+                    <div>
+                      <span style={{fontSize:13,fontWeight:600,color:textColor}}>{a.nome}</span>
+                      <span style={{fontSize:12,color:subColor,marginLeft:8}}>{a.email}</span>
+                      <span style={{fontSize:11,color:P,marginLeft:8}}>{a.role}</span>
+                    </div>
+                    <div style={{display:"flex",gap:4}}>
+                      <button className="bh" onClick={function(){var np=prompt("Nova senha para "+a.nome+":",a.password);if(np){sb.from("admin_users").update({password:np}).eq("id",a.id).then(function(){loadTenantAdmins();msg("🔑 Senha alterada!")})}}} style={{padding:"4px 8px",borderRadius:4,background:W+"12",color:W,border:"none",fontSize:10,cursor:"pointer"}}>🔑 Senha</button>
+                      <button className="bh" onClick={function(){var ne=prompt("Novo email:",a.email);if(ne){sb.from("admin_users").update({email:ne}).eq("id",a.id).then(function(){loadTenantAdmins();msg("📧 Email alterado!")})}}} style={{padding:"4px 8px",borderRadius:4,background:B+"12",color:B,border:"none",fontSize:10,cursor:"pointer"}}>📧</button>
+                      <select value={a.role} onChange={function(e){sb.from("admin_users").update({role:e.target.value}).eq("id",a.id).then(function(){loadTenantAdmins();msg("Perfil alterado")})}} style={{padding:"2px 4px",borderRadius:4,fontSize:10,background:inputBg,color:textColor,border:"1px solid "+inputBorder,cursor:"pointer"}}>
+                        <option value="super_admin">Super Admin</option><option value="admin">Admin</option><option value="atendente">Atendente</option>
+                      </select>
+                      <button className="bh" onClick={function(){if(!confirm("Excluir admin "+a.nome+"?"))return;sb.from("admin_users").delete().eq("id",a.id).then(function(){loadTenantAdmins();msg("Excluído")})}} style={{padding:"4px 8px",borderRadius:4,background:R+"12",color:R,border:"none",fontSize:10,cursor:"pointer"}}>🗑️</button>
+                    </div>
+                  </div>})
+                })()}
+                {/* New admin form */}
+                <div id={"cred_"+t.id} style={{display:"none",marginTop:10,padding:10,borderRadius:8,background:cardBg,border:"1px solid "+border}}>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:6}}>
+                    <input id={"ca_nome_"+t.id} onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},iS,{fontSize:12})} placeholder="Nome"/>
+                    <input id={"ca_email_"+t.id} onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},iS,{fontSize:12})} placeholder="Email"/>
+                    <input id={"ca_pass_"+t.id} onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},iS,{fontSize:12})} placeholder="Senha" defaultValue="portal2024"/>
+                    <select id={"ca_role_"+t.id} style={Object.assign({},iS,{fontSize:12})}><option value="super_admin">Super Admin</option><option value="admin">Admin</option><option value="atendente">Atendente</option></select>
+                  </div>
+                  <button className="bh" onClick={async function(){
+                    var nm=document.getElementById("ca_nome_"+t.id).value;var em=document.getElementById("ca_email_"+t.id).value;
+                    if(!nm||!em){msg("Preencha nome e email");return}
+                    var r=await sb.from("admin_users").insert({nome:nm,email:em,password:document.getElementById("ca_pass_"+t.id).value||"portal2024",role:document.getElementById("ca_role_"+t.id).value,tenant_id:t.slug});
+                    if(r.error){msg("❌ "+r.error.message);return}
+                    document.getElementById("cred_"+t.id).style.display="none";await loadTenantAdmins();msg("✅ Admin criado!")
+                  }} style={{padding:"6px 16px",borderRadius:6,background:P,color:"#fff",border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>💾 Criar</button>
+                </div>
+              </div>
+              {/* Portal controls */}
+              <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
+                <button className="bh" onClick={async function(){await sb.from("tenants").update({ativo:!t.ativo}).eq("id",t.id);await loadAll();msg(t.ativo?"⏸ Portal pausado":"▶️ Portal ativado")}} style={{padding:"6px 14px",borderRadius:6,background:t.ativo?R+"12":GR+"12",color:t.ativo?R:GR,border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>{t.ativo?"⏸ Pausar Portal":"▶️ Ativar Portal"}</button>
+                {!t.portal_url&&<button className="bh" disabled={deploying} onClick={function(){deployPortal(t)}} style={{padding:"6px 14px",borderRadius:6,background:GR+"12",color:GR,border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>🚀 Criar Portal</button>}
+                <button className="bh" onClick={async function(){await sb.from("tenants").update({setup_completo:false,setup_step:0}).eq("id",t.id);await loadAll();msg("🔄 Setup resetado — cliente verá wizard")}} style={{padding:"6px 14px",borderRadius:6,background:W+"12",color:W,border:"none",fontSize:12,cursor:"pointer"}}>🔄 Resetar Setup</button>
+                <button className="bh" onClick={function(){var u=prompt("Nova URL do portal:",t.portal_url||"https://portal-corretor.com/"+t.slug);if(u){sb.from("tenants").update({portal_url:u}).eq("id",t.id).then(function(){loadAll();msg("URL atualizada")})}}} style={{padding:"6px 14px",borderRadius:6,background:B+"12",color:B,border:"none",fontSize:12,cursor:"pointer"}}>✏️ Editar URL</button>
+              </div>
+              {/* Stats */}
+              <div style={{display:"flex",gap:16,fontSize:12}}>
+                <span style={{color:subColor}}>💰 {fmt(t.valor_mensal||0)}/mês</span>
+                <span style={{color:GR}}>✅ {pgPagos} pagos</span>
+                <span style={{color:pgPend>0?W:subColor}}>⏳ {pgPend} pendentes</span>
+                <span style={{color:subColor}}>📊 {pgTotal} total</span>
+                {sub&&<span style={{color:subColor}}>📋 {sub.forma_pagamento} · {sub.parcelas_total}x</span>}
+                <span style={{color:subColor}}>📅 Setup: {t.setup_completo?"✅":"⏳ passo "+(t.setup_step||0)}</span>
+              </div>
+            </div>}
           </div>
         })}
       </div>}
