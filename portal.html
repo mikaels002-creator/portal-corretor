@@ -305,8 +305,8 @@ var DB = {
   deleteBroker: async function(id){
     await sb.from("brokers").delete().eq("id", id);
   },
-  loadSales: async function(){try{var r=await sb.from("broker_sales").select("*").order("id",{ascending:false});return r.data||[]}catch(e){return[]}},
-  addSale: async function(s){try{await sb.from("broker_sales").insert(s)}catch(e){}},
+  loadSales: async function(){try{var r=await sb.from("broker_sales").select("*").eq("tenant_id",DB._tid).order("id",{ascending:false});return r.data||[]}catch(e){return[]}},
+  addSale: async function(s){try{await sb.from("broker_sales").insert(Object.assign({},s,{tenant_id:DB._tid}))}catch(e){}},
   updateSale: async function(id,c){try{await sb.from("broker_sales").update(c).eq("id",id)}catch(e){}},
   // --- Admin Users ---
   loadAdminUsers: async function(){try{var r=await sb.from("admin_users").select("*").eq("tenant_id",DB._tid).order("id");return r.data||[]}catch(e){return[]}},
@@ -324,15 +324,15 @@ var DB = {
   saveReport: async function(r){await sb.from("ai_reports").insert(r)},
   loadReports: async function(){var r=await sb.from("ai_reports").select("*").order("id",{ascending:false}).limit(20);return r.data||[]},
   // --- Tasks ---
-  loadTasks: async function(){try{var r=await sb.from("tasks").select("*").order("id",{ascending:false});return r.data||[]}catch(e){return[]}},
-  addTask: async function(t){await sb.from("tasks").insert(t)},
+  loadTasks: async function(){try{var r=await sb.from("tasks").select("*").eq("tenant_id",DB._tid).order("id",{ascending:false});return r.data||[]}catch(e){return[]}},
+  addTask: async function(t){await sb.from("tasks").insert(Object.assign({},t,{tenant_id:DB._tid}))},
   updateTask: async function(id,c){await sb.from("tasks").update(c).eq("id",id)},
   deleteTask: async function(id){await sb.from("tasks").delete().eq("id",id)},
   loadTaskComments: async function(taskId){var r=await sb.from("task_comments").select("*").eq("task_id",taskId).order("id",{ascending:true});return r.data||[]},
   addTaskComment: async function(c){await sb.from("task_comments").insert(c)},
   // --- Messages ---
-  loadMessages: async function(channel){var r=await sb.from("messages").select("*").eq("channel",channel).order("id",{ascending:true}).limit(200);return r.data||[]},
-  sendMessage: async function(m){await sb.from("messages").insert(m)},
+  loadMessages: async function(channel){var r=await sb.from("messages").select("*").eq("channel",channel).eq("tenant_id",DB._tid).order("id",{ascending:true}).limit(200);return r.data||[]},
+  sendMessage: async function(m){m.tenant_id=DB._tid;await sb.from("messages").insert(m)},
 
   // --- File Upload ---
   uploadFile: function(file, folder, callback, msgFn){
@@ -556,7 +556,7 @@ function App(){
         var bid=broker?broker.id:null;
         // Tasks for admin
         if(uid){
-          var tr=await sb.from("tasks").select("id").eq("assigned_to",uid).in("status",["pending","doing"]);
+          var tr=await sb.from("tasks").select("id").eq("tenant_id",DB._tid).eq("assigned_to",uid).in("status",["pending","doing"]);
           var cnt=tr.data?tr.data.length:0;
           if(window._pollData.ready&&cnt>window._pollData.taskCount&&window._pollData.taskCount>=0){
             setHasUnread(true);addNotif("📋 Você tem "+cnt+" tarefa"+(cnt>1?"s":"")+" pendente"+(cnt>1?"s":"")+"!","task",function(){setMdl({t:"taskManager"})});
@@ -565,7 +565,7 @@ function App(){
         }
         // Messages for admin - get latest NOT from me
         if(uid){
-          var mr=await sb.from("messages").select("id,sender_id,sender_name,text,channel").neq("sender_id",uid).order("id",{ascending:false}).limit(1);
+          var mr=await sb.from("messages").select("id,sender_id,sender_name,text,channel").eq("tenant_id",DB._tid).neq("sender_id",uid).order("id",{ascending:false}).limit(1);
           if(mr.data&&mr.data.length>0){
             var m=mr.data[0];
             var isForMe=m.channel==="admin_team"||m.channel==="dm_"+uid||m.channel.indexOf("broker_")===0;
@@ -577,7 +577,7 @@ function App(){
         }
         // Messages for broker
         if(bid&&!uid){
-          var br=await sb.from("messages").select("id,sender_name,text").eq("channel","broker_"+bid).eq("sender_type","admin").order("id",{ascending:false}).limit(1);
+          var br=await sb.from("messages").select("id,sender_name,text").eq("tenant_id",DB._tid).eq("channel","broker_"+bid).eq("sender_type","admin").order("id",{ascending:false}).limit(1);
           if(br.data&&br.data.length>0){
             var bm=br.data[0];
             if(window._pollData.ready&&bm.id!==window._pollData.msgId){
@@ -1763,7 +1763,7 @@ function App(){
         // Reset polling state
         window._pollData={taskCount:-1,msgId:-1,ready:false};
         // Query tasks directly
-        sb.from("tasks").select("id").eq("assigned_to",admin.id).in("status",["pending","doing"]).then(function(r){
+        sb.from("tasks").select("id").eq("tenant_id",DB._tid).eq("assigned_to",admin.id).in("status",["pending","doing"]).then(function(r){
           var cnt=r.data?r.data.length:0;
           if(cnt>0){setMdl({t:"loginNotif",taskCount:cnt,userName:admin.nome})}
           else{setMdl(null);msg("Bem-vindo, "+admin.nome+"!")}
