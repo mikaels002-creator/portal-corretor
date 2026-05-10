@@ -56,6 +56,7 @@ function App(){
   var _toast=useState(null);var toast=_toast[0];var setToast=_toast[1];
   var _selClient=useState(null);var selClient=_selClient[0];var setSelClient=_selClient[1];
   var _landingOn=useState(false);var landingOn=_landingOn[0];var setLandingOn=_landingOn[1];
+  var _expandP=useState(null);var expandP=_expandP[0];var setExpandP=_expandP[1];
   var _deploying=useState(false);var deploying=_deploying[0];var setDeploying=_deploying[1];
   var msg=function(m){setToast(m);setTimeout(function(){setToast(null)},4000)};
 
@@ -700,10 +701,10 @@ function App(){
           var isLate=pagtos.some(function(p){return p.tenant_id===t.id&&p.status==="pendente"&&p.vencimento&&p.vencimento<hoje});
           var statusColor=!t.ativo?R:isLate?W:t.portal_url?GR:subColor;
           var statusLabel=!t.ativo?"Inativo":isLate?"Inadimplente":t.portal_url?"Ativo":"Sem portal";
-          var expanded=window._expandedPortal===t.id;
+          var expanded=expandP===t.id;
           return <div key={t.id} style={{borderRadius:14,background:cardBg,border:"1px solid "+(isLate?W+"30":border),marginBottom:8,overflow:"hidden"}}>
             {/* Header - clickable */}
-            <div className="bh" onClick={function(){window._expandedPortal=expanded?null:t.id;setView("links")}} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px",cursor:"pointer"}}>
+            <div className="bh" onClick={function(){setExpandP(expanded?null:t.id)}} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 16px",cursor:"pointer"}}>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
                 <div style={{width:10,height:10,borderRadius:"50%",background:statusColor}}/>
                 <div>
