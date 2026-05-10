@@ -160,7 +160,7 @@ var getSL = function(lang2){var t2=TR[lang2]||TR.pt;return{available:t2.availabl
 var EMO = ["🏙️","🌇","⭐","🏛️","🔄","🏢","🏗️","🌆","🏘️","🏠","🏡","🏰"];
 var CLR = ["#5B8FD4","#D4735B","#C8A45C","#8B6FBF","#5BB8B0","#E06090","#7CB342","#FF7043","#5C6BC0"];
 var CT = {email:"",phone:"",wa:"",ig:[]}; // Loaded per tenant
-var G = "#C8A45C";
+var G = "#C8A45C";var B="#5B8FD4";var GR="#4CAF7D";var P="#8B6FBF";var R="#D45B5B";var W="#E8A94E";
 var TR = {
   pt:{home:"Início",table:"Tabela",photos:"Fotos",plants:"Plantas",docs:"Docs",notices:"Avisos",back:"Voltar",available:"Disponível",reserved:"Reservado",sold:"Vendido",ready:"Pronto para Morar",construction:"Em Construção",unit:"Unid.",area:"Área",value:"Valor",status:"Status",actions:"Ações",filter:"Filtrar",all:"Todos",export:"Exportar PDF",commission:"comissão",compare:"Comparar",simulator:"Simulador de Financiamento",send:"Enviar via WhatsApp",close:"Fechar",showUsd:"USD",showBrl:"BRL",
     invest:"Proposta de Investimento",client:"Cliente",downPay:"Entrada",balance:"Saldo",monthly:"Mensal",balloon:"Parcela Reforço",total:"Total Geral",rate:"Taxa",noRate:"Sem juros",correction:"Correção",prop:"Proposta",sendProp:"Enviar Proposta via WhatsApp",genPdf:"Gerar Proposta em PDF",disp:"disp.",exclusive:"Conteúdo Exclusivo",exclusiveMsg:"As tabelas de vendas são exclusivas para corretores parceiros. Cadastre-se para ter acesso completo.",loginBroker:"Entrar como Corretor",register:"Não tem conta? Cadastre-se gratuitamente",search:"Buscar unidade...",enter:"Entrar",belowTable:"Proposta abaixo do valor de tabela",discountReq:"Desconto solicitado",boardApproval:"Esta proposta deverá ser remetida à diretoria para análise e aprovação",noParcels:"Sem parcelas mensais",maxParcels:"máx",parcels:"Parcelas Mensais",bem:"Entrada com Bem",bemVal:"Valor",bemDesc:"Descrição",rateLabel:"Taxa mensal",index:"Índice",freq:"Frequência",none:"Nenhum",quarterly:"Trimestral",semiannual:"Semestral",annual:"Anual",pctBalance:"% do saldo",fixedVal:"Valor fixo",summary:"Resumo da Proposta",tableValue:"Valor tabela",proposal:"Proposta",ready2:"Pronto",obra:"Obra",preLaunch:"Pré-Lanç."},
@@ -1542,17 +1542,6 @@ function App(){
           <button className="bh ch" onClick={function(){setMdl({t:"taskManager"})}} style={{padding:16,borderRadius:14,fontSize:15,fontWeight:500,background:cardBg,color:"#E8A94E",border:"1px solid rgba(232,169,78,0.1)",cursor:"pointer",textAlign:"center",position:"relative"}}>📋 Tarefas {tasks.filter(function(t2){return t2.status==="pending"}).length>0?" · "+tasks.filter(function(t2){return t2.status==="pending"}).length:""}</button>
           <button className="bh ch" onClick={function(){setMiniChat({channel:"admin_team",title:"Chat Equipe"})}} style={{padding:16,borderRadius:14,fontSize:15,fontWeight:500,background:cardBg,color:"#4CAF7D",border:"1px solid rgba(76,175,125,0.1)",cursor:"pointer",textAlign:"center"}}>💬 Chat Equipe</button>
         </div>
-
-        {/* Plan Upgrade */}
-        {adm&&<div style={{padding:16,background:"linear-gradient(135deg,"+(isDark?"#0d0d18":"#f0ede8")+","+(isDark?"#0f0f12":"#fff")+")",borderRadius:14,marginBottom:16,border:"1px solid "+borderColor}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <div>
-              <div style={{fontSize:15,fontWeight:700,color:textColor}}>📦 Seu Plano</div>
-              <div style={{fontSize:13,color:subColor}}>Gerencie seu plano e faça upgrade para desbloquear recursos</div>
-            </div>
-            <button className="bh" onClick={function(){setMdl({t:"upgradePlan"})}} style={{padding:"10px 20px",borderRadius:10,background:"linear-gradient(135deg,"+P+",#6a4fa0)",color:"#fff",fontSize:14,fontWeight:700,border:"none",cursor:"pointer"}}>⬆️ Upgrade</button>
-          </div>
-        </div>}
 
         {/* Portal Access Toggle */}
         {can("manage_settings") && <div style={{padding:16,background:cardBg,borderRadius:14,marginBottom:16,border:"1px solid "+borderColor,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
