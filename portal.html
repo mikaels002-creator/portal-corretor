@@ -503,6 +503,7 @@ function App(){
   var _broker = useState(null); var broker = _broker[0]; var setBroker = _broker[1];
   var _setupStep=useState(0);var setupStep=_setupStep[0];var setSetupStep=_setupStep[1];
   var _showSetupLogin=useState(false);var showSetupLogin=_showSetupLogin[0];var setShowSetupLogin=_showSetupLogin[1];
+  var _showSupport=useState(false);var showSupport=_showSupport[0];var setShowSupport=_showSupport[1];
   var _sales = useState([]); var sales = _sales[0]; var setSales = _sales[1];
   var _adminUsers = useState([]); var adminUsers = _adminUsers[0]; var setAdminUsers = _adminUsers[1];
   var _currentUser = useState(null); var currentUser = _currentUser[0]; var setCurrentUser = _currentUser[1];
@@ -2006,7 +2007,7 @@ function App(){
           <div style={{fontSize:15,fontWeight:700,color:"#fff"}}>Suporte IA</div>
           <div style={{fontSize:11,color:"rgba(255,255,255,0.7)"}}>Assistente Portal do Corretor</div>
         </div>
-        <button onClick={function(){window._showSupport=false;setMdl({t:"__force"});setTimeout(function(){setMdl(null)},50)}} style={{width:28,height:28,borderRadius:8,background:"rgba(255,255,255,0.15)",color:"#fff",border:"none",fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+        <button onClick={function(){setShowSupport(false)}} style={{width:28,height:28,borderRadius:8,background:"rgba(255,255,255,0.15)",color:"#fff",border:"none",fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
       </div>
       {/* Messages */}
       <div ref={scrollRef} style={{flex:1,padding:12,overflow:"auto",maxHeight:340}}>
@@ -5171,11 +5172,11 @@ function App(){
         {/* WhatsApp FAB - only for visitors/corretores (admins use nav button) */}
         {!adm && <a href={"https://wa.me/"+waNum+"?text="+encodeURIComponent("Olá! Vim pelo Portal do Corretor 🏢")} target="_blank" className="bh" style={{width:52,height:52,borderRadius:16,background:"#25D366",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 6px 24px rgba(37,211,102,0.25)",textDecoration:"none",color:"#fff"}}><WaIcon size={24}/></a>}
         {/* Support AI button */}
-        {adm&&<button className="bh" onClick={function(){window._showSupport=!window._showSupport;setMdl(window._showSupport?{t:"__force"}:null);setTimeout(function(){setMdl(null)},50)}} style={{width:48,height:48,borderRadius:14,background:"linear-gradient(135deg,#8B6FBF,#6a4fa0)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,boxShadow:"0 4px 20px rgba(139,111,191,0.3)",cursor:"pointer",border:"none",color:"#fff"}}>🤖</button>}
+        {adm&&<button className="bh" onClick={function(){setShowSupport(!showSupport)}} style={{width:48,height:48,borderRadius:14,background:"linear-gradient(135deg,#8B6FBF,#6a4fa0)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,boxShadow:"0 4px 20px rgba(139,111,191,0.3)",cursor:"pointer",border:"none",color:"#fff"}}>🤖</button>}
       </div>
 
       {/* SUPPORT CHAT */}
-      {adm&&window._showSupport&&<SupportChat/>}
+      {adm&&showSupport&&<SupportChat/>}
 
       {/* MODAL */}
       {mdl && mdl.t!=="waInbox" && mdl.t!=="tenants" && <div onClick={function(){setMdl(null)}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",backdropFilter:"blur(8px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:14}}>
