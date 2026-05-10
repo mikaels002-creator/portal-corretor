@@ -1519,7 +1519,6 @@ function App(){
           <button className="bh ch" onClick={function(){setMdl({t:"aiAgent"})}} style={{padding:16,borderRadius:14,fontSize:15,fontWeight:500,background:"linear-gradient(135deg,#111110,#15131d)",color:"#8B6FBF",border:"1px solid rgba(139,111,191,0.15)",cursor:"pointer",textAlign:"center"}}>🤖 Agente IA</button>
           <button className="bh ch" onClick={function(){setMdl({t:"waInbox"})}} style={{padding:16,borderRadius:14,fontSize:15,fontWeight:500,background:"linear-gradient(135deg,#111110,#0d1a13)",color:"#25D366",border:"1px solid rgba(37,211,102,0.15)",cursor:"pointer",textAlign:"center"}}>💼 CRM</button>
           {currentUser&&currentUser.role==="super_admin"&&<button className="bh ch" onClick={function(){setMdl({t:"auditLog"})}} style={{padding:16,borderRadius:14,fontSize:15,fontWeight:500,background:"linear-gradient(135deg,#111110,#1a1510)",color:"#E8A94E",border:"1px solid rgba(232,169,78,0.15)",cursor:"pointer",textAlign:"center"}}>📋 Logs</button>}
-          {currentUser&&currentUser.role==="super_admin"&&<button className="bh ch" onClick={function(){setMdl({t:"tenants"})}} style={{padding:16,borderRadius:14,fontSize:15,fontWeight:500,background:"linear-gradient(135deg,#111110,#101518)",color:"#5B8FD4",border:"1px solid rgba(91,143,212,0.15)",cursor:"pointer",textAlign:"center"}}>🏢 Assinantes</button>}
           <button className="bh ch" onClick={function(){setMdl({t:"taskManager"})}} style={{padding:16,borderRadius:14,fontSize:15,fontWeight:500,background:cardBg,color:"#E8A94E",border:"1px solid rgba(232,169,78,0.1)",cursor:"pointer",textAlign:"center",position:"relative"}}>📋 Tarefas {tasks.filter(function(t2){return t2.status==="pending"}).length>0?" · "+tasks.filter(function(t2){return t2.status==="pending"}).length:""}</button>
           <button className="bh ch" onClick={function(){setMiniChat({channel:"admin_team",title:"Chat Equipe"})}} style={{padding:16,borderRadius:14,fontSize:15,fontWeight:500,background:cardBg,color:"#4CAF7D",border:"1px solid rgba(76,175,125,0.1)",cursor:"pointer",textAlign:"center"}}>💬 Chat Equipe</button>
         </div>
@@ -4869,7 +4868,6 @@ function App(){
             {k:"crm",l:"CRM",i:"💼",c:"#25D366",action:function(){setMdl({t:"waInbox"})}},
             {k:"aiAgent",l:"Agente IA",i:"🤖",c:"#8B6FBF",action:function(){setMdl({t:"aiAgent"})}},
             {k:"auditLog",l:"Logs",i:"📋",c:"#E8A94E",action:function(){setMdl({t:"auditLog"})}},
-            {k:"tenants",l:"Assinantes",i:"🏢",c:"#5B8FD4",action:function(){setMdl({t:"tenants"})}},
             {k:"taskManager",l:"Tarefas",i:"✅",c:"#C47070",action:function(){setMdl({t:"taskManager"})}},
             {k:"config",l:"Configurações",i:"🛠️",c:"#9A9590",action:function(){setMdl({t:"config"})}},
             {k:"backup",l:"Backup",i:"💾",c:"#5B8FD4",action:function(){exportBackup()}},
