@@ -699,13 +699,25 @@ function App(){
             <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Máx corretores (-1 = ∞)</div><input id="pf_max_cor" type="number" onKeyDown={function(e){e.stopPropagation()}} style={iS} defaultValue="50"/></div>
             <div style={{display:"flex",alignItems:"flex-end",paddingBottom:10}}><label style={{display:"flex",alignItems:"center",gap:6,fontSize:13,color:G,cursor:"pointer"}}><input type="checkbox" id="pf_destaque"/>⭐ Destaque</label></div>
           </div>
+          {/* Feature toggles */}
+          <div style={{padding:12,borderRadius:10,background:dark?"#111":"#f8f5f0",border:"1px solid "+border,marginBottom:10}}>
+            <div style={{fontSize:13,fontWeight:600,color:textColor,marginBottom:8}}>⚡ Recursos inclusos no plano</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:8}}>
+              {[{id:"pf_feat_crm",l:"💼 CRM",d:"Funil, leads, contatos"},{id:"pf_feat_whatsapp",l:"💬 WhatsApp",d:"Integração WA Business"},{id:"pf_feat_agente_ia",l:"🤖 Agente IA",d:"Relatórios automáticos"},{id:"pf_feat_propostas",l:"📄 Propostas",d:"Propostas digitais"},{id:"pf_feat_visitas",l:"📅 Visitas",d:"Agendamento visitas"},{id:"pf_feat_docs",l:"📁 Documentos",d:"Esteira de docs"},{id:"pf_feat_nps",l:"📊 NPS",d:"Pesquisa satisfação"},{id:"pf_feat_api",l:"⚡ API",d:"Acesso à API"}].map(function(f){
+                return <label key={f.id} style={{display:"flex",alignItems:"flex-start",gap:6,padding:8,borderRadius:8,background:cardBg,border:"1px solid "+border,cursor:"pointer"}}>
+                  <input type="checkbox" id={f.id} style={{marginTop:2}}/>
+                  <div><div style={{fontSize:12,fontWeight:600,color:textColor}}>{f.l}</div><div style={{fontSize:10,color:subColor}}>{f.d}</div></div>
+                </label>
+              })}
+            </div>
+          </div>
           <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Recursos (1 por linha)</div><textarea id="pf_recursos" onKeyDown={function(e){e.stopPropagation()}} style={Object.assign({},iS,{minHeight:60})}></textarea></div>
           <input type="hidden" id="pf_edit_id" value=""/>
           <div style={{display:"flex",gap:8}}>
             <button className="bh" onClick={async function(){
               var n=document.getElementById("pf_nome").value;var v=+document.getElementById("pf_valor").value;
               if(!n||!v){msg("Preencha nome e valor");return}
-              var data2={nome:n,valor_mensal:v,duracao_meses:+document.getElementById("pf_duracao").value||12,descricao:document.getElementById("pf_desc").value||null,max_empreendimentos:+document.getElementById("pf_max_emp").value||10,max_corretores:+document.getElementById("pf_max_cor").value||50,destaque:document.getElementById("pf_destaque").checked,recursos:document.getElementById("pf_recursos").value?document.getElementById("pf_recursos").value.split("\n").filter(function(x){return x.trim()}):null,ativo:true};
+              var data2={nome:n,valor_mensal:v,duracao_meses:+document.getElementById("pf_duracao").value||12,descricao:document.getElementById("pf_desc").value||null,max_empreendimentos:+document.getElementById("pf_max_emp").value||10,max_corretores:+document.getElementById("pf_max_cor").value||50,destaque:document.getElementById("pf_destaque").checked,recursos:document.getElementById("pf_recursos").value?document.getElementById("pf_recursos").value.split("\n").filter(function(x){return x.trim()}):null,ativo:true,feat_crm:document.getElementById("pf_feat_crm").checked,feat_whatsapp:document.getElementById("pf_feat_whatsapp").checked,feat_agente_ia:document.getElementById("pf_feat_agente_ia").checked,feat_propostas:document.getElementById("pf_feat_propostas").checked,feat_visitas:document.getElementById("pf_feat_visitas").checked,feat_docs:document.getElementById("pf_feat_docs").checked,feat_nps:document.getElementById("pf_feat_nps").checked,feat_api:document.getElementById("pf_feat_api").checked};
               var eid=document.getElementById("pf_edit_id").value;
               if(eid){var r=await sb.from("planos").update(data2).eq("id",eid);if(r.error){msg("❌ "+r.error.message);return}}
               else{var r=await sb.from("planos").insert(data2);if(r.error){msg("❌ "+r.error.message);return}}
@@ -725,7 +737,14 @@ function App(){
               <div style={{fontSize:13,color:subColor,marginTop:6,minHeight:36}}>{pl.descricao||""}</div>
               <div style={{fontSize:40,fontWeight:700,color:GR,margin:"16px 0"}}>{fmt(pl.valor_mensal)}<span style={{fontSize:14,color:subColor,fontWeight:400}}>/mês</span></div>
               <div style={{fontSize:12,color:subColor,marginBottom:12}}>{pl.max_empreendimentos===-1?"∞":pl.max_empreendimentos} empreend. · {pl.max_corretores===-1?"∞":pl.max_corretores} corretores</div>
-              {pl.recursos&&<div style={{textAlign:"left",marginBottom:16}}>{(pl.recursos||[]).map(function(r,i){return <div key={i} style={{fontSize:13,color:dark?"#aaa":"#555",padding:"4px 0"}}>✓ {r}</div>})}</div>}
+              {pl.recursos&&<div style={{textAlign:"left",marginBottom:12}}>{(pl.recursos||[]).map(function(r,i){return <div key={i} style={{fontSize:13,color:dark?"#aaa":"#555",padding:"4px 0"}}>✓ {r}</div>})}</div>}
+              {/* Feature badges */}
+              <div style={{display:"flex",flexWrap:"wrap",gap:4,justifyContent:"center",marginBottom:12}}>
+                {[{k:"feat_crm",l:"CRM",i:"💼"},{k:"feat_whatsapp",l:"WA",i:"💬"},{k:"feat_agente_ia",l:"IA",i:"🤖"},{k:"feat_propostas",l:"Prop",i:"📄"},{k:"feat_visitas",l:"Visit",i:"📅"},{k:"feat_docs",l:"Docs",i:"📁"},{k:"feat_nps",l:"NPS",i:"📊"},{k:"feat_api",l:"API",i:"⚡"}].map(function(f){
+                  var on=pl[f.k]===true;
+                  return <span key={f.k} style={{fontSize:10,padding:"2px 6px",borderRadius:4,background:on?GR+"15":R+"08",color:on?GR:subColor,fontWeight:600}}>{f.i}{on?"":"✗"}</span>
+                })}
+              </div>
               <div style={{fontSize:13,fontWeight:600,marginBottom:8}}>
                 <span style={{color:B}}>{cliCount} cliente{cliCount!==1?"s":""}</span>
                 {receitaPl>0&&<span style={{color:GR,marginLeft:8}}>{fmt(receitaPl)}/m</span>}
@@ -743,6 +762,14 @@ function App(){
                     document.getElementById("pf_max_cor").value=pl.max_corretores;
                     document.getElementById("pf_destaque").checked=pl.destaque;
                     document.getElementById("pf_recursos").value=(pl.recursos||[]).join("\n");
+                    document.getElementById("pf_feat_crm").checked=pl.feat_crm!==false;
+                    document.getElementById("pf_feat_whatsapp").checked=!!pl.feat_whatsapp;
+                    document.getElementById("pf_feat_agente_ia").checked=!!pl.feat_agente_ia;
+                    document.getElementById("pf_feat_propostas").checked=pl.feat_propostas!==false;
+                    document.getElementById("pf_feat_visitas").checked=pl.feat_visitas!==false;
+                    document.getElementById("pf_feat_docs").checked=!!pl.feat_docs;
+                    document.getElementById("pf_feat_nps").checked=!!pl.feat_nps;
+                    document.getElementById("pf_feat_api").checked=!!pl.feat_api;
                   },50);
                 }} style={{padding:"8px 16px",borderRadius:8,background:B+"15",color:B,border:"none",fontSize:13,fontWeight:600}}>✏️ Editar</button>
                 <button className="bh" onClick={async function(){if(!confirm("Desativar plano "+pl.nome+"?"))return;await sb.from("planos").update({ativo:false}).eq("id",pl.id);await loadAll();msg("Removido")}} style={{padding:"8px 16px",borderRadius:8,background:R+"15",color:R,border:"none",fontSize:13}}>🗑️</button>
