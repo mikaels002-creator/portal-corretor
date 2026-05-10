@@ -1923,109 +1923,45 @@ function App(){
     </div>;
   }
 
-  function UpgradePlanM(){
-
-  // ═══ SUPPORT CHAT AI ═══
   function SupportChat(){
-    var _msgs2=useState([{role:"assistant",content:"Olá! 👋 Sou o assistente de suporte do Portal do Corretor. Posso ajudar com:\n\n• Configuração do portal\n• Gestão de empreendimentos\n• CRM e WhatsApp\n• Corretores e vendas\n• Relatórios e analytics\n\nComo posso ajudar?"}]);
+    var _msgs2=useState([{role:"assistant",content:"Olá! 👋 Sou o assistente de suporte do Portal do Corretor. Posso ajudar com:\n\n• Configuração do portal\n• Gestão de empreendimentos\n• CRM e WhatsApp\n• Corretores e vendas\n\nComo posso ajudar?"}]);
     var msgs2=_msgs2[0];var setMsgs2=_msgs2[1];
     var _input2=useState("");var input2=_input2[0];var setInput2=_input2[1];
     var _loading2=useState(false);var loading2=_loading2[0];var setLoading2=_loading2[1];
     var scrollRef=useRef(null);
     useEffect(function(){if(scrollRef.current)scrollRef.current.scrollTop=scrollRef.current.scrollHeight},[msgs2]);
-
-    var systemPrompt="Você é o Assistente de Suporte do Portal do Corretor, um sistema SaaS para incorporadoras e construtoras gerenciarem seus corretores, empreendimentos e vendas.\n\n"+
-    "ARQUITETURA DO SISTEMA:\n"+
-    "- Portal multi-tenant: cada cliente tem seu próprio portal em portal-corretor.com/slug\n"+
-    "- 4 arquivos: index.html (landing), portal.html (portal), admin.html (admin SaaS), 404.html (routing)\n"+
-    "- Backend: Supabase (PostgreSQL + Auth + Edge Functions)\n"+
-    "- WhatsApp: Meta Cloud API integrado\n\n"+
-    "FUNCIONALIDADES DO PORTAL:\n"+
-    "1. GERENCIAR: Empreendimentos, Unidades, Fotos, Plantas, Documentos, Avisos\n"+
-    "2. CORRETORES: Cadastro, ranking, vendas, dashboard individual\n"+
-    "3. CRM: Inbox WhatsApp, Funil Kanban, Contatos, Visitas, Propostas, Docs, NPS\n"+
-    "4. CONFIGURAÇÕES: Dados da empresa (Gerenciar → 🏢 Dados da Empresa), WhatsApp API, Atendentes\n"+
-    "5. SIMULADOR: Financiamento com entrada, parcelas, balão, CUB/SC, USD\n"+
-    "6. AGENTE IA: 8 relatórios automáticos\n"+
-    "7. TEMAS: Claro e escuro\n\n"+
-    "COMO CONFIGURAR O PORTAL:\n"+
-    "1. Fazer login como admin\n"+
-    "2. Ir em Gerenciar → 🏢 Dados da Empresa → preencher email, WhatsApp, Instagram, endereço, CNPJ\n"+
-    "3. Configurar WhatsApp Business API (Phone ID, Token) na mesma tela\n"+
-    "4. Adicionar empreendimentos em Gerenciar → + Empreendimento\n"+
-    "5. Dentro do empreendimento: adicionar unidades, fotos, plantas\n"+
-    "6. Cadastrar corretores em Gerenciar → 👥 Corretores\n"+
-    "7. Configurar CRM em Gerenciar → 💼 CRM → Config\n\n"+
-    "ADMIN SAAS (admin.html):\n"+
-    "- Dashboard com KPIs (MRR, Churn, Ticket Médio)\n"+
-    "- Clientes: stepper 4 passos (Cadastro→Plano→Fechamento→Ativação)\n"+
-    "- Pipeline Kanban\n"+
-    "- Pagamentos: pago, cancelar, desconto %, acréscimo %, editar\n"+
-    "- Portais: gestão completa, admins, feature overrides, trials\n"+
-    "- Planos: feature toggles (CRM, WhatsApp, IA, Propostas, etc)\n"+
-    "- Marketing: campanhas multi-canal\n"+
-    "- Usuários: 4 perfis (Super Admin, Admin, Gerente, Viewer)\n"+
-    "- Integrações: WhatsApp, Gateway pagamento, Instagram, Email\n"+
-    "- Upgrade de plano pelo próprio cliente\n\n"+
-    "TABELAS PRINCIPAIS:\n"+
-    "buildings, units, photos, plants, documents, notices, brokers, admin_users, config_whatsapp, leads_whatsapp, mensagens_whatsapp, atendentes_whatsapp, visitas, propostas, tenants, assinaturas, pagamentos, planos, campanhas\n\n"+
-    "IMPORTANTE:\n"+
-    "- Coluna senha na admin_users se chama 'senha' (não password)\n"+
-    "- Coluna valor no config_whatsapp é tipo JSON\n"+
-    "- Todas tabelas têm tenant_id para isolamento multi-tenant\n"+
-    "- RLS deve estar desabilitado em todas tabelas\n\n"+
-    "Responda em português, de forma clara e objetiva. Dê passos específicos. Se não souber, diga que vai escalar para o suporte humano.";
-
+    var sysP="Você é o Assistente de Suporte do Portal do Corretor, um SaaS para incorporadoras. Responda em português, claro e objetivo. Funcionalidades: Gerenciar (empreendimentos, unidades, fotos, corretores), CRM (WhatsApp, funil, contatos, visitas, propostas), Simulador financiamento, Agente IA, Temas claro/escuro. Configurar empresa em Gerenciar > Dados da Empresa. WhatsApp Business API na mesma tela. Admin SaaS: Dashboard, Clientes (stepper 4 passos), Pipeline, Pagamentos, Portais, Planos, Marketing, Usuários, Integrações. Tabelas: buildings, units, photos, brokers, admin_users (coluna senha), config_whatsapp (coluna valor é JSON), leads_whatsapp, tenants, assinaturas, pagamentos, planos. Multi-tenant: todas queries filtram por tenant_id. RLS desabilitado.";
     var sendMsg=async function(){
       if(!input2.trim()||loading2)return;
       var userMsg={role:"user",content:input2.trim()};
       var newMsgs=msgs2.concat([userMsg]);
       setMsgs2(newMsgs);setInput2("");setLoading2(true);
       try{
-        var apiMsgs=newMsgs.map(function(m){return{role:m.role,content:m.content}});
-        var resp=await fetch("https://api.anthropic.com/v1/messages",{
-          method:"POST",
-          headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:systemPrompt,messages:apiMsgs})
-        });
+        var resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:sysP,messages:newMsgs.map(function(m){return{role:m.role,content:m.content}})})});
         var data=await resp.json();
-        var aiText=data.content?data.content.map(function(c){return c.text||""}).join(""):"Desculpe, não consegui processar. Tente novamente.";
+        var aiText=data.content?data.content.map(function(c2){return c2.text||""}).join(""):"Desculpe, tente novamente.";
         setMsgs2(newMsgs.concat([{role:"assistant",content:aiText}]));
-        // Save to DB for learning
-        sb.from("config_whatsapp").insert({chave:"support_log_"+Date.now(),valor:JSON.stringify({q:input2.trim(),a:aiText.substring(0,500)}),tenant_id:DB._tid}).catch(function(){});
-      }catch(e){
-        setMsgs2(newMsgs.concat([{role:"assistant",content:"❌ Erro de conexão. Tente novamente ou entre em contato pelo WhatsApp."}]));
-      }
+      }catch(e){setMsgs2(newMsgs.concat([{role:"assistant",content:"❌ Erro. Tente novamente."}]))}
       setLoading2(false);
     };
-
     return <div style={{position:"fixed",bottom:80,right:16,width:380,maxHeight:520,background:cardBg,borderRadius:20,border:"1px solid "+borderColor,boxShadow:"0 16px 60px rgba(0,0,0,0.5)",zIndex:800,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-      {/* Header */}
       <div style={{padding:"12px 16px",background:"linear-gradient(135deg,#8B6FBF,#6a4fa0)",display:"flex",alignItems:"center",gap:10}}>
         <span style={{fontSize:24}}>🤖</span>
-        <div style={{flex:1}}>
-          <div style={{fontSize:15,fontWeight:700,color:"#fff"}}>Suporte IA</div>
-          <div style={{fontSize:11,color:"rgba(255,255,255,0.7)"}}>Assistente Portal do Corretor</div>
-        </div>
+        <div style={{flex:1}}><div style={{fontSize:15,fontWeight:700,color:"#fff"}}>Suporte IA</div><div style={{fontSize:11,color:"rgba(255,255,255,0.7)"}}>Assistente Portal do Corretor</div></div>
         <button onClick={function(){setShowSupport(false)}} style={{width:28,height:28,borderRadius:8,background:"rgba(255,255,255,0.15)",color:"#fff",border:"none",fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
       </div>
-      {/* Messages */}
       <div ref={scrollRef} style={{flex:1,padding:12,overflow:"auto",maxHeight:340}}>
-        {msgs2.map(function(m,i){
-          var isUser=m.role==="user";
-          return <div key={i} style={{display:"flex",justifyContent:isUser?"flex-end":"flex-start",marginBottom:8}}>
-            <div style={{maxWidth:"85%",padding:"10px 14px",borderRadius:isUser?"14px 14px 4px 14px":"14px 14px 14px 4px",background:isUser?"linear-gradient(135deg,#8B6FBF,#6a4fa0)":(isDark?"#1a1a19":"#EFEBE4"),color:isUser?"#fff":textColor,fontSize:13,lineHeight:1.6,whiteSpace:"pre-wrap"}}>{m.content}</div>
-          </div>
-        })}
+        {msgs2.map(function(m,i){var isU=m.role==="user";return <div key={i} style={{display:"flex",justifyContent:isU?"flex-end":"flex-start",marginBottom:8}}><div style={{maxWidth:"85%",padding:"10px 14px",borderRadius:isU?"14px 14px 4px 14px":"14px 14px 14px 4px",background:isU?"linear-gradient(135deg,#8B6FBF,#6a4fa0)":(isDark?"#1a1a19":"#EFEBE4"),color:isU?"#fff":textColor,fontSize:13,lineHeight:1.6,whiteSpace:"pre-wrap"}}>{m.content}</div></div>})}
         {loading2&&<div style={{display:"flex",justifyContent:"flex-start",marginBottom:8}}><div style={{padding:"10px 14px",borderRadius:"14px 14px 14px 4px",background:isDark?"#1a1a19":"#EFEBE4",color:subColor,fontSize:13}}>Pensando...</div></div>}
       </div>
-      {/* Input */}
       <div style={{padding:10,borderTop:"1px solid "+borderColor,display:"flex",gap:8}}>
         <input value={input2} onChange={function(e){setInput2(e.target.value)}} onKeyDown={function(e){e.stopPropagation();if(e.key==="Enter")sendMsg()}} placeholder="Digite sua dúvida..." style={{flex:1,padding:"10px 14px",borderRadius:10,border:"1px solid "+borderColor,background:isDark?"#111":"#f8f5f0",color:textColor,fontSize:13,outline:"none"}}/>
         <button className="bh" onClick={sendMsg} disabled={loading2} style={{padding:"10px 16px",borderRadius:10,background:"linear-gradient(135deg,#8B6FBF,#6a4fa0)",color:"#fff",fontSize:14,fontWeight:700,border:"none",cursor:loading2?"wait":"pointer",opacity:loading2?.6:1}}>↑</button>
       </div>
     </div>
   }
+
+  function UpgradePlanM(){
     var _uPlans=useState([]);var uPlans=_uPlans[0];var setUPlans=_uPlans[1];
     useEffect(function(){sb.from("planos").select("*").eq("ativo",true).order("valor_mensal").then(function(r){setUPlans(r.data||[])});},[]);
     return <div><div style={mT}>⬆️ Upgrade de Plano</div>
@@ -2044,21 +1980,14 @@ function App(){
                 return <span key={f2.k} style={{fontSize:10,padding:"2px 6px",borderRadius:4,background:on2?"#4CAF7D15":"#D45B5B08",color:on2?"#4CAF7D":subColor}}>{f2.l}{on2?"":"✗"}</span>
               })}
             </div>
-            {pl.recursos&&<div style={{textAlign:"left",marginTop:10}}>{(pl.recursos||[]).map(function(r2,j){return <div key={j} style={{fontSize:11,color:subColor,padding:"2px 0"}}>✓ {r2}</div>})}</div>}
             <button className="bh" onClick={async function(){
-              if(!confirm("Fazer upgrade para "+pl.nome+" ("+fmt(pl.valor_mensal)+"/mês)?\n\nSeu plano será atualizado e novas cobranças serão geradas."))return;
+              if(!confirm("Upgrade para "+pl.nome+" ("+fmt(pl.valor_mensal)+"/mês)?"))return;
               var existingSub=await sb.from("assinaturas").select("*").eq("tenant_id",tenant.slug).eq("status","ativo").single();
-              if(existingSub.data){
-                await sb.from("assinaturas").update({plano_id:pl.id,plano:pl.nome,valor_mensal:pl.valor_mensal}).eq("id",existingSub.data.id);
-                await sb.from("pagamentos").update({status:"cancelado",observacoes:"Cancelado — upgrade para "+pl.nome}).eq("tenant_id",tenant.slug).eq("status","pendente");
-              }else{
-                await sb.from("assinaturas").insert({tenant_id:tenant.slug,plano_id:pl.id,plano:pl.nome,valor_mensal:pl.valor_mensal,status:"ativo",inicio:new Date().toISOString().split("T")[0]});
-              }
-              for(var i=0;i<12;i++){var vd=new Date();vd.setMonth(vd.getMonth()+i);vd.setDate(10);
-                await sb.from("pagamentos").insert({tenant_id:tenant.slug,valor:pl.valor_mensal,valor_original:pl.valor_mensal,vencimento:vd.toISOString().split("T")[0],metodo:"pix",status:"pendente",observacoes:"Parcela "+(i+1)+"/12 — "+pl.nome})
-              }
+              if(existingSub.data){await sb.from("assinaturas").update({plano_id:pl.id,plano:pl.nome,valor_mensal:pl.valor_mensal}).eq("id",existingSub.data.id);await sb.from("pagamentos").update({status:"cancelado",observacoes:"Upgrade "+pl.nome}).eq("tenant_id",tenant.slug).eq("status","pendente")}
+              else{await sb.from("assinaturas").insert({tenant_id:tenant.slug,plano_id:pl.id,plano:pl.nome,valor_mensal:pl.valor_mensal,status:"ativo",inicio:new Date().toISOString().split("T")[0]})}
+              for(var i=0;i<12;i++){var vd=new Date();vd.setMonth(vd.getMonth()+i);vd.setDate(10);await sb.from("pagamentos").insert({tenant_id:tenant.slug,valor:pl.valor_mensal,valor_original:pl.valor_mensal,vencimento:vd.toISOString().split("T")[0],metodo:"pix",status:"pendente",observacoes:"Parcela "+(i+1)+"/12 — "+pl.nome})}
               await sb.from("tenants").update({valor_mensal:pl.valor_mensal}).eq("id",tenant.id);
-              msg("✅ Upgrade para "+pl.nome+"! Novas cobranças geradas.");setMdl(null);
+              msg("✅ Upgrade para "+pl.nome+"!");setMdl(null);
             }} style={{width:"100%",marginTop:12,padding:"12px",borderRadius:10,background:"linear-gradient(135deg,"+P+",#6a4fa0)",color:"#fff",fontSize:14,fontWeight:700,border:"none",cursor:"pointer"}}>Escolher {pl.nome}</button>
           </div>
         })}
