@@ -61,6 +61,19 @@ function App(){
   var _deploying=useState(false);var deploying=_deploying[0];var setDeploying=_deploying[1];
   var msg=function(m){setToast(m);setTimeout(function(){setToast(null)},4000)};
 
+  // ═══ ACCESS CONTROL ═══
+  var canAdmin=function(section){
+    if(!user)return false;
+    var p=user.perfil||user.role||"viewer";
+    if(p==="super_admin")return true;
+    var perms={
+      admin:{dash:true,clients:true,pipeline:true,payments:true,links:true,plans:true,marketing:true,users:false,integrations:false,reports:true,overdue:true},
+      gerente:{dash:true,clients:true,pipeline:true,payments:true,links:false,plans:false,marketing:false,users:false,integrations:false,reports:true,overdue:true},
+      viewer:{dash:true,clients:false,pipeline:false,payments:false,links:false,plans:false,marketing:false,users:false,integrations:false,reports:true,overdue:false}
+    };
+    return perms[p]?perms[p][section]===true:false;
+  };
+
   var GH_TOKEN="";
   var GH_USER="";
   var GH_TEMPLATE="portal-corretor";
@@ -249,7 +262,7 @@ function App(){
         <div style={{fontSize:11,color:subColor,marginTop:4}}>Portal do Corretor</div>
       </div>
       <div style={{flex:1,padding:"12px 10px"}}>
-        {[{k:"dash",l:"Dashboard",i:"📊"},{k:"clients",l:"Clientes",i:"👥"},{k:"pipeline",l:"Pipeline",i:"🔄"},{k:"payments",l:"Pagamentos",i:"💰"},{k:"links",l:"Portais",i:"🔗"},{k:"plans",l:"Planos",i:"📦"},{k:"marketing",l:"Marketing",i:"📣"},{k:"users",l:"Usuários",i:"🔐"},{k:"integrations",l:"Integrações",i:"⚡"},{k:"reports",l:"Relatórios",i:"📈"},{k:"overdue",l:"Inadimplentes",i:"⚠️"}].map(function(item){
+        {[{k:"dash",l:"Dashboard",i:"📊"},{k:"clients",l:"Clientes",i:"👥"},{k:"pipeline",l:"Pipeline",i:"🔄"},{k:"payments",l:"Pagamentos",i:"💰"},{k:"links",l:"Portais",i:"🔗"},{k:"plans",l:"Planos",i:"📦"},{k:"marketing",l:"Marketing",i:"📣"},{k:"users",l:"Usuários",i:"🔐"},{k:"integrations",l:"Integrações",i:"⚡"},{k:"reports",l:"Relatórios",i:"📈"},{k:"overdue",l:"Inadimplentes",i:"⚠️"}].filter(function(item){return canAdmin(item.k)}).map(function(item){
           return <div key={item.k} className="bh" onClick={function(){setView(item.k);setSelClient(null)}} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:10,marginBottom:2,background:view===item.k?"rgba(200,164,92,0.08)":"transparent",color:view===item.k?G:"#888",fontSize:14,fontWeight:view===item.k?600:400}}>
             <span style={{fontSize:16}}>{item.i}</span>{item.l}
             {item.k==="overdue"&&pendentes.length>0&&<span style={{marginLeft:"auto",background:R,color:textColor,fontSize:10,fontWeight:700,padding:"2px 6px",borderRadius:8}}>{pendentes.length}</span>}
@@ -268,6 +281,7 @@ function App(){
       </div>
       <div style={{padding:"8px 20px 12px",borderTop:"1px solid "+border}}>
         <div style={{fontSize:12,color:subColor}}>{user?user.nome:"Admin"}</div>
+        <div style={{fontSize:10,color:P,marginTop:2}}>{user?(user.perfil||user.role||"admin"):""}</div>
         <div className="bh" onClick={function(){setAuth(false);setUser(null)}} style={{fontSize:12,color:R,marginTop:4,cursor:"pointer"}}>Sair</div>
       </div>
     </div>
@@ -369,6 +383,69 @@ function App(){
           </div>
           {trials.length>0&&<div style={{marginTop:12,padding:10,borderRadius:8,background:"rgba(139,111,191,0.06)",fontSize:13,color:P}}>🧪 {trials.length} em trial — se converterem: MRR potencial de {fmt(mrr+trials.reduce(function(s,t){return s+(t.valor_mensal||0)},0))}</div>}
         </div>
+        {/* ═══ ADVANCED METRICS ═══ */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:24}}>
+          {(function(){
+            var ltv=ativos.length>0?Math.round(mrr/ativos.length*12):0;
+            var totalCamps=(window._campanhas||[]).reduce(function(s,c2){return s+(c2.gasto||0)},0);
+            var totalLeads=(window._campanhas||[]).reduce(function(s,c2){return s+(c2.leads_gerados||0)},0);
+            var cac=totalLeads>0?Math.round(totalCamps/totalLeads):0;
+            var ltvCac=cac>0?(ltv/cac).toFixed(1):"∞";
+            var receitaTotal=pagtos.filter(function(p){return p.status==="pago"}).reduce(function(s,p){return s+(p.valor||0)},0);
+            var totalClientes=tenants.filter(function(t){return t.pipeline!=="cancelado"}).length;
+            var adimplencia=pagtos.length>0?Math.round(pagtos.filter(function(p){return p.status==="pago"}).length/pagtos.length*100):100;
+            return [
+              {l:"LTV (12m)",v:fmt(ltv),c:GR,d:"Receita média por cliente/ano"},
+              {l:"CAC",v:cac>0?fmt(cac):"—",c:W,d:"Custo por lead (baseado em campanhas)"},
+              {l:"LTV/CAC",v:ltvCac,c:parseFloat(ltvCac)>=3?GR:parseFloat(ltvCac)>=1?W:R,d:parseFloat(ltvCac)>=3?"Saudável ✅":"Melhorar ⚠️"},
+              {l:"Receita Total",v:fmt(receitaTotal),c:GR,d:"Acumulado histórico"},
+              {l:"Base Ativa",v:totalClientes,c:B,d:totalClientes+" clientes ativos"},
+              {l:"Adimplência",v:adimplencia+"%",c:adimplencia>=90?GR:adimplencia>=70?W:R,d:adimplencia>=90?"Excelente":"Atenção"}
+            ].map(function(k,i){return <div key={i} style={{padding:16,borderRadius:14,background:cardBg,border:"1px solid "+border}}>
+              <div style={{fontSize:11,color:subColor,textTransform:"uppercase",letterSpacing:1}}>{k.l}</div>
+              <div style={{fontSize:24,fontWeight:700,color:k.c,marginTop:4}}>{k.v}</div>
+              <div style={{fontSize:11,color:subColor,marginTop:4}}>{k.d}</div>
+            </div>})
+          })()}
+        </div>
+        {/* ═══ AUTOMATION ALERTS ═══ */}
+        {(function(){
+          var alerts=[];
+          // Trials expiring soon (< 7 days)
+          tenants.forEach(function(t){
+            var ov=t.feat_override||{};
+            Object.keys(ov).forEach(function(k){
+              if(ov[k].trial&&ov[k].trial_end){
+                var end=new Date(ov[k].trial_end);
+                var days=Math.ceil((end-new Date())/86400000);
+                if(days<=7&&days>0)alerts.push({type:"trial",color:P,msg:"🧪 Trial "+k.replace("feat_","")+" de "+t.nome_empresa+" expira em "+days+" dias",action:function(){setView("links")}});
+                if(days<=0)alerts.push({type:"trial_expired",color:R,msg:"⏰ Trial "+k.replace("feat_","")+" de "+t.nome_empresa+" expirou",action:function(){setView("links")}});
+              }
+            });
+          });
+          // Payments overdue > 15 days
+          pendentes.forEach(function(p){
+            var t2=tenants.find(function(x){return x.id===p.tenant_id});
+            var dias=Math.floor((Date.now()-new Date(p.vencimento).getTime())/86400000);
+            if(dias>15)alerts.push({type:"overdue",color:R,msg:"💰 "+( t2?t2.nome_empresa:"?")+": "+fmt(p.valor)+" atrasado "+dias+" dias",action:function(){setView("payments")}});
+          });
+          // Inactive clients (no login 30+ days)
+          tenants.filter(function(t){return t.pipeline==="ativo"}).forEach(function(t){
+            var lastPg=pagtos.filter(function(p){return p.tenant_id===t.id&&p.status==="pago"}).sort(function(a,b){return b.pago_em>a.pago_em?1:-1})[0];
+            if(!lastPg)return;
+            var diasSemPg=Math.floor((Date.now()-new Date(lastPg.pago_em).getTime())/86400000);
+            if(diasSemPg>45)alerts.push({type:"inactive",color:W,msg:"😴 "+t.nome_empresa+" sem pagamento há "+diasSemPg+" dias",action:function(){setView("clients")}});
+          });
+          if(alerts.length===0)return null;
+          return <div style={{padding:16,borderRadius:14,background:cardBg,border:"1px solid "+R+"20",marginBottom:24}}>
+            <div style={{fontSize:13,fontWeight:600,color:textColor,marginBottom:10}}>🔔 Alertas Automáticos ({alerts.length})</div>
+            {alerts.slice(0,8).map(function(a,i){return <div key={i} className="bh" onClick={a.action} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0",borderBottom:i<alerts.length-1?"1px solid "+border:"none",cursor:"pointer"}}>
+              <div style={{width:6,height:6,borderRadius:"50%",background:a.color,flexShrink:0}}/>
+              <span style={{fontSize:12,color:a.color,flex:1}}>{a.msg}</span>
+              <span style={{fontSize:10,color:subColor}}>→</span>
+            </div>})}
+          </div>
+        })()}
         {/* Recent clients */}
         <div style={{padding:20,borderRadius:14,background:cardBg,border:"1px solid "+border}}>
           <div style={{fontSize:13,fontWeight:600,color:textColor,marginBottom:12}}>Últimos clientes</div>
