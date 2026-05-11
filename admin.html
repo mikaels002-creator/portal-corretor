@@ -300,128 +300,277 @@ function App(){
   // ═══ MAIN LAYOUT ═══
   // ═══ AI BRAIN COMPONENT ═══
   function AIBrainView(){
+    var _tab=useState("chat");var tab=_tab[0];var setTab=_tab[1];
     var _team=useState("brain");var team=_team[0];var setTeam=_team[1];
     var _msgs3=useState([]);var msgs3=_msgs3[0];var setMsgs3=_msgs3[1];
     var _inp=useState("");var inp=_inp[0];var setInp=_inp[1];
     var _busy=useState(false);var busy=_busy[0];var setBusy=_busy[1];
     var _history=useState([]);var history2=_history[0];var setHistory2=_history[1];
     var _apiKey=useState("");var apiKey=_apiKey[0];var setApiKey=_apiKey[1];
+    var _goals=useState([]);var goals=_goals[0];var setGoals=_goals[1];
+    var _aiTasks=useState([]);var aiTasks=_aiTasks[0];var setAiTasks=_aiTasks[1];
+    var _aiContent=useState([]);var aiContent=_aiContent[0];var setAiContent=_aiContent[1];
+    var _workerOn=useState(false);var workerOn=_workerOn[0];var setWorkerOn=_workerOn[1];
+    var _workerLog=useState([]);var workerLog=_workerLog[0];var setWorkerLog=_workerLog[1];
 
-    // Load API key on mount
-    useEffect(function(){
-      sb.from("config_whatsapp").select("valor").eq("chave","anthropic_api_key").eq("tenant_id",ADMIN_TID).single().then(function(r){
-        if(r.data&&r.data.valor)setApiKey(r.data.valor.replace(/^"|"$/g,""));
-      });
-    },[]);
+    var loadBrainData=async function(){
+      var r1=await sb.from("config_whatsapp").select("valor").eq("chave","anthropic_api_key").eq("tenant_id",ADMIN_TID).single();
+      if(r1.data&&r1.data.valor)setApiKey(r1.data.valor.replace(/^"|"$/g,""));
+      var r2=await sb.from("ai_goals").select("*").eq("tenant_id",ADMIN_TID).order("criado_em",{ascending:false});setGoals(r2.data||[]);
+      var r3=await sb.from("ai_tasks").select("*").eq("tenant_id",ADMIN_TID).order("criado_em",{ascending:false}).limit(50);setAiTasks(r3.data||[]);
+      var r4=await sb.from("ai_content").select("*").eq("tenant_id",ADMIN_TID).order("criado_em",{ascending:false}).limit(30);setAiContent(r4.data||[]);
+      var r5=await sb.from("ai_worker_log").select("*").eq("tenant_id",ADMIN_TID).order("criado_em",{ascending:false}).limit(10);setWorkerLog(r5.data||[]);
+      var r6=await sb.from("config_whatsapp").select("valor").eq("chave","ai_worker_active").eq("tenant_id",ADMIN_TID).single();
+      if(r6.data)setWorkerOn(r6.data.valor==="true"||r6.data.valor===true);
+    };
+    useEffect(function(){loadBrainData()},[]);
 
     var teams={
-      brain:{name:"🧠 Cérebro",color:"#C8A45C",desc:"Coordenador central — valida ações, identifica bugs, mantém tudo conectado",
-        sys:"Você é o CÉREBRO CENTRAL do Portal do Corretor SaaS. Coordene 4 equipes (Marketing, Comercial, Financeiro, TI). Dados: "+tenants.length+" clientes, MRR R$"+mrr+", "+ativos.length+" ativos, "+pendentes.length+" pendentes. Responda em português, estratégico e proativo."},
-      mkt:{name:"📣 Marketing",color:"#E06090",desc:"Conteúdo, campanhas, copy, social media, email marketing",
-        sys:"Você é o AGENTE DE MARKETING do Portal do Corretor SaaS. Crie conteúdo para redes sociais, email, copies, landing pages. Mercado: imobiliário B2B. "+tenants.length+" clientes, "+ativos.length+" ativos. Responda em português com conteúdo pronto."},
-      sales:{name:"💼 Comercial",color:"#4CAF7D",desc:"Prospecção, scripts de venda, qualificação, propostas, follow-up",
-        sys:"Você é o AGENTE COMERCIAL do Portal do Corretor SaaS. Scripts de vendas, qualificação, follow-up, propostas. Pipeline: "+tenants.filter(function(t){return t.pipeline==="lead"}).length+" leads, "+tenants.filter(function(t){return t.pipeline==="qualificado"}).length+" qualificados, "+tenants.filter(function(t){return t.pipeline==="trial"}).length+" trials. Responda em português."},
-      finance:{name:"💰 Financeiro",color:"#5B8FD4",desc:"Métricas SaaS, projeções, cobrança, pricing, churn",
-        sys:"Você é o AGENTE FINANCEIRO do Portal do Corretor SaaS. MRR R$"+mrr+", "+ativos.length+" ativos, "+pendentes.length+" pendentes (R$"+pendentes.reduce(function(s,p){return s+(p.valor||0)},0)+"). Ticket médio R$"+(ativos.length>0?Math.round(mrr/ativos.length):0)+". Responda em português com números."},
-      tech:{name:"⚡ TI",color:"#8B6FBF",desc:"Bugs, melhorias, performance, segurança, integrações",
-        sys:"Você é o AGENTE DE TI do Portal do Corretor SaaS. Stack: React/Babel, Supabase, WhatsApp Cloud API. 4 arquivos (portal 5700 linhas, admin 1700 linhas). Responda em português com soluções técnicas."}
+      brain:{name:"\ud83e\udde0 C\u00e9rebro",color:"#C8A45C",sys:"Voc\u00ea \u00e9 o C\u00c9REBRO CENTRAL do Portal do Corretor SaaS. Coordene 4 equipes (Marketing, Comercial, Financeiro, TI). Dados: "+tenants.length+" clientes, MRR R$"+mrr+", "+ativos.length+" ativos, "+pendentes.length+" pendentes. Responda em portugu\u00eas, estrat\u00e9gico e proativo. IMPORTANTE: quando sugerir tarefas, liste-as no formato TAREFA: [equipe] [tipo] [descri\u00e7\u00e3o] para que sejam adicionadas \u00e0 fila automaticamente."},
+      mkt:{name:"\ud83d\udce3 Marketing",color:"#E06090",sys:"Voc\u00ea \u00e9 o AGENTE DE MARKETING. Crie conte\u00fado pronto para usar: posts Instagram/LinkedIn, emails, copies. Mercado: imobili\u00e1rio B2B. "+tenants.length+" clientes, "+ativos.length+" ativos. Quando gerar conte\u00fado, forne\u00e7a o texto COMPLETO pronto para copiar e postar. Responda em portugu\u00eas."},
+      sales:{name:"\ud83d\udcbc Comercial",color:"#4CAF7D",sys:"Voc\u00ea \u00e9 o AGENTE COMERCIAL. Scripts de vendas, qualifica\u00e7\u00e3o, follow-up, propostas. Pipeline: "+tenants.filter(function(t){return t.pipeline==="lead"}).length+" leads, "+tenants.filter(function(t){return t.pipeline==="qualificado"}).length+" qualificados, "+tenants.filter(function(t){return t.pipeline==="trial"}).length+" trials. Responda em portugu\u00eas."},
+      finance:{name:"\ud83d\udcb0 Financeiro",color:"#5B8FD4",sys:"Voc\u00ea \u00e9 o AGENTE FINANCEIRO. MRR R$"+mrr+", "+ativos.length+" ativos, "+pendentes.length+" pendentes (R$"+pendentes.reduce(function(s,p){return s+(p.valor||0)},0)+"). Responda em portugu\u00eas com n\u00fameros."},
+      tech:{name:"\u26a1 TI",color:"#8B6FBF",sys:"Voc\u00ea \u00e9 o AGENTE DE TI. Stack: React/Babel, Supabase, WhatsApp Cloud API. Responda em portugu\u00eas com solu\u00e7\u00f5es t\u00e9cnicas."}
+    };
+
+    var callAI=async function(sys,messages){
+      if(!apiKey)return"API Key n\u00e3o configurada";
+      try{
+        var r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1500,system:sys,messages:messages})});
+        var d=await r.json();return d.content?d.content.map(function(c2){return c2.text||""}).join(""):"Erro";
+      }catch(e){return"Erro: "+e.message}
     };
 
     var sendToAgent=async function(tk,q){
       if(!q||!q.trim()||busy)return;
-      var t2=teams[tk];setBusy(true);
+      setBusy(true);var t2=teams[tk];
       var newMsgs=msgs3.concat([{role:"user",content:q,team:tk}]);
       setMsgs3(newMsgs);setInp("");
-      try{
-        if(!apiKey){setMsgs3(newMsgs.concat([{role:"assistant",content:"⚠️ API Key não configurada. Configure em Integrações → Anthropic API Key.",team:tk}]));setBusy(false);return}
-        var apiMsgs=newMsgs.filter(function(m){return m.team===tk||m.team==="brain"}).map(function(m){return{role:m.role,content:m.content}}).slice(-10);
-        var r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1500,system:t2.sys,messages:apiMsgs})});
-        var d=await r.json();
-        var txt=d.content?d.content.map(function(c2){return c2.text||""}).join(""):"Erro na resposta.";
-        setMsgs3(newMsgs.concat([{role:"assistant",content:txt,team:tk}]));
-        setHistory2(history2.concat([{team:tk,q:q.substring(0,100),ts:new Date().toLocaleString("pt-BR")}]));
-        sb.from("config_whatsapp").insert({chave:"ai_log_"+Date.now(),valor:JSON.stringify({team:tk,q:q.substring(0,200),a:txt.substring(0,500)}),tenant_id:ADMIN_TID}).catch(function(){});
-      }catch(e){setMsgs3(newMsgs.concat([{role:"assistant",content:"❌ Erro: "+e.message,team:tk}]))}
+      var apiMsgs=newMsgs.filter(function(m){return m.team===tk}).map(function(m){return{role:m.role,content:m.content}}).slice(-10);
+      var txt=await callAI(t2.sys,apiMsgs);
+      setMsgs3(newMsgs.concat([{role:"assistant",content:txt,team:tk}]));
+      setHistory2(history2.concat([{team:tk,q:q.substring(0,100),ts:new Date().toLocaleString("pt-BR")}]));
+      // Auto-extract tasks from brain responses
+      if(tk==="brain"){var taskLines=txt.split("\n").filter(function(l){return l.includes("TAREFA:")});taskLines.forEach(function(l){
+        var parts=l.replace("TAREFA:","").trim().split("]");
+        if(parts.length>=2){var eq=parts[0].replace("[","").trim();var desc=parts.slice(1).join("]").replace("[","").replace("]","").trim();
+          sb.from("ai_tasks").insert({equipe:eq.toLowerCase(),tipo:"auto",titulo:desc.substring(0,100),conteudo:desc,status:"pendente",prioridade:5,tenant_id:ADMIN_TID}).catch(function(){})
+        }
+      })}
+      // Save content from mkt/sales
+      if((tk==="mkt"||tk==="sales")&&txt.length>100){
+        sb.from("ai_content").insert({equipe:tk,tipo:tk==="mkt"?"post":"script",titulo:q.substring(0,100),conteudo:txt,plataforma:tk==="mkt"?"instagram":"whatsapp",status:"rascunho",tenant_id:ADMIN_TID}).catch(function(){});
+      }
       setBusy(false);
     };
 
+    // WORKER - processes queue automatically
+    var runWorker=async function(){
+      if(!apiKey)return;
+      await sb.from("ai_worker_log").insert({tipo:"worker_run",detalhes:"Worker executando...",tenant_id:ADMIN_TID});
+      // 1. Check goals progress
+      var gls=await sb.from("ai_goals").select("*").eq("status","ativo").eq("tenant_id",ADMIN_TID);
+      var activeGoals=gls.data||[];
+      // Update goal values
+      for(var i=0;i<activeGoals.length;i++){
+        var g=activeGoals[i];var newVal=0;
+        if(g.tipo==="clientes")newVal=ativos.length;
+        else if(g.tipo==="mrr")newVal=mrr;
+        else if(g.tipo==="leads")newVal=tenants.filter(function(t){return t.pipeline==="lead"}).length;
+        else if(g.tipo==="posts")newVal=(await sb.from("ai_content").select("id").eq("tipo","post").eq("tenant_id",ADMIN_TID)).data.length;
+        else if(g.tipo==="emails")newVal=(await sb.from("ai_content").select("id").eq("tipo","email").eq("tenant_id",ADMIN_TID)).data.length;
+        await sb.from("ai_goals").update({valor_atual:newVal}).eq("id",g.id);
+      }
+      // 2. Process pending tasks
+      var pending2=await sb.from("ai_tasks").select("*").eq("status","pendente").eq("tenant_id",ADMIN_TID).order("prioridade").limit(3);
+      var tasks2=pending2.data||[];
+      for(var j=0;j<tasks2.length;j++){
+        var task=tasks2[j];
+        await sb.from("ai_tasks").update({status:"gerando"}).eq("id",task.id);
+        var sys2=teams[task.equipe]?teams[task.equipe].sys:"Gere conte\u00fado profissional em portugu\u00eas.";
+        var resultado=await callAI(sys2,[{role:"user",content:task.conteudo||task.titulo}]);
+        await sb.from("ai_tasks").update({status:"pronto",resultado:resultado,gerado_em:new Date().toISOString()}).eq("id",task.id);
+        await sb.from("ai_content").insert({equipe:task.equipe,tipo:task.tipo,titulo:task.titulo,conteudo:resultado,status:"rascunho",task_id:task.id,tenant_id:ADMIN_TID});
+      }
+      // 3. Auto-generate tasks if goals behind
+      for(var k=0;k<activeGoals.length;k++){
+        var gl=activeGoals[k];var pct=gl.meta_valor>0?gl.valor_atual/gl.meta_valor:1;
+        if(pct<0.8){
+          var pendingTasks=await sb.from("ai_tasks").select("id").eq("status","pendente").eq("tenant_id",ADMIN_TID);
+          if((pendingTasks.data||[]).length<5){
+            if(gl.tipo==="posts"||gl.tipo==="leads"){
+              await sb.from("ai_tasks").insert({equipe:"mkt",tipo:"post_instagram",titulo:"Post Instagram - atingir meta de "+gl.tipo,conteudo:"Crie 1 post completo para Instagram do Portal do Corretor. Legenda persuasiva + 10 hashtags. Foco: atrair construtoras. Meta: "+gl.meta_valor+" "+gl.tipo+", atual: "+gl.valor_atual,status:"pendente",prioridade:3,meta_id:gl.id,tenant_id:ADMIN_TID});
+            }
+            if(gl.tipo==="clientes"||gl.tipo==="mrr"){
+              await sb.from("ai_tasks").insert({equipe:"sales",tipo:"email_prospeccao",titulo:"Email prospec\u00e7\u00e3o - meta "+gl.tipo,conteudo:"Crie 1 email de prospec\u00e7\u00e3o fria para construtoras. Mostre ROI do Portal do Corretor. Tom consultivo. Meta: "+gl.meta_valor+" "+gl.tipo+", atual: "+gl.valor_atual,status:"pendente",prioridade:2,meta_id:gl.id,tenant_id:ADMIN_TID});
+            }
+          }
+        }
+      }
+      await sb.from("ai_worker_log").insert({tipo:"worker_done",detalhes:"Processou "+tasks2.length+" tarefas. "+activeGoals.length+" metas ativas.",tenant_id:ADMIN_TID});
+      await loadBrainData();
+      msg("\u2705 Worker executou: "+tasks2.length+" tarefas processadas");
+    };
+
+    // Auto-worker interval
+    useEffect(function(){
+      if(!workerOn||!apiKey)return;
+      var iv=setInterval(function(){runWorker()},1800000); // 30 min
+      return function(){clearInterval(iv)};
+    },[workerOn,apiKey]);
+
     var qActions=[
-      {l:"📊 Análise completa",team:"brain",q:"Análise completa: saúde financeira, pipeline, clientes em risco, plano de ação 30 dias."},
-      {l:"📝 3 Posts Instagram",team:"mkt",q:"Crie 3 posts Instagram para atrair construtoras. Formato: legenda + hashtags."},
-      {l:"📧 Email prospecção",team:"sales",q:"Email de prospecção fria para construtoras sem sistema digital. Tom consultivo, mostrando ROI."},
-      {l:"💰 Projeção 6 meses",team:"finance",q:"Projeção financeira 6 meses: cenários otimista, realista, pessimista."},
-      {l:"🐛 Audit de bugs",team:"tech",q:"Liste bugs e melhorias prioritárias: segurança, performance, UX mobile, integrações."},
-      {l:"🔄 Validar equipes",team:"brain",q:"Validação completa de todas as equipes. Marketing alinhado com comercial? Financeiro coerente com pipeline? TI tem pendências?"}
+      {l:"\ud83d\udcca An\u00e1lise completa",team:"brain",q:"An\u00e1lise completa: sa\u00fade financeira, pipeline, metas, plano de a\u00e7\u00e3o. Liste TAREFA: [equipe] [descri\u00e7\u00e3o] para cada a\u00e7\u00e3o."},
+      {l:"\ud83d\udcdd 3 Posts Instagram",team:"mkt",q:"Crie 3 posts Instagram para atrair construtoras. Legenda completa + hashtags."},
+      {l:"\ud83d\udce7 Email prospec\u00e7\u00e3o",team:"sales",q:"Email de prospec\u00e7\u00e3o fria para construtoras. Tom consultivo, ROI claro."},
+      {l:"\ud83d\udcb0 Proje\u00e7\u00e3o 6m",team:"finance",q:"Proje\u00e7\u00e3o financeira 6 meses: cen\u00e1rios otimista, realista, pessimista."},
+      {l:"\ud83d\udc1b Audit bugs",team:"tech",q:"Bugs e melhorias priorit\u00e1rias: seguran\u00e7a, performance, UX."},
+      {l:"\ud83d\udd04 Validar tudo",team:"brain",q:"Valida\u00e7\u00e3o completa. Metas atingidas? Tarefas pendentes? O que fazer agora? Liste TAREFA: para cada a\u00e7\u00e3o necess\u00e1ria."}
     ];
 
+    // ═══ RENDER ═══
     return <div className="fade-in">
-      <div style={{fontSize:24,fontWeight:700,color:textColor,marginBottom:20}}>🧠 Cérebro IA — Central de Inteligência</div>
-      {/* API Key config */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+        <div style={{fontSize:24,fontWeight:700,color:textColor}}>{"\ud83e\udde0"} C\u00e9rebro IA</div>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          <div style={{width:8,height:8,borderRadius:"50%",background:workerOn?GR:R}}/>
+          <span style={{fontSize:12,color:workerOn?GR:subColor}}>{workerOn?"Worker ativo (30min)":"Worker parado"}</span>
+          <button className="bh" onClick={async function(){
+            var nv=!workerOn;setWorkerOn(nv);
+            await sb.from("config_whatsapp").delete().eq("chave","ai_worker_active").eq("tenant_id",ADMIN_TID);
+            await sb.from("config_whatsapp").insert({chave:"ai_worker_active",valor:String(nv),tenant_id:ADMIN_TID});
+            if(nv)runWorker();
+            msg(nv?"\u2705 Worker ativado!":"\u23f8 Worker pausado");
+          }} style={{padding:"6px 14px",borderRadius:8,background:workerOn?R+"12":GR+"12",color:workerOn?R:GR,border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>{workerOn?"\u23f8 Parar":"\u25b6\ufe0f Ativar Worker"}</button>
+          <button className="bh" onClick={runWorker} style={{padding:"6px 14px",borderRadius:8,background:G+"12",color:G,border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>{"\ud83d\udd04"} Executar Agora</button>
+        </div>
+      </div>
+
       {!apiKey&&<div style={{padding:20,borderRadius:14,background:W+"08",border:"1px solid "+W+"20",marginBottom:16}}>
-        <div style={{fontSize:16,fontWeight:700,color:textColor,marginBottom:8}}>🔑 Configure sua API Key Anthropic</div>
-        <div style={{fontSize:13,color:subColor,marginBottom:12}}>Para usar o Cérebro IA, insira sua API Key da Anthropic (console.anthropic.com)</div>
+        <div style={{fontSize:16,fontWeight:700,color:textColor,marginBottom:8}}>{"\ud83d\udd11"} Configure sua API Key</div>
         <div style={{display:"flex",gap:8}}>
           <input id="brain_api_key" type="password" onKeyDown={function(e){e.stopPropagation()}} placeholder="sk-ant-..." style={{flex:1,padding:"10px 14px",borderRadius:8,border:"1px solid "+border,background:dark?"#111":"#f8f5f0",color:textColor,fontSize:13,outline:"none"}}/>
-          <button className="bh" onClick={async function(){
-            var k=document.getElementById("brain_api_key").value;if(!k){msg("Insira a API Key");return}
-            await sb.from("config_whatsapp").delete().eq("chave","anthropic_api_key").eq("tenant_id",ADMIN_TID);
-            await sb.from("config_whatsapp").insert({chave:"anthropic_api_key",valor:k,tenant_id:ADMIN_TID});
-            setApiKey(k);msg("✅ API Key salva!");
-          }} style={{padding:"10px 20px",borderRadius:8,background:G,color:"#0a0a09",fontWeight:700,border:"none",cursor:"pointer"}}>Salvar</button>
+          <button className="bh" onClick={async function(){var k=document.getElementById("brain_api_key").value;if(!k)return;await sb.from("config_whatsapp").delete().eq("chave","anthropic_api_key").eq("tenant_id",ADMIN_TID);await sb.from("config_whatsapp").insert({chave:"anthropic_api_key",valor:k,tenant_id:ADMIN_TID});setApiKey(k);msg("\u2705 Salva!")}} style={{padding:"10px 20px",borderRadius:8,background:G,color:"#0a0a09",fontWeight:700,border:"none",cursor:"pointer"}}>Salvar</button>
         </div>
       </div>}
-      <div style={{display:"flex",gap:6,marginBottom:16,overflow:"auto",paddingBottom:4}}>
-        {Object.keys(teams).map(function(k){var t2=teams[k];return <div key={k} className="bh" onClick={function(){setTeam(k)}} style={{padding:"10px 16px",borderRadius:10,background:team===k?t2.color+"15":"transparent",border:team===k?"1px solid "+t2.color+"30":"1px solid "+border,color:team===k?t2.color:subColor,fontSize:13,fontWeight:team===k?700:400,whiteSpace:"nowrap",cursor:"pointer"}}>{t2.name}</div>})}
+
+      {/* Tabs */}
+      <div style={{display:"flex",gap:4,marginBottom:16,borderBottom:"1px solid "+border,paddingBottom:8}}>
+        {[{k:"chat",l:"\ud83d\udcac Chat",c:G},{k:"goals",l:"\ud83c\udfaf Metas",c:GR},{k:"queue",l:"\u2699\ufe0f Fila ("+aiTasks.filter(function(t){return t.status==="pendente"||t.status==="gerando"}).length+")",c:P},{k:"content",l:"\ud83d\udcc4 Conte\u00fado ("+aiContent.length+")",c:B}].map(function(t2){
+          return <button key={t2.k} className="bh" onClick={function(){setTab(t2.k)}} style={{padding:"8px 16px",borderRadius:"8px 8px 0 0",background:tab===t2.k?t2.c+"15":"transparent",color:tab===t2.k?t2.c:subColor,border:"none",fontSize:13,fontWeight:tab===t2.k?700:400,cursor:"pointer",borderBottom:tab===t2.k?"2px solid "+t2.c:"2px solid transparent"}}>{t2.l}</button>
+        })}
       </div>
-      <div style={{padding:16,borderRadius:14,background:teams[team].color+"06",border:"1px solid "+teams[team].color+"20",marginBottom:12}}>
-        <div style={{fontSize:18,fontWeight:700,color:textColor}}>{teams[team].name}</div>
-        <div style={{fontSize:13,color:subColor,marginTop:4}}>{teams[team].desc}</div>
-      </div>
-      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
-        {qActions.filter(function(a){return a.team===team||team==="brain"}).map(function(a,i){return <button key={i} className="bh" onClick={function(){setTeam(a.team);sendToAgent(a.team,a.q)}} style={{padding:"8px 12px",borderRadius:8,background:teams[a.team].color+"10",color:teams[a.team].color,border:"1px solid "+teams[a.team].color+"20",fontSize:12,fontWeight:600,cursor:"pointer"}}>{a.l}</button>})}
-      </div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 280px",gap:12}}>
-        <div style={{background:cardBg,borderRadius:14,border:"1px solid "+border,display:"flex",flexDirection:"column",minHeight:380,maxHeight:480}}>
-          <div style={{padding:"10px 14px",borderBottom:"1px solid "+border,display:"flex",alignItems:"center",gap:8}}>
-            <div style={{width:8,height:8,borderRadius:"50%",background:busy?W:GR}}/>
-            <span style={{fontSize:13,fontWeight:600,color:textColor}}>{teams[team].name} {busy?"pensando...":"pronto"}</span>
-          </div>
+
+      {/* TAB: CHAT */}
+      {tab==="chat"&&<div>
+        <div style={{display:"flex",gap:6,marginBottom:12,overflow:"auto"}}>
+          {Object.keys(teams).map(function(k){var t2=teams[k];return <div key={k} className="bh" onClick={function(){setTeam(k)}} style={{padding:"8px 14px",borderRadius:8,background:team===k?t2.color+"15":"transparent",border:team===k?"1px solid "+t2.color+"30":"1px solid "+border,color:team===k?t2.color:subColor,fontSize:12,fontWeight:team===k?700:400,whiteSpace:"nowrap",cursor:"pointer"}}>{t2.name}</div>})}
+        </div>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
+          {qActions.filter(function(a){return a.team===team||team==="brain"}).map(function(a,i){return <button key={i} className="bh" onClick={function(){setTeam(a.team);sendToAgent(a.team,a.q)}} style={{padding:"6px 10px",borderRadius:6,background:teams[a.team].color+"10",color:teams[a.team].color,border:"none",fontSize:11,fontWeight:600,cursor:"pointer"}}>{a.l}</button>})}
+        </div>
+        <div style={{background:cardBg,borderRadius:12,border:"1px solid "+border,minHeight:300,maxHeight:400,display:"flex",flexDirection:"column"}}>
           <div style={{flex:1,padding:10,overflow:"auto"}}>
-            {msgs3.filter(function(m){return m.team===team||(team==="brain")}).length===0&&<div style={{textAlign:"center",padding:30,color:subColor}}>
-              <div style={{fontSize:36,marginBottom:8}}>{teams[team].name.split(" ")[0]}</div>
-              <div style={{fontSize:13}}>Use os botões acima ou digite uma pergunta</div>
-            </div>}
-            {msgs3.filter(function(m){return m.team===team||(team==="brain"&&m.team)}).map(function(m,i){var isU=m.role==="user";return <div key={i} style={{display:"flex",justifyContent:isU?"flex-end":"flex-start",marginBottom:8}}>
-              <div style={{maxWidth:"85%",padding:"10px 12px",borderRadius:isU?"12px 12px 4px 12px":"12px 12px 12px 4px",background:isU?teams[m.team||team].color+"12":(dark?"#111":"#f8f5f0"),color:textColor,fontSize:13,lineHeight:1.7,whiteSpace:"pre-wrap"}}>{m.content}</div>
+            {msgs3.filter(function(m){return m.team===team||(team==="brain")}).length===0&&<div style={{textAlign:"center",padding:30,color:subColor,fontSize:13}}>Use os bot\u00f5es ou digite uma pergunta</div>}
+            {msgs3.filter(function(m){return m.team===team||(team==="brain"&&m.team)}).map(function(m,i){var isU=m.role==="user";return <div key={i} style={{display:"flex",justifyContent:isU?"flex-end":"flex-start",marginBottom:6}}>
+              <div style={{maxWidth:"85%",padding:"8px 12px",borderRadius:isU?"10px 10px 2px 10px":"10px 10px 10px 2px",background:isU?teams[m.team||team].color+"12":(dark?"#111":"#f8f5f0"),color:textColor,fontSize:13,lineHeight:1.7,whiteSpace:"pre-wrap"}}>{m.content}</div>
             </div>})}
-            {busy&&<div style={{padding:10,color:subColor,fontSize:13}}>⏳ Processando...</div>}
+            {busy&&<div style={{padding:8,color:subColor,fontSize:13}}>{"\u23f3"} Processando...</div>}
           </div>
           <div style={{padding:8,borderTop:"1px solid "+border,display:"flex",gap:6}}>
-            <input value={inp} onChange={function(e){setInp(e.target.value)}} onKeyDown={function(e){e.stopPropagation();if(e.key==="Enter"&&!busy)sendToAgent(team,inp)}} placeholder={"Pergunte ao "+teams[team].name+"..."} style={{flex:1,padding:"10px 12px",borderRadius:8,border:"1px solid "+border,background:dark?"#111":"#f8f5f0",color:textColor,fontSize:13,outline:"none"}}/>
-            <button className="bh" disabled={busy} onClick={function(){sendToAgent(team,inp)}} style={{padding:"10px 14px",borderRadius:8,background:teams[team].color,color:"#fff",fontWeight:700,border:"none",cursor:busy?"wait":"pointer",opacity:busy?.5:1}}>↑</button>
+            <input value={inp} onChange={function(e){setInp(e.target.value)}} onKeyDown={function(e){e.stopPropagation();if(e.key==="Enter"&&!busy)sendToAgent(team,inp)}} placeholder="Pergunte..." style={{flex:1,padding:"10px 12px",borderRadius:8,border:"1px solid "+border,background:dark?"#111":"#f8f5f0",color:textColor,fontSize:13,outline:"none"}}/>
+            <button className="bh" disabled={busy} onClick={function(){sendToAgent(team,inp)}} style={{padding:"10px 14px",borderRadius:8,background:teams[team].color,color:"#fff",fontWeight:700,border:"none",cursor:busy?"wait":"pointer"}}>{"\u2191"}</button>
           </div>
         </div>
-        <div>
-          <div style={{padding:12,borderRadius:12,background:cardBg,border:"1px solid "+border,marginBottom:10}}>
-            <div style={{fontSize:13,fontWeight:600,color:textColor,marginBottom:8}}>📡 Status</div>
-            {Object.keys(teams).map(function(k){var cnt=msgs3.filter(function(m){return m.team===k&&m.role==="assistant"}).length;return <div key={k} style={{display:"flex",alignItems:"center",gap:6,padding:"5px 0"}}>
-              <div style={{width:6,height:6,borderRadius:"50%",background:cnt>0?GR:"#555"}}/>
-              <span style={{fontSize:12,color:cnt>0?textColor:subColor,flex:1}}>{teams[k].name}</span>
-              <span style={{fontSize:11,color:subColor}}>{cnt}</span>
-            </div>})}
-          </div>
-          <div style={{padding:12,borderRadius:12,background:cardBg,border:"1px solid "+border}}>
-            <div style={{fontSize:13,fontWeight:600,color:textColor,marginBottom:8}}>📋 Histórico</div>
-            {history2.length===0&&<div style={{fontSize:12,color:subColor,textAlign:"center",padding:16}}>Nenhuma ação</div>}
-            {history2.slice(-8).reverse().map(function(h,i){return <div key={i} style={{padding:"5px 0",borderBottom:"1px solid "+(dark?"#1a1a19":"#eee"),fontSize:11}}>
-              <span style={{color:teams[h.team]?teams[h.team].color:subColor,fontWeight:600}}>{teams[h.team]?teams[h.team].name:""}</span>
-              <div style={{color:subColor,marginTop:2}}>{h.q} <span style={{fontSize:10}}>{h.ts}</span></div>
-            </div>})}
+      </div>}
+
+      {/* TAB: METAS */}
+      {tab==="goals"&&<div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+          <div style={{fontSize:16,fontWeight:600,color:textColor}}>{"\ud83c\udfaf"} Metas Configur\u00e1veis</div>
+          <button className="bh" onClick={async function(){
+            var tipo=prompt("Tipo de meta:\n1. clientes\n2. mrr\n3. leads\n4. posts\n5. emails\n\nDigite o nome:","clientes");if(!tipo)return;
+            var valor=prompt("Valor da meta (n\u00famero):","50");if(!valor)return;
+            var prazo=prompt("Prazo (YYYY-MM-DD):","2026-12-31");
+            await sb.from("ai_goals").insert({tipo:tipo,meta_valor:parseInt(valor),prazo:prazo||null,tenant_id:ADMIN_TID});
+            await loadBrainData();msg("\u2705 Meta criada!");
+          }} style={{padding:"8px 16px",borderRadius:8,background:GR+"12",color:GR,border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>{"\uff0b"} Nova Meta</button>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
+          {goals.map(function(g){
+            var pct=g.meta_valor>0?Math.min(100,Math.round(g.valor_atual/g.meta_valor*100)):0;
+            var icons={clientes:"\ud83d\udc65",mrr:"\ud83d\udcb0",leads:"\ud83c\udfaf",posts:"\ud83d\udcdd",emails:"\ud83d\udce7"};
+            return <div key={g.id} style={{padding:16,borderRadius:14,background:cardBg,border:"1px solid "+border}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                <span style={{fontSize:14,fontWeight:600,color:textColor}}>{icons[g.tipo]||"\ud83c\udfaf"} {g.tipo}</span>
+                <span style={{fontSize:12,color:pct>=100?GR:pct>=50?W:R,fontWeight:700}}>{pct}%</span>
+              </div>
+              <div style={{fontSize:24,fontWeight:700,color:pct>=100?GR:textColor}}>{g.valor_atual}/{g.meta_valor}</div>
+              <div style={{height:6,borderRadius:3,background:dark?"#1a1a19":"#ddd",marginTop:8,overflow:"hidden"}}>
+                <div style={{height:"100%",width:pct+"%",background:pct>=100?GR:pct>=50?W:R,borderRadius:3,transition:"width .5s"}}/>
+              </div>
+              {g.prazo&&<div style={{fontSize:11,color:subColor,marginTop:6}}>Prazo: {new Date(g.prazo).toLocaleDateString("pt-BR")}</div>}
+              <div style={{display:"flex",gap:4,marginTop:8}}>
+                <button className="bh" onClick={async function(){var nv=prompt("Novo valor da meta:",g.meta_valor);if(nv){await sb.from("ai_goals").update({meta_valor:parseInt(nv)}).eq("id",g.id);await loadBrainData()}}} style={{padding:"4px 8px",borderRadius:4,background:B+"12",color:B,border:"none",fontSize:10,cursor:"pointer"}}>{"\u270f\ufe0f"} Editar</button>
+                <button className="bh" onClick={async function(){await sb.from("ai_goals").update({status:g.status==="ativo"?"pausado":"ativo"}).eq("id",g.id);await loadBrainData()}} style={{padding:"4px 8px",borderRadius:4,background:g.status==="ativo"?R+"12":GR+"12",color:g.status==="ativo"?R:GR,border:"none",fontSize:10,cursor:"pointer"}}>{g.status==="ativo"?"\u23f8":"\u25b6\ufe0f"}</button>
+              </div>
+            </div>
+          })}
+          {goals.length===0&&<div style={{gridColumn:"1/-1",textAlign:"center",padding:30,color:subColor}}>Nenhuma meta configurada. Clique em "+ Nova Meta" para come\u00e7ar.</div>}
+        </div>
+      </div>}
+
+      {/* TAB: QUEUE */}
+      {tab==="queue"&&<div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+          <div style={{fontSize:16,fontWeight:600,color:textColor}}>{"\u2699\ufe0f"} Fila de Tarefas dos Agentes</div>
+          <div style={{display:"flex",gap:6}}>
+            <span style={{padding:"4px 10px",borderRadius:6,background:W+"12",color:W,fontSize:12}}>{"\u23f3"} {aiTasks.filter(function(t){return t.status==="pendente"}).length} pendentes</span>
+            <span style={{padding:"4px 10px",borderRadius:6,background:P+"12",color:P,fontSize:12}}>{"\u2699\ufe0f"} {aiTasks.filter(function(t){return t.status==="gerando"}).length} gerando</span>
+            <span style={{padding:"4px 10px",borderRadius:6,background:GR+"12",color:GR,fontSize:12}}>{"\u2705"} {aiTasks.filter(function(t){return t.status==="pronto"}).length} prontas</span>
           </div>
         </div>
-      </div>
+        {aiTasks.slice(0,20).map(function(t2){var cols={pendente:W,gerando:P,pronto:GR,publicado:B,erro:R};return <div key={t2.id} style={{padding:12,borderRadius:10,background:cardBg,border:"1px solid "+border,marginBottom:6,display:"flex",alignItems:"center",gap:10}}>
+          <div style={{width:8,height:8,borderRadius:"50%",background:cols[t2.status]||"#555",flexShrink:0}}/>
+          <div style={{flex:1}}>
+            <div style={{fontSize:13,fontWeight:600,color:textColor}}>[{t2.equipe}] {t2.titulo}</div>
+            <div style={{fontSize:11,color:subColor}}>{t2.status} \u00b7 {new Date(t2.criado_em).toLocaleString("pt-BR")}</div>
+          </div>
+          {t2.status==="pronto"&&<button className="bh" onClick={function(){setTab("content");msg("Veja o conte\u00fado gerado na aba Conte\u00fado")}} style={{padding:"4px 10px",borderRadius:6,background:GR+"12",color:GR,border:"none",fontSize:11,cursor:"pointer"}}>{"\ud83d\udc41\ufe0f"} Ver</button>}
+        </div>})}
+        {aiTasks.length===0&&<div style={{textAlign:"center",padding:30,color:subColor}}>Fila vazia. O C\u00e9rebro criar\u00e1 tarefas automaticamente baseado nas metas.</div>}
+        {/* Worker log */}
+        <div style={{marginTop:16,padding:12,borderRadius:10,background:dark?"#111":"#f8f5f0",border:"1px solid "+border}}>
+          <div style={{fontSize:13,fontWeight:600,color:textColor,marginBottom:8}}>{"\ud83d\udcdd"} Log do Worker</div>
+          {workerLog.map(function(l,i){return <div key={i} style={{fontSize:11,color:subColor,padding:"3px 0"}}>{new Date(l.criado_em).toLocaleString("pt-BR")} \u2014 {l.detalhes}</div>})}
+          {workerLog.length===0&&<div style={{fontSize:12,color:subColor}}>Nenhuma execu\u00e7\u00e3o ainda</div>}
+        </div>
+      </div>}
+
+      {/* TAB: CONTENT */}
+      {tab==="content"&&<div>
+        <div style={{fontSize:16,fontWeight:600,color:textColor,marginBottom:12}}>{"\ud83d\udcc4"} Conte\u00fado Gerado pela IA</div>
+        {aiContent.map(function(c2){var cols2={rascunho:W,aprovado:GR,publicado:B,descartado:R};return <div key={c2.id} style={{padding:14,borderRadius:12,background:cardBg,border:"1px solid "+border,marginBottom:8}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+            <div>
+              <span style={{fontSize:12,fontWeight:600,color:teams[c2.equipe]?teams[c2.equipe].color:subColor}}>[{c2.equipe}]</span>
+              <span style={{fontSize:13,fontWeight:600,color:textColor,marginLeft:6}}>{c2.titulo||c2.tipo}</span>
+            </div>
+            <span style={{padding:"3px 8px",borderRadius:4,background:(cols2[c2.status]||"#555")+"12",color:cols2[c2.status]||"#555",fontSize:10,fontWeight:600}}>{c2.status}</span>
+          </div>
+          <div style={{fontSize:13,color:textColor,lineHeight:1.7,whiteSpace:"pre-wrap",maxHeight:150,overflow:"auto",padding:10,borderRadius:8,background:dark?"#0a0a0a":"#f8f5f0"}}>{c2.conteudo}</div>
+          <div style={{display:"flex",gap:4,marginTop:8}}>
+            <button className="bh" onClick={function(){navigator.clipboard.writeText(c2.conteudo);msg("\ud83d\udccb Copiado!")}} style={{padding:"4px 10px",borderRadius:6,background:B+"12",color:B,border:"none",fontSize:11,cursor:"pointer"}}>{"\ud83d\udccb"} Copiar</button>
+            <button className="bh" onClick={async function(){await sb.from("ai_content").update({status:"aprovado"}).eq("id",c2.id);await loadBrainData();msg("\u2705 Aprovado!")}} style={{padding:"4px 10px",borderRadius:6,background:GR+"12",color:GR,border:"none",fontSize:11,cursor:"pointer"}}>{"\u2705"} Aprovar</button>
+            <button className="bh" onClick={async function(){await sb.from("ai_content").update({status:"publicado"}).eq("id",c2.id);await loadBrainData();msg("\ud83d\ude80 Publicado!")}} style={{padding:"4px 10px",borderRadius:6,background:P+"12",color:P,border:"none",fontSize:11,cursor:"pointer"}}>{"\ud83d\ude80"} Publicar</button>
+            <button className="bh" onClick={async function(){await sb.from("ai_content").update({status:"descartado"}).eq("id",c2.id);await loadBrainData()}} style={{padding:"4px 10px",borderRadius:6,background:R+"12",color:R,border:"none",fontSize:11,cursor:"pointer"}}>{"\ud83d\uddd1\ufe0f"}</button>
+          </div>
+        </div>})}
+        {aiContent.length===0&&<div style={{textAlign:"center",padding:30,color:subColor}}>Nenhum conte\u00fado gerado ainda. Ative o Worker ou use o Chat.</div>}
+      </div>}
     </div>
   }
+
 
   return <div className="admin-layout" style={{display:"flex",minHeight:"100vh"}}>
     {/* Sidebar */}
