@@ -107,6 +107,40 @@ body.light [style*="rgba(139, 111, 191, 0.0"]{background:rgba(139,111,191,0.06)!
   table th,table td{padding:8px 6px!important;font-size:12px!important}
   .bh{min-height:36px}
 }
+@media(max-width:768px){
+  /* Global mobile fixes */
+  body{overflow-x:hidden!important}
+  /* Manage grid single column */
+  .manage-grid{grid-template-columns:1fr!important;gap:8px!important}
+  /* KPI grid 2 cols on mobile */
+  .kpi-grid{grid-template-columns:1fr 1fr!important;gap:8px!important}
+  /* Photo grid 2 cols */
+  .photo-grid{grid-template-columns:1fr 1fr!important;gap:8px!important}
+  /* Building grid single column */
+  .bld-grid{grid-template-columns:1fr!important;gap:10px!important}
+  /* Tables scroll horizontally */
+  table{display:block;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch}
+  /* Fix modals */
+  [style*="position: fixed"][style*="inset"]{padding:8px!important}
+  [style*="maxWidth: 6"],[style*="maxWidth: 7"],[style*="maxWidth: 8"],[style*="maxWidth: 9"]{max-width:100%!important;width:100%!important;margin:0!important;border-radius:12px!important}
+  /* Fix grids inside modals */
+  [style*="gridTemplateColumns: 1fr 1fr"]{grid-template-columns:1fr!important}
+  [style*="gridTemplateColumns: repeat(3"]{grid-template-columns:1fr 1fr!important}
+  [style*="gridTemplateColumns: repeat(4"]{grid-template-columns:1fr 1fr!important}
+  /* Flex wrap buttons */
+  [style*="display: flex"][style*="gap"]{flex-wrap:wrap!important}
+  /* Support chat mobile */
+  [style*="position: fixed"][style*="width: 380"]{width:calc(100vw - 20px)!important;right:10px!important;bottom:70px!important;max-height:70vh!important}
+  /* Sidebar nav scroll */
+  [style*="gap: 4"][style*="overflow: auto"]{-webkit-overflow-scrolling:touch}
+  /* Fix padding */
+  [style*="padding: 32px"]{padding:16px!important}
+  [style*="padding: 48px"]{padding:16px!important}
+  /* Fix font sizes */
+  [style*="fontSize: 32"]{font-size:22px!important}
+  [style*="fontSize: 28"]{font-size:20px!important}
+  [style*="fontSize: 24"]{font-size:18px!important}
+}
 </style>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
