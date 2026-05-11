@@ -68,6 +68,8 @@ input,select,textarea{font-family:inherit}
 <script type="text/babel">
 var {useState,useEffect}=React;
 var sb=supabase.createClient('https://zztqlktqevfdxjyzvand.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp6dHFsa3RxZXZmZHhqeXp2YW5kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MzI3NjMsImV4cCI6MjA5MTUwODc2M30.xl4LFZoPDR9q78-y9tcyLgaSSLb_oQFrcm2hjmnb-Mg');
+var SUPABASE_URL='https://zztqlktqevfdxjyzvand.supabase.co';
+var SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp6dHFsa3RxZXZmZHhqeXp2YW5kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MzI3NjMsImV4cCI6MjA5MTUwODc2M30.xl4LFZoPDR9q78-y9tcyLgaSSLb_oQFrcm2hjmnb-Mg';
 var ADMIN_TID="mk"; // Tenant do admin SaaS — configurável
 var fmt=function(v){return"R$ "+Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:0,maximumFractionDigits:0})};
 var G="#C8A45C";var B="#5B8FD4";var GR="#4CAF7D";var P="#8B6FBF";var R="#D45B5B";var W="#E8A94E";
@@ -313,6 +315,13 @@ function App(){
     var _workerOn=useState(false);var workerOn=_workerOn[0];var setWorkerOn=_workerOn[1];
     var _workerLog=useState([]);var workerLog=_workerLog[0];var setWorkerLog=_workerLog[1];
     var _autonomy=useState({generate:true,approve:false,post:false});var autonomy=_autonomy[0];var setAutonomy=_autonomy[1];
+    var _devMsgs=useState([]);var devMsgs=_devMsgs[0];var setDevMsgs=_devMsgs[1];
+    var _devInp=useState("");var devInp=_devInp[0];var setDevInp=_devInp[1];
+    var _devBusy=useState(false);var devBusy=_devBusy[0];var setDevBusy=_devBusy[1];
+    var _devLog=useState([]);var devLog=_devLog[0];var setDevLog=_devLog[1];
+    var _ghToken=useState("");var ghToken=_ghToken[0];var setGhToken=_ghToken[1];
+    var _ghRepo=useState("portal-corretor");var ghRepo=_ghRepo[0];var setGhRepo=_ghRepo[1];
+    var _ghUser=useState("");var ghUser=_ghUser[0];var setGhUser=_ghUser[1];
 
     var loadBrainData=async function(){
       var r1=await sb.from("config_whatsapp").select("valor").eq("chave","anthropic_api_key").eq("tenant_id",ADMIN_TID).single();
@@ -325,6 +334,8 @@ function App(){
       if(r6.data)setWorkerOn(r6.data.valor==="true"||r6.data.valor===true);
       var r7=await sb.from("config_whatsapp").select("valor").eq("chave","ai_autonomy").eq("tenant_id",ADMIN_TID).single();
       if(r7.data){try{setAutonomy(JSON.parse(r7.data.valor))}catch(e){}}
+      var r8=await sb.from("config_whatsapp").select("chave,valor").in("chave",["github_token","github_user","github_repo"]).eq("tenant_id",ADMIN_TID);
+      (r8.data||[]).forEach(function(c){var v=typeof c.valor==="string"?c.valor.replace(/^"|"$/g,""):String(c.valor);if(c.chave==="github_token")setGhToken(v);if(c.chave==="github_user")setGhUser(v);if(c.chave==="github_repo")setGhRepo(v)});
     };
     useEffect(function(){loadBrainData()},[]);
 
@@ -494,7 +505,7 @@ function App(){
 
       {/* Tabs */}
       <div style={{display:"flex",gap:4,marginBottom:16,borderBottom:"1px solid "+border,paddingBottom:8}}>
-        {[{k:"chat",l:"\ud83d\udcac Chat",c:G},{k:"goals",l:"\ud83c\udfaf Metas",c:GR},{k:"queue",l:"\u2699\ufe0f Fila ("+aiTasks.filter(function(t){return t.status==="pendente"||t.status==="gerando"}).length+")",c:P},{k:"content",l:"\ud83d\udcc4 Conte\u00fado ("+aiContent.length+")",c:B}].map(function(t2){
+        {[{k:"chat",l:"\ud83d\udcac Chat",c:G},{k:"goals",l:"\ud83c\udfaf Metas",c:GR},{k:"queue",l:"\u2699\ufe0f Fila ("+aiTasks.filter(function(t){return t.status==="pendente"||t.status==="gerando"}).length+")",c:P},{k:"content",l:"\ud83d\udcc4 Conte\u00fado ("+aiContent.length+")",c:B},{k:"deploy",l:"\ud83d\udee0\ufe0f DevOps",c:"#8B6FBF"}].map(function(t2){
           return <button key={t2.k} className="bh" onClick={function(){setTab(t2.k)}} style={{padding:"8px 16px",borderRadius:"8px 8px 0 0",background:tab===t2.k?t2.c+"15":"transparent",color:tab===t2.k?t2.c:subColor,border:"none",fontSize:13,fontWeight:tab===t2.k?700:400,cursor:"pointer",borderBottom:tab===t2.k?"2px solid "+t2.c:"2px solid transparent"}}>{t2.l}</button>
         })}
       </div>
@@ -606,6 +617,187 @@ function App(){
         </div>})}
         {aiContent.length===0&&<div style={{textAlign:"center",padding:30,color:subColor}}>Nenhum conte\u00fado gerado ainda. Ative o Worker ou use o Chat.</div>}
       </div>}
+
+      {/* TAB: DEVOPS */}
+      {tab==="deploy"&&<div>
+        <div style={{fontSize:16,fontWeight:600,color:textColor,marginBottom:12}}>{"\ud83d\udee0\ufe0f"} Agente DevOps — Deploy Automatizado</div>
+
+          var ghAPI=function(path,method,body){
+            return fetch("https://api.github.com/repos/"+ghUser+"/"+ghRepo+"/"+path,{
+              method:method||"GET",
+              headers:{"Authorization":"token "+ghToken,"Content-Type":"application/json","Accept":"application/vnd.github.v3+json"},
+              body:body?JSON.stringify(body):undefined
+            }).then(function(r){return r.json()});
+          };
+
+          var readFile=async function(filename){
+            var r=await ghAPI("contents/"+filename);
+            if(r.content){return{content:atob(r.content),sha:r.sha}}
+            return null;
+          };
+
+          var writeFile=async function(filename,content,message,sha){
+            return ghAPI("contents/"+filename,"PUT",{
+              message:message||"[AI DevOps] Update "+filename,
+              content:btoa(unescape(encodeURIComponent(content))),
+              sha:sha
+            });
+          };
+
+          var execSQL=async function(sql){
+            try{
+              var r=await fetch(SUPABASE_URL+"/rest/v1/rpc/exec_sql",{
+                method:"POST",
+                headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json"},
+                body:JSON.stringify({sql_text:sql})
+              });
+              return await r.json();
+            }catch(e){return{error:e.message}}
+          };
+
+          var devSysPrompt="Voc\u00ea \u00e9 o AGENTE DEVOPS do Portal do Corretor SaaS.\n\nARQUITETURA:\n- portal.html (~5700 linhas): Portal dos clientes (React/Babel)\n- admin.html (~1900 linhas): Painel admin SaaS\n- index.html (~375 linhas): Landing page\n- 404.html (~31 linhas): Routing\n- Backend: Supabase (PostgreSQL)\n- GitHub: "+ghUser+"/"+ghRepo+"\n\nVoc\u00ea pode:\n1. LER arquivos do GitHub (comando: READ:filename)\n2. EDITAR arquivos (comando: EDIT:filename)\n3. EXECUTAR SQL no Supabase (comando: SQL:query)\n\nQuando o usu\u00e1rio pedir uma melhoria:\n1. Analise o que precisa mudar\n2. Gere o c\u00f3digo/SQL exato\n3. Mostre preview das mudan\u00e7as\n4. Pergunte se deve aplicar\n\nQuando confirmar, use os comandos:\n- APPLY_EDIT:filename:::conteudo_completo_do_arquivo\n- APPLY_SQL:::sql_query\n\nResponda SEMPRE em portugu\u00eas. Seja preciso e teste mentalmente o c\u00f3digo antes de sugerir.";
+
+          var sendDevMsg=async function(q){
+            if(!q||!q.trim()||devBusy)return;
+            if(!apiKey){setDevMsgs(devMsgs.concat([{role:"assistant",content:"\u26a0\ufe0f Configure a API Key em Integra\u00e7\u00f5es."}]));return}
+            if(!ghToken){setDevMsgs(devMsgs.concat([{role:"assistant",content:"\u26a0\ufe0f Configure o GitHub Token em Integra\u00e7\u00f5es."}]));return}
+            setDevBusy(true);
+            var newMsgs=devMsgs.concat([{role:"user",content:q}]);
+            setDevMsgs(newMsgs);setDevInp("");
+
+            // Check for auto-commands
+            if(q.startsWith("CONFIRMAR_DEPLOY:")){
+              var parts=q.split(":::");
+              var filename=parts[0].replace("CONFIRMAR_DEPLOY:","").trim();
+              var content=parts.slice(1).join(":::");
+              setDevLog(devLog.concat([{t:Date.now(),m:"\ud83d\ude80 Deployando "+filename+"..."}]));
+              try{
+                var current=await readFile(filename);
+                var r=await writeFile(filename,content,"[AI DevOps] "+filename,current?current.sha:undefined);
+                if(r.content){
+                  setDevMsgs(newMsgs.concat([{role:"assistant",content:"\u2705 Deploy realizado com sucesso!\n\nArquivo: "+filename+"\nCommit: "+r.commit.sha.substring(0,7)+"\nMensagem: "+r.commit.message}]));
+                  setDevLog(devLog.concat([{t:Date.now(),m:"\u2705 "+filename+" deployado: "+r.commit.sha.substring(0,7)}]));
+                }else{
+                  setDevMsgs(newMsgs.concat([{role:"assistant",content:"\u274c Erro no deploy: "+JSON.stringify(r)}]));
+                }
+              }catch(e){setDevMsgs(newMsgs.concat([{role:"assistant",content:"\u274c Erro: "+e.message}]))}
+              setDevBusy(false);return;
+            }
+
+            if(q.startsWith("EXECUTAR_SQL:")){
+              var sql=q.replace("EXECUTAR_SQL:","").trim();
+              setDevLog(devLog.concat([{t:Date.now(),m:"\ud83d\udcbe Executando SQL..."}]));
+              var r2=await execSQL(sql);
+              setDevMsgs(newMsgs.concat([{role:"assistant",content:r2.error?"\u274c SQL Erro: "+JSON.stringify(r2.error):"\u2705 SQL executado com sucesso!\n\nResultado: "+JSON.stringify(r2).substring(0,500)}]));
+              setDevBusy(false);return;
+            }
+
+            // Regular AI conversation
+            var txt=await callAI(devSysPrompt,newMsgs.map(function(m){return{role:m.role,content:m.content}}).slice(-10));
+            setDevMsgs(newMsgs.concat([{role:"assistant",content:txt}]));
+            setDevBusy(false);
+          };
+
+          var quickDevActions=[
+            {l:"\ud83d\udcca Ler portal.html",cmd:"Leia o portal.html do GitHub e me diga quantas linhas tem e liste as principais fun\u00e7\u00f5es."},
+            {l:"\ud83d\udc1b Scan de bugs",cmd:"Analise o c\u00f3digo atual e identifique poss\u00edveis bugs, fun\u00e7\u00f5es vazias, ou erros de sintaxe."},
+            {l:"\u26a1 Otimizar performance",cmd:"Sugira otimiza\u00e7\u00f5es de performance para o portal: lazy loading, debounce, cache, queries."},
+            {l:"\ud83d\udd12 Audit seguran\u00e7a",cmd:"Fa\u00e7a um audit de seguran\u00e7a: senhas, tokens expostos, XSS, SQL injection, RLS."},
+            {l:"\ud83d\udcf1 Fix mobile",cmd:"Identifique problemas de responsividade mobile e gere os CSS fixes necess\u00e1rios."},
+            {l:"\ud83d\udcbe Criar tabela SQL",cmd:"Que tabelas novas poderiam melhorar o sistema? Sugira com CREATE TABLE completo."}
+          ];
+
+          return <div>
+            {/* GitHub config */}
+            {(!ghToken||!ghUser)&&<div style={{padding:16,borderRadius:12,background:W+"08",border:"1px solid "+W+"20",marginBottom:12}}>
+              <div style={{fontSize:14,fontWeight:700,color:textColor,marginBottom:8}}>{"\ud83d\udd11"} Configure GitHub</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+                <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Usu\u00e1rio</div><input id="dev_gh_user" onKeyDown={function(e){e.stopPropagation()}} defaultValue={ghUser} style={{width:"100%",padding:"8px",borderRadius:6,border:"1px solid "+border,background:dark?"#111":"#f8f5f0",color:textColor,fontSize:12}} placeholder="mikaels002-creator"/></div>
+                <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Reposit\u00f3rio</div><input id="dev_gh_repo" onKeyDown={function(e){e.stopPropagation()}} defaultValue={ghRepo} style={{width:"100%",padding:"8px",borderRadius:6,border:"1px solid "+border,background:dark?"#111":"#f8f5f0",color:textColor,fontSize:12}} placeholder="portal-corretor"/></div>
+                <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Token</div><input id="dev_gh_token" type="password" onKeyDown={function(e){e.stopPropagation()}} style={{width:"100%",padding:"8px",borderRadius:6,border:"1px solid "+border,background:dark?"#111":"#f8f5f0",color:textColor,fontSize:12}} placeholder="ghp_..."/></div>
+              </div>
+              <button className="bh" onClick={async function(){
+                var u=document.getElementById("dev_gh_user").value;var r=document.getElementById("dev_gh_repo").value;var t=document.getElementById("dev_gh_token").value;
+                if(u){await sb.from("config_whatsapp").delete().eq("chave","github_user").eq("tenant_id",ADMIN_TID);await sb.from("config_whatsapp").insert({chave:"github_user",valor:u,tenant_id:ADMIN_TID});setGhUser(u)}
+                if(r){await sb.from("config_whatsapp").delete().eq("chave","github_repo").eq("tenant_id",ADMIN_TID);await sb.from("config_whatsapp").insert({chave:"github_repo",valor:r,tenant_id:ADMIN_TID});setGhRepo(r)}
+                if(t){await sb.from("config_whatsapp").delete().eq("chave","github_token").eq("tenant_id",ADMIN_TID);await sb.from("config_whatsapp").insert({chave:"github_token",valor:t,tenant_id:ADMIN_TID});setGhToken(t)}
+                msg("\u2705 GitHub configurado!");
+              }} style={{marginTop:8,padding:"8px 16px",borderRadius:6,background:P,color:"#fff",border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>{"\ud83d\udcbe"} Salvar GitHub</button>
+            </div>}
+
+            {/* Status bar */}
+            <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
+              <span style={{padding:"6px 12px",borderRadius:8,background:ghToken?GR+"12":R+"12",color:ghToken?GR:R,fontSize:12,fontWeight:600}}>{ghToken?"\u2705":"\u274c"} GitHub {ghUser?ghUser+"/"+ghRepo:""}</span>
+              <span style={{padding:"6px 12px",borderRadius:8,background:apiKey?GR+"12":R+"12",color:apiKey?GR:R,fontSize:12,fontWeight:600}}>{apiKey?"\u2705":"\u274c"} Claude IA</span>
+              <span style={{padding:"6px 12px",borderRadius:8,background:GR+"12",color:GR,fontSize:12,fontWeight:600}}>{"\u2705"} Supabase</span>
+            </div>
+
+            {/* Quick actions */}
+            <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
+              {quickDevActions.map(function(a,i){return <button key={i} className="bh" onClick={function(){sendDevMsg(a.cmd)}} style={{padding:"6px 10px",borderRadius:6,background:P+"10",color:P,border:"1px solid "+P+"20",fontSize:11,fontWeight:600,cursor:"pointer"}}>{a.l}</button>})}
+            </div>
+
+            <div style={{display:"grid",gridTemplateColumns:"1fr 250px",gap:12}}>
+              {/* Chat */}
+              <div style={{background:cardBg,borderRadius:12,border:"1px solid "+border,display:"flex",flexDirection:"column",minHeight:350,maxHeight:450}}>
+                <div style={{padding:"10px 14px",borderBottom:"1px solid "+border,display:"flex",alignItems:"center",gap:8}}>
+                  <div style={{width:8,height:8,borderRadius:"50%",background:devBusy?W:GR}}/>
+                  <span style={{fontSize:13,fontWeight:600,color:textColor}}>{"\u26a1"} DevOps Agent {devBusy?"processando...":"pronto"}</span>
+                </div>
+                <div style={{flex:1,padding:10,overflow:"auto"}}>
+                  {devMsgs.length===0&&<div style={{textAlign:"center",padding:30,color:subColor}}>
+                    <div style={{fontSize:36,marginBottom:8}}>{"\ud83d\udee0\ufe0f"}</div>
+                    <div style={{fontSize:13}}>Pe\u00e7a melhorias, corre\u00e7\u00f5es ou deploy</div>
+                    <div style={{fontSize:11,color:subColor,marginTop:8}}>Ex: "Adicione um bot\u00e3o de exportar PDF no dashboard"</div>
+                  </div>}
+                  {devMsgs.map(function(m,i){var isU=m.role==="user";return <div key={i} style={{display:"flex",justifyContent:isU?"flex-end":"flex-start",marginBottom:6}}>
+                    <div style={{maxWidth:"85%",padding:"8px 12px",borderRadius:isU?"10px 10px 2px 10px":"10px 10px 10px 2px",background:isU?P+"12":(dark?"#111":"#f8f5f0"),color:textColor,fontSize:13,lineHeight:1.7,whiteSpace:"pre-wrap"}}>{m.content}</div>
+                  </div>})}
+                  {devBusy&&<div style={{padding:8,color:subColor,fontSize:13}}>{"\u23f3"} Processando...</div>}
+                </div>
+                <div style={{padding:8,borderTop:"1px solid "+border,display:"flex",gap:6}}>
+                  <input value={devInp} onChange={function(e){setDevInp(e.target.value)}} onKeyDown={function(e){e.stopPropagation();if(e.key==="Enter"&&!devBusy)sendDevMsg(devInp)}} placeholder="Descreva a melhoria ou corre\u00e7\u00e3o..." style={{flex:1,padding:"10px 12px",borderRadius:8,border:"1px solid "+border,background:dark?"#111":"#f8f5f0",color:textColor,fontSize:13,outline:"none"}}/>
+                  <button className="bh" disabled={devBusy} onClick={function(){sendDevMsg(devInp)}} style={{padding:"10px 14px",borderRadius:8,background:P,color:"#fff",fontWeight:700,border:"none",cursor:devBusy?"wait":"pointer"}}>{"\u2191"}</button>
+                </div>
+              </div>
+
+              {/* Deploy log */}
+              <div>
+                <div style={{padding:12,borderRadius:12,background:cardBg,border:"1px solid "+border,marginBottom:10}}>
+                  <div style={{fontSize:13,fontWeight:600,color:textColor,marginBottom:8}}>{"\ud83d\ude80"} Deploy r\u00e1pido</div>
+                  <button className="bh" onClick={async function(){
+                    if(!ghToken){msg("Configure GitHub primeiro");return}
+                    setDevLog(devLog.concat([{t:Date.now(),m:"\ud83d\udcca Lendo portal.html..."}]));
+                    var f=await readFile("portal.html");
+                    if(f)setDevLog(devLog.concat([{t:Date.now(),m:"\u2705 portal.html: "+f.content.split("\\n").length+" linhas"}]));
+                  }} style={{width:"100%",padding:"8px",borderRadius:6,background:P+"12",color:P,border:"none",fontSize:12,fontWeight:600,cursor:"pointer",marginBottom:4}}>{"\ud83d\udcca"} Status Repo</button>
+                  <button className="bh" onClick={async function(){
+                    if(!ghToken){msg("Configure GitHub primeiro");return}
+                    var file=prompt("Arquivo para atualizar (portal.html, admin.html, index.html, 404.html):","admin.html");if(!file)return;
+                    var el=document.createElement("input");el.type="file";el.accept=".html";el.onchange=async function(){
+                      var f=el.files[0];if(!f)return;
+                      var reader=new FileReader();reader.onload=async function(){
+                        var content=reader.result;
+                        setDevLog(devLog.concat([{t:Date.now(),m:"\ud83d\ude80 Uploading "+file+"..."}]));
+                        var current=await readFile(file);
+                        var r=await writeFile(file,content,"[Manual] Update "+file,current?current.sha:undefined);
+                        if(r.content){setDevLog(devLog.concat([{t:Date.now(),m:"\u2705 "+file+" deployado!"}]));msg("\u2705 Deploy OK!")}
+                        else{setDevLog(devLog.concat([{t:Date.now(),m:"\u274c Erro: "+JSON.stringify(r.message||r)}]));msg("\u274c Erro no deploy")}
+                      };reader.readAsText(f);
+                    };el.click();
+                  }} style={{width:"100%",padding:"8px",borderRadius:6,background:GR+"12",color:GR,border:"none",fontSize:12,fontWeight:600,cursor:"pointer",marginBottom:4}}>{"\ud83d\udce4"} Upload &amp; Deploy</button>
+                </div>
+
+                <div style={{padding:12,borderRadius:12,background:cardBg,border:"1px solid "+border}}>
+                  <div style={{fontSize:13,fontWeight:600,color:textColor,marginBottom:8}}>{"\ud83d\udcdd"} Log</div>
+                  {devLog.length===0&&<div style={{fontSize:12,color:subColor,textAlign:"center",padding:16}}>Nenhuma a\u00e7\u00e3o</div>}
+                  {devLog.slice(-10).reverse().map(function(l,i){return <div key={i} style={{fontSize:11,color:subColor,padding:"3px 0",borderBottom:"1px solid "+(dark?"#1a1a19":"#eee")}}>{l.m}</div>})}
+                </div>
+              </div>
+            </div>
+          </div>
+      </div>}
+
     </div>
   }
 
