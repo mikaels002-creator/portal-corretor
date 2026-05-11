@@ -312,6 +312,7 @@ function App(){
     var _aiContent=useState([]);var aiContent=_aiContent[0];var setAiContent=_aiContent[1];
     var _workerOn=useState(false);var workerOn=_workerOn[0];var setWorkerOn=_workerOn[1];
     var _workerLog=useState([]);var workerLog=_workerLog[0];var setWorkerLog=_workerLog[1];
+    var _autonomy=useState({generate:true,approve:false,post:false});var autonomy=_autonomy[0];var setAutonomy=_autonomy[1];
 
     var loadBrainData=async function(){
       var r1=await sb.from("config_whatsapp").select("valor").eq("chave","anthropic_api_key").eq("tenant_id",ADMIN_TID).single();
@@ -322,6 +323,8 @@ function App(){
       var r5=await sb.from("ai_worker_log").select("*").eq("tenant_id",ADMIN_TID).order("criado_em",{ascending:false}).limit(10);setWorkerLog(r5.data||[]);
       var r6=await sb.from("config_whatsapp").select("valor").eq("chave","ai_worker_active").eq("tenant_id",ADMIN_TID).single();
       if(r6.data)setWorkerOn(r6.data.valor==="true"||r6.data.valor===true);
+      var r7=await sb.from("config_whatsapp").select("valor").eq("chave","ai_autonomy").eq("tenant_id",ADMIN_TID).single();
+      if(r7.data){try{setAutonomy(JSON.parse(r7.data.valor))}catch(e){}}
     };
     useEffect(function(){loadBrainData()},[]);
 
@@ -430,19 +433,54 @@ function App(){
 
     // ═══ RENDER ═══
     return <div className="fade-in">
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
         <div style={{fontSize:24,fontWeight:700,color:textColor}}>{"\ud83e\udde0"} C\u00e9rebro IA</div>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
-          <div style={{width:8,height:8,borderRadius:"50%",background:workerOn?GR:R}}/>
-          <span style={{fontSize:12,color:workerOn?GR:subColor}}>{workerOn?"Worker ativo (30min)":"Worker parado"}</span>
-          <button className="bh" onClick={async function(){
-            var nv=!workerOn;setWorkerOn(nv);
-            await sb.from("config_whatsapp").delete().eq("chave","ai_worker_active").eq("tenant_id",ADMIN_TID);
-            await sb.from("config_whatsapp").insert({chave:"ai_worker_active",valor:String(nv),tenant_id:ADMIN_TID});
-            if(nv)runWorker();
-            msg(nv?"\u2705 Worker ativado!":"\u23f8 Worker pausado");
-          }} style={{padding:"6px 14px",borderRadius:8,background:workerOn?R+"12":GR+"12",color:workerOn?R:GR,border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>{workerOn?"\u23f8 Parar":"\u25b6\ufe0f Ativar Worker"}</button>
           <button className="bh" onClick={runWorker} style={{padding:"6px 14px",borderRadius:8,background:G+"12",color:G,border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>{"\ud83d\udd04"} Executar Agora</button>
+        </div>
+      </div>
+
+      {/* Autonomy Control Panel */}
+      <div style={{padding:16,borderRadius:14,background:"linear-gradient(135deg,"+(dark?"#0d0d18":"#f8f5f0")+","+(dark?"#12101a":"#fff")+")",border:"1px solid "+G+"20",marginBottom:16}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+          <div style={{fontSize:15,fontWeight:700,color:textColor}}>{"\ud83c\udfae"} Controle de Autonomia</div>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <div style={{width:10,height:10,borderRadius:"50%",background:workerOn?GR:R,boxShadow:workerOn?"0 0 8px "+GR:"none"}}/>
+            <span style={{fontSize:13,fontWeight:600,color:workerOn?GR:R}}>{workerOn?"ATIVO 24h":"PARADO"}</span>
+            <button className="bh" onClick={async function(){
+              var nv=!workerOn;setWorkerOn(nv);
+              await sb.from("config_whatsapp").delete().eq("chave","ai_worker_active").eq("tenant_id",ADMIN_TID);
+              await sb.from("config_whatsapp").insert({chave:"ai_worker_active",valor:String(nv),tenant_id:ADMIN_TID});
+              if(nv)runWorker();
+              msg(nv?"\u2705 Worker ativado 24h!":"\u23f8 Worker pausado");
+            }} style={{padding:"8px 18px",borderRadius:8,background:workerOn?"linear-gradient(135deg,"+R+",#c44040)":"linear-gradient(135deg,"+GR+",#2e8b57)",color:"#fff",border:"none",fontSize:13,fontWeight:700,cursor:"pointer"}}>{workerOn?"\u23f8 Parar Tudo":"\u25b6\ufe0f Ligar Worker 24h"}</button>
+          </div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+          {[
+            {k:"generate",l:"\u2699\ufe0f Gerar Conte\u00fado",d:"IA cria posts, emails e scripts automaticamente baseado nas metas",c:P},
+            {k:"approve",l:"\u2705 Auto-Aprovar",d:"Conte\u00fado gerado \u00e9 aprovado sem revis\u00e3o humana",c:W},
+            {k:"post",l:"\ud83d\ude80 Auto-Postar",d:"Publica automaticamente no Instagram nos melhores hor\u00e1rios",c:R}
+          ].map(function(item){
+            var isOn=autonomy[item.k];
+            return <div key={item.k} className="bh" onClick={async function(){
+              var nv=Object.assign({},autonomy);nv[item.k]=!nv[item.k];
+              if(item.k==="post"&&!nv.post===false&&nv.approve){nv.approve=false}
+              if(item.k==="approve"&&nv.approve&&!autonomy.generate){nv.generate=true}
+              if(item.k==="post"&&nv.post){nv.generate=true;nv.approve=true}
+              setAutonomy(nv);
+              await sb.from("config_whatsapp").delete().eq("chave","ai_autonomy").eq("tenant_id",ADMIN_TID);
+              await sb.from("config_whatsapp").insert({chave:"ai_autonomy",valor:JSON.stringify(nv),tenant_id:ADMIN_TID});
+              msg((nv[item.k]?"\u2705 ":"\u274c ")+item.l+" "+(nv[item.k]?"ativado":"desativado"));
+            }} style={{padding:14,borderRadius:12,background:isOn?item.c+"10":"transparent",border:isOn?"2px solid "+item.c+"40":"1px solid "+border,cursor:"pointer",textAlign:"center"}}>
+              <div style={{fontSize:24,marginBottom:4}}>{isOn?"\ud83d\udfe2":"\ud83d\udd34"}</div>
+              <div style={{fontSize:13,fontWeight:700,color:isOn?item.c:subColor}}>{item.l}</div>
+              <div style={{fontSize:11,color:subColor,marginTop:4,lineHeight:1.4}}>{item.d}</div>
+            </div>
+          })}
+        </div>
+        <div style={{marginTop:10,padding:10,borderRadius:8,background:dark?"#111":"#EFEBE4",fontSize:12,color:subColor}}>
+          {"\ud83d\udee1\ufe0f"} <b>N\u00edvel 1</b> (Gerar): IA cria, voc\u00ea aprova e posta. <b>N\u00edvel 2</b> (Aprovar): IA cria e aprova, voc\u00ea posta. <b>N\u00edvel 3</b> (Postar): 100% aut\u00f4nomo, IA faz tudo.
         </div>
       </div>
 
@@ -1733,6 +1771,34 @@ function App(){
             for(var i=0;i<cfgs.length;i++){if(cfgs[i].v){await sb.from("config_whatsapp").delete().eq("chave",cfgs[i].k).eq("tenant_id",ADMIN_TID);await sb.from("config_whatsapp").insert({chave:cfgs[i].k,valor:cfgs[i].v,tenant_id:ADMIN_TID})}}
             msg("✅ WhatsApp Vendas configurado!")
           }} style={{padding:"10px 20px",borderRadius:8,background:"#25D366",color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>💾 Salvar WhatsApp Vendas</button>
+        </div>
+
+        {/* Instagram Business API */}
+        <div style={{padding:20,borderRadius:14,background:cardBg,border:"1px solid "+border,marginBottom:12}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <span style={{fontSize:28}}>📸</span>
+              <div><div style={{fontSize:16,fontWeight:700,color:textColor}}>Instagram Business API</div><div style={{fontSize:12,color:subColor}}>Postagem automática via Cérebro IA</div></div>
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Instagram User ID</div><input id="int_ig_user" onKeyDown={function(e){e.stopPropagation()}} style={iS} placeholder="ID da conta Business"/></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Facebook Page ID</div><input id="int_ig_page" onKeyDown={function(e){e.stopPropagation()}} style={iS} placeholder="ID da página vinculada"/></div>
+          </div>
+          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Token de Acesso (Long-lived)</div><input id="int_ig_token" type="password" onKeyDown={function(e){e.stopPropagation()}} style={iS} placeholder="Token permanente do Facebook/Instagram"/></div>
+          <div style={{padding:10,borderRadius:8,background:dark?"#111":"#f8f5f0",marginBottom:10,fontSize:12,color:subColor,lineHeight:1.8}}>
+            <b>Como obter:</b> Facebook Developer Console → Seu App → Instagram Graph API<br/>
+            1. Crie um App no developers.facebook.com<br/>
+            2. Adicione o produto "Instagram Graph API"<br/>
+            3. Vincule sua conta Business do Instagram<br/>
+            4. Gere um Long-Lived Token (60 dias)
+          </div>
+          <button className="bh" onClick={async function(){
+            var cfgs=[{k:"ig_user_id",v:document.getElementById("int_ig_user").value},{k:"ig_page_id",v:document.getElementById("int_ig_page").value}];
+            var tk=document.getElementById("int_ig_token").value;if(tk)cfgs.push({k:"ig_access_token",v:tk});
+            for(var i=0;i<cfgs.length;i++){if(cfgs[i].v){await sb.from("config_whatsapp").delete().eq("chave",cfgs[i].k).eq("tenant_id",ADMIN_TID);await sb.from("config_whatsapp").insert({chave:cfgs[i].k,valor:cfgs[i].v,tenant_id:ADMIN_TID})}}
+            msg("✅ Instagram Business configurado!")
+          }} style={{padding:"10px 20px",borderRadius:8,background:"linear-gradient(135deg,#E06090,#C13584)",color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>💾 Salvar Instagram</button>
         </div>
 
         {/* Payment gateway */}
