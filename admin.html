@@ -39,6 +39,10 @@ function App(){
   var _dark=useState(localStorage.getItem("admin_theme")!=="light");var dark=_dark[0];var setDark=_dark[1];
   var toggleTheme=function(){var n=!dark;setDark(n);localStorage.setItem("admin_theme",n?"dark":"light");document.body.classList.toggle("light",!n)};
   useEffect(function(){document.body.classList.toggle("light",!dark)},[]);
+  // Restore session
+  useEffect(function(){
+    try{var s=sessionStorage.getItem("admin_session");if(s){var d=JSON.parse(s);if(d.user&&Date.now()-d.ts<86400000){setAuth(true);setUser(d.user);loadAll();loadGH()}}}catch(e){}
+  },[]);
   // Theme colors
   var bg=dark?"#08080a":"#F5F2ED";
   var cardBg=dark?"#0f0f12":"#fff";
@@ -210,7 +214,7 @@ function App(){
     if(!e||!p){msg("Preencha email e senha");return}
     var r=await sb.rpc("login_admin_saas",{p_email:e,p_senha:p});
     if(r.data&&r.data.ok){
-      setAuth(true);setUser(r.data.user);await loadAll();await loadGH();
+      setAuth(true);setUser(r.data.user);sessionStorage.setItem("admin_session",JSON.stringify({user:r.data.user,ts:Date.now()}));await loadAll();await loadGH();
     }else{msg("❌ Credenciais inválidas")}
   };
 
@@ -282,7 +286,7 @@ function App(){
       <div style={{padding:"8px 20px 12px",borderTop:"1px solid "+border}}>
         <div style={{fontSize:12,color:subColor}}>{user?user.nome:"Admin"}</div>
         <div style={{fontSize:10,color:P,marginTop:2}}>{user?(user.perfil||user.role||"admin"):""}</div>
-        <div className="bh" onClick={function(){setAuth(false);setUser(null)}} style={{fontSize:12,color:R,marginTop:4,cursor:"pointer"}}>Sair</div>
+        <div className="bh" onClick={function(){setAuth(false);setUser(null);sessionStorage.removeItem("admin_session")}} style={{fontSize:12,color:R,marginTop:4,cursor:"pointer"}}>Sair</div>
       </div>
     </div>
 
