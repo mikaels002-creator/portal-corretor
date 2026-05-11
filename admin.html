@@ -298,6 +298,108 @@ function App(){
   </div>;
 
   // ═══ MAIN LAYOUT ═══
+  // ═══ AI BRAIN COMPONENT ═══
+  function AIBrainView(){
+    var _team=useState("brain");var team=_team[0];var setTeam=_team[1];
+    var _msgs3=useState([]);var msgs3=_msgs3[0];var setMsgs3=_msgs3[1];
+    var _inp=useState("");var inp=_inp[0];var setInp=_inp[1];
+    var _busy=useState(false);var busy=_busy[0];var setBusy=_busy[1];
+    var _history=useState([]);var history2=_history[0];var setHistory2=_history[1];
+
+    var teams={
+      brain:{name:"🧠 Cérebro",color:"#C8A45C",desc:"Coordenador central — valida ações, identifica bugs, mantém tudo conectado",
+        sys:"Você é o CÉREBRO CENTRAL do Portal do Corretor SaaS. Coordene 4 equipes (Marketing, Comercial, Financeiro, TI). Dados: "+tenants.length+" clientes, MRR R$"+mrr+", "+ativos.length+" ativos, "+pendentes.length+" pendentes. Responda em português, estratégico e proativo."},
+      mkt:{name:"📣 Marketing",color:"#E06090",desc:"Conteúdo, campanhas, copy, social media, email marketing",
+        sys:"Você é o AGENTE DE MARKETING do Portal do Corretor SaaS. Crie conteúdo para redes sociais, email, copies, landing pages. Mercado: imobiliário B2B. "+tenants.length+" clientes, "+ativos.length+" ativos. Responda em português com conteúdo pronto."},
+      sales:{name:"💼 Comercial",color:"#4CAF7D",desc:"Prospecção, scripts de venda, qualificação, propostas, follow-up",
+        sys:"Você é o AGENTE COMERCIAL do Portal do Corretor SaaS. Scripts de vendas, qualificação, follow-up, propostas. Pipeline: "+tenants.filter(function(t){return t.pipeline==="lead"}).length+" leads, "+tenants.filter(function(t){return t.pipeline==="qualificado"}).length+" qualificados, "+tenants.filter(function(t){return t.pipeline==="trial"}).length+" trials. Responda em português."},
+      finance:{name:"💰 Financeiro",color:"#5B8FD4",desc:"Métricas SaaS, projeções, cobrança, pricing, churn",
+        sys:"Você é o AGENTE FINANCEIRO do Portal do Corretor SaaS. MRR R$"+mrr+", "+ativos.length+" ativos, "+pendentes.length+" pendentes (R$"+pendentes.reduce(function(s,p){return s+(p.valor||0)},0)+"). Ticket médio R$"+(ativos.length>0?Math.round(mrr/ativos.length):0)+". Responda em português com números."},
+      tech:{name:"⚡ TI",color:"#8B6FBF",desc:"Bugs, melhorias, performance, segurança, integrações",
+        sys:"Você é o AGENTE DE TI do Portal do Corretor SaaS. Stack: React/Babel, Supabase, WhatsApp Cloud API. 4 arquivos (portal 5700 linhas, admin 1700 linhas). Responda em português com soluções técnicas."}
+    };
+
+    var sendToAgent=async function(tk,q){
+      if(!q||!q.trim()||busy)return;
+      var t2=teams[tk];setBusy(true);
+      var newMsgs=msgs3.concat([{role:"user",content:q,team:tk}]);
+      setMsgs3(newMsgs);setInp("");
+      try{
+        var apiMsgs=newMsgs.filter(function(m){return m.team===tk||m.team==="brain"}).map(function(m){return{role:m.role,content:m.content}}).slice(-10);
+        var r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1500,system:t2.sys,messages:apiMsgs})});
+        var d=await r.json();
+        var txt=d.content?d.content.map(function(c2){return c2.text||""}).join(""):"Erro na resposta.";
+        setMsgs3(newMsgs.concat([{role:"assistant",content:txt,team:tk}]));
+        setHistory2(history2.concat([{team:tk,q:q.substring(0,100),ts:new Date().toLocaleString("pt-BR")}]));
+        sb.from("config_whatsapp").insert({chave:"ai_log_"+Date.now(),valor:JSON.stringify({team:tk,q:q.substring(0,200),a:txt.substring(0,500)}),tenant_id:ADMIN_TID}).catch(function(){});
+      }catch(e){setMsgs3(newMsgs.concat([{role:"assistant",content:"❌ Erro: "+e.message,team:tk}]))}
+      setBusy(false);
+    };
+
+    var qActions=[
+      {l:"📊 Análise completa",team:"brain",q:"Análise completa: saúde financeira, pipeline, clientes em risco, plano de ação 30 dias."},
+      {l:"📝 3 Posts Instagram",team:"mkt",q:"Crie 3 posts Instagram para atrair construtoras. Formato: legenda + hashtags."},
+      {l:"📧 Email prospecção",team:"sales",q:"Email de prospecção fria para construtoras sem sistema digital. Tom consultivo, mostrando ROI."},
+      {l:"💰 Projeção 6 meses",team:"finance",q:"Projeção financeira 6 meses: cenários otimista, realista, pessimista."},
+      {l:"🐛 Audit de bugs",team:"tech",q:"Liste bugs e melhorias prioritárias: segurança, performance, UX mobile, integrações."},
+      {l:"🔄 Validar equipes",team:"brain",q:"Validação completa de todas as equipes. Marketing alinhado com comercial? Financeiro coerente com pipeline? TI tem pendências?"}
+    ];
+
+    return <div className="fade-in">
+      <div style={{fontSize:24,fontWeight:700,color:textColor,marginBottom:20}}>🧠 Cérebro IA — Central de Inteligência</div>
+      <div style={{display:"flex",gap:6,marginBottom:16,overflow:"auto",paddingBottom:4}}>
+        {Object.keys(teams).map(function(k){var t2=teams[k];return <div key={k} className="bh" onClick={function(){setTeam(k)}} style={{padding:"10px 16px",borderRadius:10,background:team===k?t2.color+"15":"transparent",border:team===k?"1px solid "+t2.color+"30":"1px solid "+border,color:team===k?t2.color:subColor,fontSize:13,fontWeight:team===k?700:400,whiteSpace:"nowrap",cursor:"pointer"}}>{t2.name}</div>})}
+      </div>
+      <div style={{padding:16,borderRadius:14,background:teams[team].color+"06",border:"1px solid "+teams[team].color+"20",marginBottom:12}}>
+        <div style={{fontSize:18,fontWeight:700,color:textColor}}>{teams[team].name}</div>
+        <div style={{fontSize:13,color:subColor,marginTop:4}}>{teams[team].desc}</div>
+      </div>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+        {qActions.filter(function(a){return a.team===team||team==="brain"}).map(function(a,i){return <button key={i} className="bh" onClick={function(){setTeam(a.team);sendToAgent(a.team,a.q)}} style={{padding:"8px 12px",borderRadius:8,background:teams[a.team].color+"10",color:teams[a.team].color,border:"1px solid "+teams[a.team].color+"20",fontSize:12,fontWeight:600,cursor:"pointer"}}>{a.l}</button>})}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 280px",gap:12}}>
+        <div style={{background:cardBg,borderRadius:14,border:"1px solid "+border,display:"flex",flexDirection:"column",minHeight:380,maxHeight:480}}>
+          <div style={{padding:"10px 14px",borderBottom:"1px solid "+border,display:"flex",alignItems:"center",gap:8}}>
+            <div style={{width:8,height:8,borderRadius:"50%",background:busy?W:GR}}/>
+            <span style={{fontSize:13,fontWeight:600,color:textColor}}>{teams[team].name} {busy?"pensando...":"pronto"}</span>
+          </div>
+          <div style={{flex:1,padding:10,overflow:"auto"}}>
+            {msgs3.filter(function(m){return m.team===team||(team==="brain")}).length===0&&<div style={{textAlign:"center",padding:30,color:subColor}}>
+              <div style={{fontSize:36,marginBottom:8}}>{teams[team].name.split(" ")[0]}</div>
+              <div style={{fontSize:13}}>Use os botões acima ou digite uma pergunta</div>
+            </div>}
+            {msgs3.filter(function(m){return m.team===team||(team==="brain"&&m.team)}).map(function(m,i){var isU=m.role==="user";return <div key={i} style={{display:"flex",justifyContent:isU?"flex-end":"flex-start",marginBottom:8}}>
+              <div style={{maxWidth:"85%",padding:"10px 12px",borderRadius:isU?"12px 12px 4px 12px":"12px 12px 12px 4px",background:isU?teams[m.team||team].color+"12":(dark?"#111":"#f8f5f0"),color:textColor,fontSize:13,lineHeight:1.7,whiteSpace:"pre-wrap"}}>{m.content}</div>
+            </div>})}
+            {busy&&<div style={{padding:10,color:subColor,fontSize:13}}>⏳ Processando...</div>}
+          </div>
+          <div style={{padding:8,borderTop:"1px solid "+border,display:"flex",gap:6}}>
+            <input value={inp} onChange={function(e){setInp(e.target.value)}} onKeyDown={function(e){e.stopPropagation();if(e.key==="Enter"&&!busy)sendToAgent(team,inp)}} placeholder={"Pergunte ao "+teams[team].name+"..."} style={{flex:1,padding:"10px 12px",borderRadius:8,border:"1px solid "+border,background:dark?"#111":"#f8f5f0",color:textColor,fontSize:13,outline:"none"}}/>
+            <button className="bh" disabled={busy} onClick={function(){sendToAgent(team,inp)}} style={{padding:"10px 14px",borderRadius:8,background:teams[team].color,color:"#fff",fontWeight:700,border:"none",cursor:busy?"wait":"pointer",opacity:busy?.5:1}}>↑</button>
+          </div>
+        </div>
+        <div>
+          <div style={{padding:12,borderRadius:12,background:cardBg,border:"1px solid "+border,marginBottom:10}}>
+            <div style={{fontSize:13,fontWeight:600,color:textColor,marginBottom:8}}>📡 Status</div>
+            {Object.keys(teams).map(function(k){var cnt=msgs3.filter(function(m){return m.team===k&&m.role==="assistant"}).length;return <div key={k} style={{display:"flex",alignItems:"center",gap:6,padding:"5px 0"}}>
+              <div style={{width:6,height:6,borderRadius:"50%",background:cnt>0?GR:"#555"}}/>
+              <span style={{fontSize:12,color:cnt>0?textColor:subColor,flex:1}}>{teams[k].name}</span>
+              <span style={{fontSize:11,color:subColor}}>{cnt}</span>
+            </div>})}
+          </div>
+          <div style={{padding:12,borderRadius:12,background:cardBg,border:"1px solid "+border}}>
+            <div style={{fontSize:13,fontWeight:600,color:textColor,marginBottom:8}}>📋 Histórico</div>
+            {history2.length===0&&<div style={{fontSize:12,color:subColor,textAlign:"center",padding:16}}>Nenhuma ação</div>}
+            {history2.slice(-8).reverse().map(function(h,i){return <div key={i} style={{padding:"5px 0",borderBottom:"1px solid "+(dark?"#1a1a19":"#eee"),fontSize:11}}>
+              <span style={{color:teams[h.team]?teams[h.team].color:subColor,fontWeight:600}}>{teams[h.team]?teams[h.team].name:""}</span>
+              <div style={{color:subColor,marginTop:2}}>{h.q} <span style={{fontSize:10}}>{h.ts}</span></div>
+            </div>})}
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
   return <div className="admin-layout" style={{display:"flex",minHeight:"100vh"}}>
     {/* Sidebar */}
     <div className="admin-sidebar" style={{width:220,background:sidebar,borderRight:"1px solid "+border,padding:"20px 0",flexShrink:0,display:"flex",flexDirection:"column"}}>
@@ -682,24 +784,53 @@ function App(){
 
       {/* ═══ PIPELINE ═══ */}
       {view==="pipeline"&&<div className="fade-in">
-        <div style={{fontSize:24,fontWeight:700,color:textColor,marginBottom:20}}>Pipeline</div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+          <div style={{fontSize:24,fontWeight:700,color:textColor}}>🔄 Pipeline / CRM</div>
+          <div style={{display:"flex",gap:8}}>
+            <button className="bh" onClick={function(){
+              var nome=prompt("Nome da empresa:");if(!nome)return;
+              var contato=prompt("Nome do contato:");
+              var tel=prompt("WhatsApp do contato:");
+              var email=prompt("Email:");
+              var origem=prompt("Origem (landing/instagram/whatsapp/indicação/manual):","manual");
+              sb.from("tenants").insert({nome_empresa:nome,slug:nome.toLowerCase().replace(/[^a-z0-9]/g,"-").substring(0,30),contato_nome:contato,contato_telefone:tel,contato_email:email,pipeline:"lead",origem:origem||"manual",ativo:false,criado_em:new Date().toISOString()}).then(function(){loadAll();msg("✅ Lead adicionado!")});
+            }} style={{padding:"8px 16px",borderRadius:8,background:GR+"12",color:GR,border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>＋ Novo Lead</button>
+          </div>
+        </div>
+        {/* Pipeline KPIs */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat("+pipes.length+",1fr)",gap:8,marginBottom:12}}>
+          {pipes.map(function(p){var cnt=tenants.filter(function(t){return t.pipeline===p.k}).length;var val=tenants.filter(function(t){return t.pipeline===p.k}).reduce(function(s,t){return s+(t.valor_mensal||0)},0);return <div key={p.k} style={{padding:10,borderRadius:10,background:p.c+"08",border:"1px solid "+p.c+"15",textAlign:"center"}}>
+            <div style={{fontSize:18,fontWeight:700,color:p.c}}>{cnt}</div>
+            <div style={{fontSize:11,color:subColor}}>{p.l}</div>
+            {val>0&&<div style={{fontSize:11,color:p.c,fontWeight:600}}>{fmt(val)}/m</div>}
+          </div>})}
+        </div>
+        {/* Kanban */}
         <div style={{display:"flex",gap:10,overflow:"auto",paddingBottom:10}}>
           {pipes.map(function(p){
             var items=tenants.filter(function(t){return t.pipeline===p.k});
-            return <div key={p.k} style={{flex:1,minWidth:160}}>
+            return <div key={p.k} style={{flex:1,minWidth:180}}>
               <div style={{padding:"10px 12px",borderRadius:"12px 12px 0 0",background:p.c+"12",borderBottom:"2px solid "+p.c,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <span style={{fontWeight:700,fontSize:13,color:p.c}}>{p.e} {p.l}</span>
                 <span style={{fontSize:12,fontWeight:700,color:p.c,background:p.c+"15",padding:"2px 8px",borderRadius:8}}>{items.length}</span>
               </div>
               <div style={{minHeight:200,background:sidebar,borderRadius:"0 0 12px 12px",padding:6,border:"1px solid "+border,borderTop:"none"}}>
-                {items.map(function(t){return <div key={t.id} className="bh" onClick={function(){setView("clients");setSelClient(t);setTimeout(function(){var f={c_nome:t.nome_empresa,c_slug:t.slug,c_portal:t.nome_portal||"",c_contato:t.contato_nome||"",c_email:t.contato_email||"",c_tel:t.contato_telefone||"",c_cidade:t.cidade||"",c_estado:t.estado||"",c_cnpj:t.cnpj||"",c_valor:t.valor_mensal||"",c_logo:t.logo_url||"",c_obs:t.observacoes||""};Object.keys(f).forEach(function(k){var el=document.getElementById(k);if(el)el.value=f[k]})},100)}} style={{padding:10,borderRadius:10,background:cardBg,marginBottom:4,cursor:"pointer",border:"1px solid "+border}}>
-                  <div style={{fontWeight:600,fontSize:13,color:textColor}}>{t.nome_empresa}</div>
-                  <div style={{fontSize:11,color:subColor}}>{t.contato_nome||"—"}</div>
-                  {t.valor_mensal>0&&<div style={{fontSize:12,fontWeight:600,color:GR,marginTop:4}}>{fmt(t.valor_mensal)}/m</div>}
-                  <select value={t.pipeline||"lead"} onClick={function(e){e.stopPropagation()}} onChange={async function(e){e.stopPropagation();await sb.from("tenants").update({pipeline:e.target.value}).eq("id",t.id);await loadAll();msg("Movido!")}} style={{width:"100%",marginTop:6,padding:"4px",borderRadius:6,fontSize:11,background:sidebar,color:subColor,border:"1px solid "+inputBorder,cursor:"pointer"}}>
-                    {pipes.map(function(pp){return <option key={pp.k} value={pp.k}>{pp.e} {pp.l}</option>})}
-                  </select>
-                </div>})}
+                {items.map(function(t){
+                  var origemBadge={landing:"🌐",instagram:"📸",whatsapp:"💬",indicacao:"🤝",manual:"✍️"};
+                  return <div key={t.id} className="bh" onClick={function(){setView("clients");setSelClient(t);setTimeout(function(){var f={c_nome:t.nome_empresa,c_slug:t.slug,c_portal:t.nome_portal||"",c_contato:t.contato_nome||"",c_email:t.contato_email||"",c_tel:t.contato_telefone||"",c_cidade:t.cidade||"",c_estado:t.estado||"",c_cnpj:t.cnpj||"",c_valor:t.valor_mensal||"",c_logo:t.logo_url||"",c_obs:t.observacoes||""};Object.keys(f).forEach(function(k){var el=document.getElementById(k);if(el)el.value=f[k]})},100)}} style={{padding:10,borderRadius:10,background:cardBg,marginBottom:4,cursor:"pointer",border:"1px solid "+border}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <div style={{fontWeight:600,fontSize:13,color:textColor}}>{t.nome_empresa}</div>
+                      <span style={{fontSize:10}}>{origemBadge[t.origem]||"✍️"}</span>
+                    </div>
+                    <div style={{fontSize:11,color:subColor}}>{t.contato_nome||"—"} {t.contato_telefone?"· "+t.contato_telefone:""}</div>
+                    {t.valor_mensal>0&&<div style={{fontSize:12,fontWeight:600,color:GR,marginTop:4}}>{fmt(t.valor_mensal)}/m</div>}
+                    <div style={{display:"flex",gap:4,marginTop:6}}>
+                      <select value={t.pipeline||"lead"} onClick={function(e){e.stopPropagation()}} onChange={async function(e){e.stopPropagation();await sb.from("tenants").update({pipeline:e.target.value}).eq("id",t.id);await loadAll();msg("Movido!")}} style={{flex:1,padding:"4px",borderRadius:6,fontSize:11,background:sidebar,color:subColor,border:"1px solid "+inputBorder,cursor:"pointer"}}>
+                        {pipes.map(function(pp){return <option key={pp.k} value={pp.k}>{pp.e} {pp.l}</option>})}
+                      </select>
+                      {t.contato_telefone&&<a href={"https://wa.me/"+t.contato_telefone.replace(/\D/g,"")} target="_blank" onClick={function(e){e.stopPropagation()}} style={{padding:"4px 8px",borderRadius:6,background:"#25D366",color:"#fff",fontSize:10,textDecoration:"none",display:"flex",alignItems:"center"}}>💬</a>}
+                    </div>
+                  </div>})}
               </div>
             </div>
           })}
@@ -1235,135 +1366,7 @@ function App(){
       </div>}
 
       {/* ═══ AI BRAIN ═══ */}
-      {view==="aibrain"&&<div className="fade-in">
-        <div style={{fontSize:24,fontWeight:700,color:textColor,marginBottom:20}}>🧠 Cérebro IA — Central de Inteligência</div>
-        {(function(){
-          var _team=useState("brain");var team=_team[0];var setTeam=_team[1];
-          var _msgs3=useState([]);var msgs3=_msgs3[0];var setMsgs3=_msgs3[1];
-          var _inp=useState("");var inp=_inp[0];var setInp=_inp[1];
-          var _busy=useState(false);var busy=_busy[0];var setBusy=_busy[1];
-          var _history=useState([]);var history2=_history[0];var setHistory2=_history[1];
-          var _autoTasks=useState([]);var autoTasks=_autoTasks[0];var setAutoTasks=_autoTasks[1];
-
-          var teams={
-            brain:{name:"🧠 Cérebro",color:"#C8A45C",desc:"Coordenador central — valida ações de todos os agentes, identifica bugs, sugere melhorias e mantém tudo conectado",
-              sys:"Você é o CÉREBRO CENTRAL do Portal do Corretor SaaS. Sua função é coordenar 4 equipes de IA (Marketing, Comercial, Financeiro, TI), validar suas ações, identificar conflitos, e garantir que tudo funcione de forma integrada. Você tem visão completa do sistema: "+tenants.length+" clientes, MRR R$"+mrr+", "+ativos.length+" ativos, "+pendentes.length+" pagamentos pendentes. Responda em português, seja estratégico e proativo. Sugira automações, identifique problemas antes que aconteçam, e dê comandos claros para as equipes."},
-            mkt:{name:"📣 Marketing",color:"#E06090",desc:"Criação de conteúdo, campanhas, copy, landing pages, redes sociais, email marketing",
-              sys:"Você é o AGENTE DE MARKETING do Portal do Corretor SaaS. Crie conteúdo para redes sociais, email marketing, copies de vendas, textos de landing page, scripts de vídeo, posts de blog. Foque no mercado imobiliário B2B (construtoras, incorporadoras). Tom: profissional mas acessível. Dados: "+tenants.length+" clientes, "+ativos.length+" ativos. Responda em português com conteúdo pronto para usar."},
-            sales:{name:"💼 Comercial",color:"#4CAF7D",desc:"Prospecção, follow-up, scripts de venda, qualificação de leads, propostas comerciais",
-              sys:"Você é o AGENTE COMERCIAL do Portal do Corretor SaaS. Ajude com scripts de vendas, qualificação de leads, follow-up, propostas, negociação, onboarding de clientes. Pipeline: "+tenants.filter(function(t){return t.pipeline==="lead"}).length+" leads, "+tenants.filter(function(t){return t.pipeline==="qualificado"}).length+" qualificados, "+tenants.filter(function(t){return t.pipeline==="trial"}).length+" em trial. Responda em português, seja persuasivo e orientado a resultados."},
-            finance:{name:"💰 Financeiro",color:"#5B8FD4",desc:"Análise financeira, projeções, cobrança, inadimplência, pricing, métricas SaaS",
-              sys:"Você é o AGENTE FINANCEIRO do Portal do Corretor SaaS. Analise métricas: MRR R$"+mrr+", "+ativos.length+" clientes ativos, "+pendentes.length+" pagamentos pendentes totalizando R$"+pendentes.reduce(function(s,p){return s+(p.valor||0)},0)+". Ticket médio R$"+(ativos.length>0?Math.round(mrr/ativos.length):0)+". Ajude com projeções, cobrança, pricing, churn prevention. Responda em português com números e recomendações concretas."},
-            tech:{name:"⚡ TI & Produto",color:"#8B6FBF",desc:"Bugs, melhorias, performance, segurança, roadmap, integrações, código",
-              sys:"Você é o AGENTE DE TI do Portal do Corretor SaaS. O sistema tem 4 arquivos (portal.html 5700 linhas, admin.html 1500 linhas, index.html 375 linhas, 404.html). Stack: React (Babel), Supabase (PostgreSQL), WhatsApp Cloud API. Ajude com: bugs, melhorias de UX, performance, segurança, integrações (ClickSign, Stripe, WhatsApp). Responda em português com soluções técnicas específicas."}
-          };
-
-          var sendToAgent=async function(teamKey,question){
-            if(!question.trim())return;
-            var t2=teams[teamKey];
-            setBusy(true);
-            var newMsgs=msgs3.concat([{role:"user",content:"["+t2.name+"] "+question,team:teamKey}]);
-            setMsgs3(newMsgs);setInp("");
-            try{
-              var apiMsgs=newMsgs.filter(function(m){return m.team===teamKey||m.team==="brain"}).map(function(m){return{role:m.role,content:m.content}});
-              var r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1500,system:t2.sys,messages:apiMsgs.slice(-10)})});
-              var d=await r.json();
-              var txt=d.content?d.content.map(function(c2){return c2.text||""}).join(""):"Erro na resposta.";
-              var resp={role:"assistant",content:txt,team:teamKey,ts:new Date().toISOString()};
-              setMsgs3(newMsgs.concat([resp]));
-              setHistory2(history2.concat([{team:teamKey,q:question.substring(0,100),a:txt.substring(0,200),ts:new Date().toISOString()}]));
-              // Auto-save to DB
-              sb.from("config_whatsapp").insert({chave:"ai_brain_log_"+Date.now(),valor:JSON.stringify({team:teamKey,q:question.substring(0,200),a:txt.substring(0,500)}),tenant_id:ADMIN_TID}).catch(function(){});
-            }catch(e){setMsgs3(newMsgs.concat([{role:"assistant",content:"❌ Erro: "+e.message,team:teamKey}]))}
-            setBusy(false);
-          };
-
-          var runBrainValidation=async function(){
-            var summary="Resumo atual do sistema:\n- Clientes: "+tenants.length+" total, "+ativos.length+" ativos\n- MRR: R$"+mrr+"\n- Pendentes: "+pendentes.length+" pagamentos\n- Pipeline: "+tenants.filter(function(t){return t.pipeline==="lead"}).length+" leads\n\nÚltimas ações dos agentes:\n"+history2.slice(-5).map(function(h){return"["+h.team+"] "+h.q+" → "+h.a.substring(0,80)}).join("\n")+"\n\nValide as ações, identifique problemas e sugira próximos passos para cada equipe.";
-            await sendToAgent("brain",summary);
-          };
-
-          var quickActions=[
-            {l:"📊 Análise completa do negócio",team:"brain",q:"Faça uma análise completa do negócio: saúde financeira, pipeline, clientes em risco, oportunidades de crescimento. Dê um plano de ação para os próximos 30 dias."},
-            {l:"📝 Criar post Instagram",team:"mkt",q:"Crie 3 posts para Instagram do Portal do Corretor. Formato: imagem + legenda + hashtags. Foco em atrair construtoras e incorporadoras."},
-            {l:"📧 Email de prospecção",team:"sales",q:"Crie um email de prospecção fria para construtoras que ainda não usam sistema digital. Tom consultivo, mostrando ROI."},
-            {l:"💰 Projeção financeira",team:"finance",q:"Faça uma projeção financeira para os próximos 6 meses considerando o crescimento atual. Inclua cenários otimista, realista e pessimista."},
-            {l:"🐛 Checklist de bugs",team:"tech",q:"Liste os possíveis bugs e melhorias prioritárias para o portal. Foque em: segurança, performance, UX mobile, integrações."},
-            {l:"🔄 Validar tudo",team:"brain",q:"Execute uma validação completa de todas as equipes. Verifique se marketing está alinhado com comercial, se financeiro está coerente com pipeline, e se TI tem pendências críticas."}
-          ];
-
-          return <div>
-            {/* Team tabs */}
-            <div style={{display:"flex",gap:6,marginBottom:20,overflow:"auto",paddingBottom:4}}>
-              {Object.keys(teams).map(function(k){var t2=teams[k];return <div key={k} className="bh" onClick={function(){setTeam(k)}} style={{padding:"10px 16px",borderRadius:10,background:team===k?t2.color+"15":"transparent",border:team===k?"1px solid "+t2.color+"30":"1px solid "+border,color:team===k?t2.color:subColor,fontSize:13,fontWeight:team===k?700:400,whiteSpace:"nowrap",cursor:"pointer"}}>{t2.name}</div>})}
-            </div>
-
-            {/* Team header */}
-            <div style={{padding:20,borderRadius:14,background:"linear-gradient(135deg,"+teams[team].color+"08,"+teams[team].color+"03)",border:"1px solid "+teams[team].color+"20",marginBottom:16}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div>
-                  <div style={{fontSize:20,fontWeight:700,color:textColor}}>{teams[team].name}</div>
-                  <div style={{fontSize:13,color:subColor,marginTop:4}}>{teams[team].desc}</div>
-                </div>
-                {team==="brain"&&<button className="bh" onClick={runBrainValidation} style={{padding:"10px 20px",borderRadius:10,background:G,color:"#0a0a09",fontSize:13,fontWeight:700,border:"none",cursor:"pointer"}}>🔄 Validar Todas as Equipes</button>}
-              </div>
-            </div>
-
-            {/* Quick actions */}
-            <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:16}}>
-              {quickActions.filter(function(a){return a.team===team||team==="brain"}).map(function(a,i){return <button key={i} className="bh" onClick={function(){setTeam(a.team);sendToAgent(a.team,a.q)}} style={{padding:"8px 14px",borderRadius:8,background:teams[a.team].color+"10",color:teams[a.team].color,border:"1px solid "+teams[a.team].color+"20",fontSize:12,fontWeight:600,cursor:"pointer"}}>{a.l}</button>})}
-            </div>
-
-            <div style={{display:"grid",gridTemplateColumns:"1fr 300px",gap:16}}>
-              {/* Chat area */}
-              <div style={{background:cardBg,borderRadius:14,border:"1px solid "+border,display:"flex",flexDirection:"column",minHeight:400,maxHeight:500}}>
-                <div style={{padding:"12px 16px",borderBottom:"1px solid "+border,display:"flex",alignItems:"center",gap:8}}>
-                  <div style={{width:8,height:8,borderRadius:"50%",background:busy?"#E8A94E":GR}}/>
-                  <span style={{fontSize:13,fontWeight:600,color:textColor}}>{teams[team].name} {busy?"pensando...":"pronto"}</span>
-                  <span style={{marginLeft:"auto",fontSize:11,color:subColor}}>{msgs3.filter(function(m){return m.team===team}).length} mensagens</span>
-                </div>
-                <div style={{flex:1,padding:12,overflow:"auto"}}>
-                  {msgs3.filter(function(m){return m.team===team||team==="brain"}).length===0&&<div style={{textAlign:"center",padding:40,color:subColor}}>
-                    <div style={{fontSize:40,marginBottom:12}}>{teams[team].name.split(" ")[0]}</div>
-                    <div style={{fontSize:14}}>Use os botões acima ou digite uma pergunta</div>
-                  </div>}
-                  {msgs3.filter(function(m){return m.team===team||(team==="brain"&&m.team)}).map(function(m,i){var isU=m.role==="user";return <div key={i} style={{display:"flex",justifyContent:isU?"flex-end":"flex-start",marginBottom:8}}>
-                    <div style={{maxWidth:"85%",padding:"10px 14px",borderRadius:isU?"14px 14px 4px 14px":"14px 14px 14px 4px",background:isU?teams[m.team||team].color+"15":(dark?"#111":"#f8f5f0"),color:textColor,fontSize:13,lineHeight:1.7,whiteSpace:"pre-wrap"}}>{m.content}</div>
-                  </div>})}
-                  {busy&&<div style={{padding:"10px 14px",borderRadius:14,background:dark?"#111":"#f8f5f0",color:subColor,fontSize:13,display:"inline-block"}}>⏳ Processando...</div>}
-                </div>
-                <div style={{padding:10,borderTop:"1px solid "+border,display:"flex",gap:8}}>
-                  <input value={inp} onChange={function(e){setInp(e.target.value)}} onKeyDown={function(e){e.stopPropagation();if(e.key==="Enter"&&!busy)sendToAgent(team,inp)}} placeholder={"Pergunte ao "+teams[team].name+"..."} style={{flex:1,padding:"10px 14px",borderRadius:10,border:"1px solid "+border,background:dark?"#111":"#f8f5f0",color:textColor,fontSize:13,outline:"none"}}/>
-                  <button className="bh" disabled={busy} onClick={function(){sendToAgent(team,inp)}} style={{padding:"10px 16px",borderRadius:10,background:teams[team].color,color:"#fff",fontSize:14,fontWeight:700,border:"none",cursor:busy?"wait":"pointer",opacity:busy?.5:1}}>↑</button>
-                </div>
-              </div>
-
-              {/* Right panel - History & Status */}
-              <div>
-                {/* Team status */}
-                <div style={{padding:14,borderRadius:12,background:cardBg,border:"1px solid "+border,marginBottom:12}}>
-                  <div style={{fontSize:13,fontWeight:600,color:textColor,marginBottom:10}}>📡 Status das Equipes</div>
-                  {Object.keys(teams).map(function(k){var cnt=msgs3.filter(function(m){return m.team===k&&m.role==="assistant"}).length;return <div key={k} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:"1px solid "+(dark?"#1a1a19":"#eee")}}>
-                    <div style={{width:6,height:6,borderRadius:"50%",background:cnt>0?GR:"#555"}}/>
-                    <span style={{fontSize:12,color:cnt>0?textColor:subColor,flex:1}}>{teams[k].name}</span>
-                    <span style={{fontSize:11,color:subColor}}>{cnt} respostas</span>
-                  </div>})}
-                </div>
-
-                {/* Recent history */}
-                <div style={{padding:14,borderRadius:12,background:cardBg,border:"1px solid "+border}}>
-                  <div style={{fontSize:13,fontWeight:600,color:textColor,marginBottom:10}}>📋 Histórico Recente</div>
-                  {history2.length===0&&<div style={{fontSize:12,color:subColor,textAlign:"center",padding:20}}>Nenhuma ação ainda</div>}
-                  {history2.slice(-8).reverse().map(function(h,i){return <div key={i} style={{padding:"6px 0",borderBottom:"1px solid "+(dark?"#1a1a19":"#eee"),fontSize:11}}>
-                    <div style={{color:teams[h.team]?teams[h.team].color:subColor,fontWeight:600}}>{teams[h.team]?teams[h.team].name:h.team}</div>
-                    <div style={{color:subColor,marginTop:2}}>{h.q}</div>
-                  </div>})}
-                </div>
-              </div>
-            </div>
-          </div>
-        })()}
-      </div>}
+      {view==="aibrain"&&<AIBrainView/>}
 
       {/* ═══ MARKETING ═══ */}
       {view==="marketing"&&<div className="fade-in">
@@ -1538,6 +1541,31 @@ function App(){
             msg("✅ WhatsApp atualizado!")
           }} style={{padding:"10px 20px",borderRadius:8,background:GR,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>💾 Salvar Configurações</button>
         </div>
+
+        {/* WhatsApp Vendas (admin CRM) */}
+        <div style={{padding:20,borderRadius:14,background:cardBg,border:"1px solid "+border,marginBottom:12}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <span style={{fontSize:28}}>📱</span>
+              <div><div style={{fontSize:16,fontWeight:700,color:textColor}}>WhatsApp Vendas (Admin CRM)</div><div style={{fontSize:12,color:subColor}}>Número exclusivo para prospecção e vendas do SaaS</div></div>
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Phone Number ID (Vendas)</div><input id="int_wa_sales_phone" onKeyDown={function(e){e.stopPropagation()}} style={iS} placeholder="ID do número de vendas"/></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Número WhatsApp</div><input id="int_wa_sales_num" onKeyDown={function(e){e.stopPropagation()}} style={iS} placeholder="5547999999999"/></div>
+          </div>
+          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Token de Acesso</div><input id="int_wa_sales_token" type="password" onKeyDown={function(e){e.stopPropagation()}} style={iS} placeholder="Token do número de vendas"/></div>
+          <div style={{padding:10,borderRadius:8,background:dark?"#111":"#f8f5f0",marginBottom:10,fontSize:12,color:subColor}}>
+            📋 Este número é usado exclusivamente no CRM do admin para: prospecção de novos clientes, follow-up, fechamento, suporte pós-venda. Separado do WhatsApp dos portais dos clientes.
+          </div>
+          <button className="bh" onClick={async function(){
+            var cfgs=[{k:"wa_sales_phone_id",v:document.getElementById("int_wa_sales_phone").value},{k:"wa_sales_number",v:document.getElementById("int_wa_sales_num").value}];
+            var tk=document.getElementById("int_wa_sales_token").value;if(tk)cfgs.push({k:"wa_sales_token",v:tk});
+            for(var i=0;i<cfgs.length;i++){if(cfgs[i].v){await sb.from("config_whatsapp").delete().eq("chave",cfgs[i].k).eq("tenant_id",ADMIN_TID);await sb.from("config_whatsapp").insert({chave:cfgs[i].k,valor:cfgs[i].v,tenant_id:ADMIN_TID})}}
+            msg("✅ WhatsApp Vendas configurado!")
+          }} style={{padding:"10px 20px",borderRadius:8,background:"#25D366",color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>💾 Salvar WhatsApp Vendas</button>
+        </div>
+
         {/* Payment gateway */}
         <div style={{padding:20,borderRadius:14,background:cardBg,border:"1px solid "+border,marginBottom:12}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
