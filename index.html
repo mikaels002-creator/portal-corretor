@@ -29,6 +29,40 @@ body{background:#06060a;color:#E8E4DD;font-family:'DM Sans',system-ui,sans-serif
 .float{animation:float 4s ease infinite}
 section{padding:100px 0}
 .container{max-width:1100px;margin:0 auto;padding:0 24px}
+@media(max-width:768px){
+  body{overflow-x:hidden!important}
+  section{padding:60px 0}
+  /* Nav */
+  nav .container{flex-wrap:wrap!important}
+  nav [style*="gap: 24"]{gap:8px!important;flex-wrap:wrap!important;justify-content:center!important}
+  nav a{font-size:12px!important;display:none}
+  nav button{font-size:13px!important;padding:8px 16px!important}
+  /* Hero */
+  [style*="paddingTop: 160"]{padding-top:100px!important;padding-bottom:40px!important}
+  /* Stats row */
+  [style*="gap: 48"]{gap:16px!important;flex-wrap:wrap!important;justify-content:center!important}
+  [style*="gap: 48"] > div{min-width:40%!important;text-align:center}
+  [style*="gap: 48"] [style*="fontSize: 32"]{font-size:22px!important}
+  /* Features grid 3→1 */
+  [style*="gridTemplateColumns: repeat(3"]{grid-template-columns:1fr!important;gap:12px!important}
+  /* Plans grid 3→1 */
+  [style*="gridTemplateColumns: repeat(3"]{grid-template-columns:1fr!important}
+  /* Testimonials */
+  [style*="gridTemplateColumns: 1fr 1fr"]{grid-template-columns:1fr!important}
+  /* Footer */
+  footer .container{flex-direction:column!important;text-align:center!important;gap:12px!important}
+  footer [style*="gap: 20"]{justify-content:center!important}
+  /* CTA buttons */
+  [style*="gap: 12"][style*="justifyContent"]{flex-direction:column!important;align-items:center!important}
+  [style*="padding: 16px 40px"]{padding:14px 28px!important;width:100%!important;text-align:center!important}
+  /* Lead form modal */
+  [style*="maxWidth: 480"]{max-width:calc(100vw - 32px)!important;margin:16px!important}
+  /* Fix font sizes */
+  [style*="fontSize: 48"]{font-size:28px!important}
+  [style*="fontSize: 36"]{font-size:24px!important}
+  [style*="fontSize: 32"]{font-size:22px!important}
+  [style*="fontSize: 28"]{font-size:20px!important}
+}
 </style>
 </head>
 <body>
