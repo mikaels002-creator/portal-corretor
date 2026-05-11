@@ -44,15 +44,17 @@ function App(){
   var _sent=useState(false);var sent=_sent[0];var setSent=_sent[1];
   var _toast=useState(null);var toast=_toast[0];var setToast=_toast[1];
   var _landingStatus=useState("checking");var landingStatus=_landingStatus[0];var setLandingStatus=_landingStatus[1];
+  var _lp=useState({});var lp=_lp[0];var setLp=_lp[1];
   var msg=function(m){setToast(m);setTimeout(function(){setToast(null)},3000)};
 
   useEffect(function(){
-    // Check landing status
-    sb.from("config_whatsapp").select("valor").eq("chave","landing_ativa").limit(1).then(function(r){
-      var row=r.data&&r.data[0];
-      if(!row){setLandingStatus("on");return}
-      var lv=row.valor;
-      var isOff=(lv===false||lv==="false"||String(lv).replace(/"/g,"")==="false");
+    // Check landing status + load content
+    sb.from("config_whatsapp").select("chave,valor").then(function(r){
+      var rows=r.data||[];
+      var cfg2={};rows.forEach(function(c){cfg2[c.chave]=typeof c.valor==="string"?c.valor.replace(/^"|"$/g,""):c.valor});
+      setLp(cfg2);
+      var lv=cfg2.landing_ativa;
+      var isOff=(lv===false||lv==="false"||String(lv||"").replace(/"/g,"")==="false");
       if(isOff){
         var base=window.location.pathname.substring(0,window.location.pathname.lastIndexOf("/")+1);
         window.location.replace(base+"portal.html");
@@ -101,29 +103,24 @@ function App(){
 
   // ═══ HERO ═══
   var Hero=function(){
-    return <section style={{paddingTop:160,paddingBottom:80,textAlign:"center",position:"relative",overflow:"hidden"}}>
-      {/* Background effects */}
+    return <section style={{paddingTop:160,paddingBottom:80,textAlign:"center",position:"relative",overflow:"hidden",background:lp.lp_hero_bg?"url("+lp.lp_hero_bg+") center/cover":"none"}}>
+      {lp.lp_hero_bg&&<div style={{position:"absolute",inset:0,background:"rgba(6,6,10,0.7)"}}/>}
       <div style={{position:"absolute",top:"20%",left:"10%",width:400,height:400,borderRadius:"50%",background:"radial-gradient(circle,rgba(200,164,92,0.06),transparent 70%)",filter:"blur(60px)"}}/>
-      <div style={{position:"absolute",top:"30%",right:"10%",width:300,height:300,borderRadius:"50%",background:"radial-gradient(circle,rgba(91,143,212,0.04),transparent 70%)",filter:"blur(60px)"}}/>
       <div className="container" style={{position:"relative"}}>
         <div className="au d1" style={{display:"inline-block",padding:"6px 18px",borderRadius:20,background:"rgba(200,164,92,0.08)",border:"1px solid rgba(200,164,92,0.15)",fontSize:13,color:G,fontWeight:600,marginBottom:24}}>🚀 Plataforma #1 para Construtoras</div>
         <h1 className="au d2" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"clamp(42px,6vw,72px)",fontWeight:500,lineHeight:1.05,marginBottom:20,color:"#fff",letterSpacing:"-0.03em"}}>
-          Seu portal de vendas<br/><span style={{color:G,fontWeight:600}}>pronto em minutos</span>
+          {lp.lp_title||"Seu portal de vendas"}<br/><span style={{color:G,fontWeight:600}}>{lp.lp_subtitle||"pronto em minutos"}</span>
         </h1>
         <p className="au d3" style={{fontSize:18,lineHeight:1.7,color:"#888",maxWidth:600,margin:"0 auto 36px"}}>
-          Tabela de vendas interativa, CRM integrado ao WhatsApp, simulador de financiamento e gestão completa de corretores. Tudo em uma plataforma elegante e profissional.
+          Tabela de vendas interativa, CRM integrado ao WhatsApp, simulador de financiamento e gestão completa de corretores.
         </p>
         <div className="au d4" style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
-          <button className="bh glow" onClick={function(){setShowForm(true)}} style={{padding:"16px 40px",borderRadius:14,background:"linear-gradient(135deg,"+G+",#a88a3c)",color:"#0a0a09",fontSize:17,fontWeight:700,border:"none",boxShadow:"0 8px 32px rgba(200,164,92,0.25)"}}>Teste Grátis 14 Dias</button>
+          <button className="bh glow" onClick={function(){setShowForm(true)}} style={{padding:"16px 40px",borderRadius:14,background:"linear-gradient(135deg,"+G+",#a88a3c)",color:"#0a0a09",fontSize:17,fontWeight:700,border:"none",boxShadow:"0 8px 32px rgba(200,164,92,0.25)"}}>{lp.lp_cta||"Teste Grátis 14 Dias"}</button>
           <a href="#recursos" className="bh" style={{padding:"16px 40px",borderRadius:14,background:"transparent",color:"#fff",fontSize:17,fontWeight:600,border:"1px solid rgba(255,255,255,0.1)",textDecoration:"none"}}>Ver Recursos</a>
         </div>
-        {/* Stats */}
         <div className="au d5" style={{display:"flex",justifyContent:"center",gap:48,marginTop:60}}>
           {[{n:"50+",l:"Construtoras"},{n:"2.000+",l:"Corretores"},{n:"R$ 1B+",l:"em VGV gerenciado"},{n:"99.9%",l:"Uptime"}].map(function(s,i){
-            return <div key={i}>
-              <div style={{fontSize:32,fontWeight:800,color:"#fff"}}>{s.n}</div>
-              <div style={{fontSize:13,color:"#555"}}>{s.l}</div>
-            </div>
+            return <div key={i}><div style={{fontSize:32,fontWeight:800,color:"#fff"}}>{s.n}</div><div style={{fontSize:13,color:"#555"}}>{s.l}</div></div>
           })}
         </div>
       </div>
@@ -132,14 +129,17 @@ function App(){
 
   // ═══ FEATURES ═══
   var Features=function(){
-    var features=[
-      {i:"📊",t:"Tabela de Vendas Interativa",d:"Preços atualizados pelo CUB/SC automaticamente. Filtros por status, busca, e visualização profissional com modo claro e escuro.",c:G},
-      {i:"💼",t:"CRM Integrado ao WhatsApp",d:"Inbox em tempo real, funil Kanban, SLA de atendimento, lead scoring, mensagens prontas e distribuição automática de leads.",c:GR},
-      {i:"🏦",t:"Simulador de Financiamento",d:"Entrada, parcelas mensais, reforço, correção CUB/SC. Gera PDF e compartilha via WhatsApp com um clique.",c:B},
-      {i:"👥",t:"Gestão de Corretores",d:"Cadastro, login exclusivo, dashboard individual, histórico de acessos, simulações e comissões.",c:P},
-      {i:"🤖",t:"Agente de IA",d:"8 relatórios automáticos: diagnóstico, preços, performance, leads, contatos, ranking de corretores e mais.",c:"#C47070"},
-      {i:"📱",t:"Multi-plataforma",d:"Funciona em desktop, tablet e celular. Dark mode elegante. PWA instalável. Compartilhamento nativo.",c:"#5B8FD4"}
+    var defaultFeats=[
+      {i:"📊",t:"Tabela de Vendas Interativa",d:"Preços atualizados pelo CUB/SC automaticamente. Filtros por status, busca, e visualização profissional.",c:G},
+      {i:"💼",t:"CRM Integrado ao WhatsApp",d:"Inbox em tempo real, funil Kanban, distribuição automática de leads e mensagens prontas.",c:GR},
+      {i:"🏦",t:"Simulador de Financiamento",d:"Entrada, parcelas mensais, reforço, correção CUB/SC. Gera PDF e compartilha via WhatsApp.",c:B},
+      {i:"🤖",t:"Agente IA",d:"8 relatórios automáticos: mercado, vendas, corretores, leads, financeiro e mais.",c:P},
+      {i:"👥",t:"Gestão de Corretores",d:"Dashboard individual, ranking, comissões, metas e chat em tempo real.",c:"#E8A94E"},
+      {i:"📱",t:"100% Responsivo",d:"Funciona perfeitamente no celular. PWA instalável, modo offline e notificações.",c:"#E06090"}
     ];
+    // Parse dynamic features from lp_features
+    var dynFeats=lp.lp_features?lp.lp_features.split("\n").filter(function(l){return l.trim()}).map(function(l){var parts=l.split("|").map(function(s){return s.trim()});return{i:parts[0]||"⚡",t:parts[1]||"",d:parts[2]||"",c:G}}):null;
+    var features=dynFeats&&dynFeats.length>0?dynFeats:defaultFeats;
     return <section id="recursos" style={{background:"#08080c"}}>
       <div className="container">
         <div style={{textAlign:"center",marginBottom:60}}>
@@ -265,17 +265,18 @@ function App(){
   // ═══ FOOTER ═══
   var Footer=function(){
     return <footer style={{padding:"40px 0",background:"#06060a",borderTop:"1px solid #111"}}>
-      <div className="container" style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+      <div className="container" style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:16}}>
         <div>
           <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:500,color:"#fff"}}>🏢 Portal do <span style={{color:G}}>Corretor</span></div>
           <div style={{fontSize:12,color:"#444",marginTop:4}}>© 2026 — Todos os direitos reservados</div>
         </div>
-        <div style={{display:"flex",gap:24}}>
+        <div style={{display:"flex",gap:20,flexWrap:"wrap"}}>
           <a href="#recursos" style={{fontSize:13,color:"#555",textDecoration:"none"}}>Recursos</a>
           <a href="#planos" style={{fontSize:13,color:"#555",textDecoration:"none"}}>Planos</a>
-          <a href="mailto:contato@portal-corretor.com" style={{fontSize:13,color:"#555",textDecoration:"none"}}>Contato</a>
+          <a href={"mailto:"+(lp.lp_email||"contato@portal-corretor.com")} style={{fontSize:13,color:"#555",textDecoration:"none"}}>Contato</a>
           <a href="/portal.html" style={{fontSize:13,color:"#555",textDecoration:"none"}}>Portal</a>
-          <a href="/admin.html" style={{fontSize:13,color:"#444",textDecoration:"none"}}>Admin</a>
+          <a href="#" onClick={function(e){e.preventDefault();alert("Termos de Uso\n\nAo utilizar o Portal do Corretor, você concorda com nossos termos de serviço. O portal é um software SaaS para gestão imobiliária. Seus dados são armazenados com segurança e não são compartilhados com terceiros sem autorização.\n\nContato: "+(lp.lp_email||"contato@portal-corretor.com"))}} style={{fontSize:13,color:"#555",textDecoration:"none"}}>Termos de Uso</a>
+          <a href="#" onClick={function(e){e.preventDefault();alert("Política de Privacidade (LGPD)\n\nO Portal do Corretor respeita a Lei Geral de Proteção de Dados (Lei 13.709/2018).\n\n• Coletamos apenas dados necessários para o serviço\n• Seus dados não são vendidos a terceiros\n• Você pode solicitar exclusão a qualquer momento\n• Utilizamos criptografia para proteger informações\n\nDPO: "+(lp.lp_email||"contato@portal-corretor.com"))}} style={{fontSize:13,color:"#555",textDecoration:"none"}}>Privacidade (LGPD)</a>
         </div>
       </div>
     </footer>
