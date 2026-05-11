@@ -201,7 +201,6 @@ var DB = {
   },
   insertBuilding: async function(b){
     b.tenant_id=DB._tid;
-    var r=await sb.from("buildings").insert(b);if(r.error)console.log("insert error:",r.error);return r;
   },
   deleteBuilding: async function(id){
     await sb.from("buildings").delete().eq("id", id);
@@ -220,7 +219,6 @@ var DB = {
   },
   insertUnit: async function(u){
     u.tenant_id=DB._tid;
-    var r=await sb.from("units").insert(u);if(r.error)console.log("insert error:",r.error);return r;
   },
   deleteUnit: async function(id){
     await sb.from("units").delete().eq("id", id);
@@ -344,7 +342,7 @@ var DB = {
       var publicUrl = SB_URL + "/storage/v1/object/public/portal-files/" + fileName;
       callback(publicUrl, file.name);
       if(msgFn) msgFn("✅ Upload concluído!");
-    }).catch(function(e){if(msgFn) msgFn("❌ Erro no upload"); console.log(e);});
+    }).catch(function(e){if(msgFn) msgFn("❌ Erro no upload"); });
   }
 };
 
@@ -602,7 +600,6 @@ function App(){
           }
         }
         window._pollData.ready=true;
-      }catch(e){console.log("Poll error:",e)}
     };
     var t1=setTimeout(check,3000);
     var iv=setInterval(check,5000);
@@ -626,7 +623,6 @@ function App(){
       var safe=function(fn){return fn().catch(function(){return[]})};
       var results = await Promise.all([safe(DB.loadConfig),safe(DB.loadBuildings),safe(DB.loadAllUnits),safe(DB.loadPhotos),safe(DB.loadPlants),safe(DB.loadDocuments),safe(DB.loadNotices),safe(DB.loadBrokers),safe(DB.loadSales),safe(DB.loadAdminUsers),safe(DB.loadTasks)]);
       setCfg(results[0]);setBuildings(results[1]||[]);setAllUnits(results[2]||[]);setAllPhotos(results[3]||[]);setAllPlants(results[4]||[]);setAllDocs(results[5]||[]);setAllNotices(results[6]||[]);setBrokers(results[7]||[]);setSales(results[8]||[]);setAdminUsers(results[9]||[]);setTasks(results[10]||[]);
-    } catch(e){ console.log("Load error:", e); }
     setRdy(true);
     // Restore session
     try{
@@ -659,6 +655,9 @@ function App(){
       CT.cnpj=cfgMap.cnpj||"";
       // Brand color
       if(cfgMap.brand_color)G=cfgMap.brand_color;
+      // Dynamic favicon from logo
+      if(tenant2.logo_url){try{var fav=document.querySelector('link[rel="icon"]');if(fav){fav.href=tenant2.logo_url}else{var link=document.createElement("link");link.rel="icon";link.href=tenant2.logo_url;document.head.appendChild(link)}document.title=(tenant2.nome_empresa||"Portal do Corretor")}catch(e){}}
+      else{document.title=(tenant2.nome_empresa||"Portal do Corretor")}
     }catch(e){}
     refreshPromos();
   };
@@ -2242,7 +2241,6 @@ function App(){
           }
           setMdl(null);
           msg("Salvo! CUB "+fmt(newCub)+" em "+updated+" empreendimentos.");
-        }catch(e){msg("Erro: "+e.message);console.log(e)}
       }}>Salvar</button>
       <button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
     </div>;
@@ -5113,7 +5111,7 @@ function App(){
         setProgress(units.length+" unidades encontradas");
       }catch(e){
         setProgress("Erro ao ler PDF: "+e.message);
-        console.log(e);
+        
         setStep("raw");
       }
       setLoading(false);
