@@ -235,6 +235,7 @@ var DB = {
   },
   insertBuilding: async function(b){
     b.tenant_id=DB._tid;
+    var r=await sb.from("buildings").insert(b);return r;
   },
   deleteBuilding: async function(id){
     await sb.from("buildings").delete().eq("id", id);
@@ -253,6 +254,7 @@ var DB = {
   },
   insertUnit: async function(u){
     u.tenant_id=DB._tid;
+    var r=await sb.from("units").insert(u);return r;
   },
   deleteUnit: async function(id){
     await sb.from("units").delete().eq("id", id);
