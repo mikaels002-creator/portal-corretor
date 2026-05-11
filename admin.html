@@ -21,6 +21,46 @@ body.light{background:#F5F2ED;color:#1a1a19}
 .bh{transition:all .15s;cursor:pointer}
 .bh:hover{opacity:.85;transform:translateY(-1px)}
 input,select,textarea{font-family:inherit}
+@media(max-width:768px){
+  body{overflow-x:hidden!important}
+  /* Sidebar becomes top bar on mobile */
+  .admin-layout{flex-direction:column!important}
+  .admin-sidebar{width:100%!important;flex-direction:row!important;padding:10px!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch;gap:0!important;border-right:none!important;border-bottom:1px solid rgba(255,255,255,0.06)!important}
+  .admin-sidebar>div:first-child{display:none!important} /* Hide header */
+  .admin-sidebar>div:last-child{display:none!important} /* Hide user info */
+  .admin-nav-items{display:flex!important;flex-direction:row!important;gap:2px!important;overflow-x:auto!important;width:100%!important;padding:0 4px!important}
+  .admin-nav-items>div{white-space:nowrap!important;padding:8px 12px!important;font-size:12px!important;min-width:auto!important;border-radius:8px!important}
+  /* Main content */
+  .admin-main{padding:12px!important;max-height:none!important}
+  /* Grids */
+  [style*="gridTemplateColumns: 1fr 1fr 1fr"]{grid-template-columns:1fr 1fr!important}
+  [style*="gridTemplateColumns: repeat(3"]{grid-template-columns:1fr 1fr!important}
+  [style*="gridTemplateColumns: repeat(4"]{grid-template-columns:1fr 1fr!important}
+  [style*="gridTemplateColumns: repeat(5"]{grid-template-columns:1fr!important}
+  /* KPI cards */
+  [style*="fontSize: 32"]{font-size:20px!important}
+  [style*="fontSize: 28"]{font-size:18px!important}
+  [style*="fontSize: 24"]{font-size:16px!important}
+  /* Pipeline columns scroll */
+  [style*="gridTemplateColumns: repeat(5"]{display:flex!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch;gap:8px!important;padding-bottom:8px!important}
+  [style*="gridTemplateColumns: repeat(5"]>div{min-width:200px!important;flex-shrink:0!important}
+  /* Tables */
+  table{display:block;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch}
+  /* Fix flex wrapping */
+  [style*="display: flex"][style*="gap"]{flex-wrap:wrap!important}
+  /* Integrations cards */
+  [style*="gridTemplateColumns: 1fr 1fr"]{grid-template-columns:1fr!important}
+  /* Landing editor */
+  textarea{min-height:80px!important}
+  /* Padding fixes */
+  [style*="padding: 32px"]{padding:12px!important}
+  [style*="padding: 24px 32px"]{padding:12px!important}
+  [style*="padding: 20px"]{padding:12px!important}
+}
+@media(max-width:400px){
+  .admin-nav-items>div{padding:6px 8px!important;font-size:11px!important}
+  [style*="gridTemplateColumns: 1fr 1fr"]{grid-template-columns:1fr!important}
+}
 </style>
 </head>
 <body>
@@ -258,14 +298,14 @@ function App(){
   </div>;
 
   // ═══ MAIN LAYOUT ═══
-  return <div style={{display:"flex",minHeight:"100vh"}}>
+  return <div className="admin-layout" style={{display:"flex",minHeight:"100vh"}}>
     {/* Sidebar */}
-    <div style={{width:220,background:sidebar,borderRight:"1px solid "+border,padding:"20px 0",flexShrink:0,display:"flex",flexDirection:"column"}}>
+    <div className="admin-sidebar" style={{width:220,background:sidebar,borderRight:"1px solid "+border,padding:"20px 0",flexShrink:0,display:"flex",flexDirection:"column"}}>
       <div style={{padding:"0 20px 24px",borderBottom:"1px solid "+border}}>
         <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:20,fontWeight:500,color:textColor}}>🏢 Admin</div>
         <div style={{fontSize:11,color:subColor,marginTop:4}}>Portal do Corretor</div>
       </div>
-      <div style={{flex:1,padding:"12px 10px"}}>
+      <div className="admin-nav-items" style={{flex:1,padding:"12px 10px"}}>
         {[{k:"dash",l:"Dashboard",i:"📊"},{k:"clients",l:"Clientes",i:"👥"},{k:"pipeline",l:"Pipeline",i:"🔄"},{k:"payments",l:"Pagamentos",i:"💰"},{k:"links",l:"Portais",i:"🔗"},{k:"plans",l:"Planos",i:"📦"},{k:"landing",l:"Landing Page",i:"🌐"},{k:"marketing",l:"Marketing",i:"📣"},{k:"users",l:"Usuários",i:"🔐"},{k:"integrations",l:"Integrações",i:"⚡"},{k:"reports",l:"Relatórios",i:"📈"},{k:"overdue",l:"Inadimplentes",i:"⚠️"}].filter(function(item){return canAdmin(item.k)}).map(function(item){
           return <div key={item.k} className="bh" onClick={function(){setView(item.k);setSelClient(null)}} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:10,marginBottom:2,background:view===item.k?"rgba(200,164,92,0.08)":"transparent",color:view===item.k?G:"#888",fontSize:14,fontWeight:view===item.k?600:400}}>
             <span style={{fontSize:16}}>{item.i}</span>{item.l}
@@ -291,7 +331,7 @@ function App(){
     </div>
 
     {/* Content */}
-    <div style={{flex:1,padding:"24px 32px",overflow:"auto",maxHeight:"100vh"}}>
+    <div className="admin-main" style={{flex:1,padding:"24px 32px",overflow:"auto",maxHeight:"100vh"}}>
 
       {/* ═══ DASHBOARD ═══ */}
       {view==="dash"&&<div className="fade-in">
