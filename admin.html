@@ -74,234 +74,12 @@ var ADMIN_TID="mk"; // Tenant do admin SaaS — configurável
 var fmt=function(v){return"R$ "+Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:0,maximumFractionDigits:0})};
 var G="#C8A45C";var B="#5B8FD4";var GR="#4CAF7D";var P="#8B6FBF";var R="#D45B5B";var W="#E8A94E";
 
-function App(){
-  var _auth=useState(false);var auth=_auth[0];var setAuth=_auth[1];
-  var _user=useState(null);var user=_user[0];var setUser=_user[1];
-  var _view=useState("dash");var view=_view[0];var setView=_view[1];
-  var _dark=useState(localStorage.getItem("admin_theme")!=="light");var dark=_dark[0];var setDark=_dark[1];
-  var toggleTheme=function(){var n=!dark;setDark(n);localStorage.setItem("admin_theme",n?"dark":"light");document.body.classList.toggle("light",!n)};
-  useEffect(function(){document.body.classList.toggle("light",!dark)},[]);
-  // Restore session
-  useEffect(function(){
-    try{var s=sessionStorage.getItem("admin_session");if(s){var d=JSON.parse(s);if(d.user&&Date.now()-d.ts<86400000){setAuth(true);setUser(d.user);loadAll();loadGH()}}}catch(e){}
-  },[]);
-  // Theme colors
-  var bg=dark?"#08080a":"#F5F2ED";
-  var cardBg=dark?"#0f0f12":"#fff";
-  var sidebar=dark?"#0c0c0e":"#EFEBE4";
-  var border=dark?border:"#E0DCD4";
-  var textColor=dark?"#E8E4DD":"#1a1a19";
-  var subColor=dark?"#555":"#888";
-  var inputBg=dark?"#111":"#F8F5F0";
-  var inputBorder=dark?"#222":"#D8D4CC";
-  var iS={width:"100%",padding:"10px 14px",borderRadius:8,border:"1px solid "+inputBorder,background:inputBg,color:textColor,fontSize:14,outline:"none",marginBottom:8};
-  var _tenants=useState([]);var tenants=_tenants[0];var setTenants=_tenants[1];
-  var _subs=useState([]);var subs=_subs[0];var setSubs=_subs[1];
-  var _pagtos=useState([]);var pagtos=_pagtos[0];var setPagtos=_pagtos[1];
-  var _planos=useState([]);var planos=_planos[0];var setPlanos=_planos[1];
-  var _inter=useState([]);var inter=_inter[0];var setInter=_inter[1];
-  var _toast=useState(null);var toast=_toast[0];var setToast=_toast[1];
-  var _selClient=useState(null);var selClient=_selClient[0];var setSelClient=_selClient[1];
-  var _landingOn=useState(false);var landingOn=_landingOn[0];var setLandingOn=_landingOn[1];
-  var _expandP=useState(null);var expandP=_expandP[0];var setExpandP=_expandP[1];
-  var _deploying=useState(false);var deploying=_deploying[0];var setDeploying=_deploying[1];
-  var msg=function(m){setToast(m);setTimeout(function(){setToast(null)},4000)};
 
-  // ═══ ACCESS CONTROL ═══
-  var canAdmin=function(section){
-    if(!user)return false;
-    var p=user.perfil||user.role||"viewer";
-    if(p==="super_admin")return true;
-    var perms={
-      admin:{dash:true,clients:true,pipeline:true,payments:true,links:true,plans:true,landing:true,aibrain:true,marketing:true,users:false,integrations:false,reports:true,overdue:true},
-      gerente:{dash:true,clients:true,pipeline:true,payments:true,links:false,plans:false,landing:false,aibrain:false,marketing:false,users:false,integrations:false,reports:true,overdue:true},
-      viewer:{dash:true,clients:false,pipeline:false,payments:false,links:false,plans:false,landing:false,aibrain:false,marketing:false,users:false,integrations:false,reports:true,overdue:false}
-    };
-    return perms[p]?perms[p][section]===true:false;
-  };
-
-  var GH_TOKEN="";
-  var GH_USER="";
-  var GH_TEMPLATE="portal-corretor";
-
-  var loadGH=async function(){
-    var r1=await sb.from("config_whatsapp").select("valor").eq("chave","github_token").single();
-    var r2=await sb.from("config_whatsapp").select("valor").eq("chave","github_user").single();
-    if(r1.data)GH_TOKEN=(r1.data.valor||"").replace(/"/g,"");
-    if(r2.data)GH_USER=(r2.data.valor||"").replace(/"/g,"");
-  };
-
-  var deployPortal=async function(tenant){
-    if(!tenant||!tenant.slug){msg("❌ Salve o cliente primeiro");return}
-    setDeploying(true);msg("⏳ Ativando portal para "+tenant.nome_empresa+"...");
-    try{
-      var portalUrl="https://portal-corretor.com/"+tenant.slug;
-      // Create admin user for tenant
-      var existsAdmin=await sb.from("admin_users").select("id").eq("tenant_id",tenant.slug).limit(1);
-      if(!existsAdmin.data||existsAdmin.data.length===0){
-        await sb.from("admin_users").insert({nome:tenant.contato_nome||tenant.nome_empresa,email:tenant.contato_email||tenant.slug+"@portal-corretor.com",senha:"portal2024",role:"super_admin",tenant_id:tenant.slug});
-      }
-      // Update tenant
-      await sb.from("tenants").update({ativo:true,setup_completo:false,setup_step:0,portal_url:portalUrl}).eq("id",tenant.id);
-      await sb.from("interacoes_tenant").insert({tenant_id:tenant.id,tipo:"deploy",conteudo:"Portal ativado: "+portalUrl+"\nLogin: "+(tenant.contato_email||tenant.slug+"@portal-corretor.com")+" / portal2024",usuario:user?user.nome:"Admin"});
-      await loadAll();setDeploying(false);
-      var updated=Object.assign({},tenant,{portal_url:portalUrl});setSelClient(updated);
-      // Send welcome email
-      sendWelcomeEmail(tenant,portalUrl);
-      msg("✅ Portal ativado! "+portalUrl);
-    }catch(e){setDeploying(false);msg("❌ "+e.message)}
-  };
-
-  var loadAll=async function(){
-    var r1=await sb.from("tenants").select("*").order("criado_em",{ascending:false});setTenants(r1.data||[]);
-    var r2=await sb.from("assinaturas").select("*").order("criado_em",{ascending:false});setSubs(r2.data||[]);
-    var r3=await sb.from("pagamentos").select("*").order("vencimento",{ascending:false}).limit(500);setPagtos(r3.data||[]);
-    var r4=await sb.from("planos").select("*").eq("ativo",true).order("valor_mensal");setPlanos(r4.data||[]);
-    var r5=await sb.from("config_whatsapp").select("valor").eq("chave","landing_ativa").single();
-    if(r5.data){var lv=r5.data.valor;setLandingOn(lv===true||lv==="true"||String(lv).replace(/"/g,"")==="true")}
-    await loadCampanhas();await loadAdminPortalUsers();await loadTenantAdmins();
-  };
-  var loadCampanhas=async function(){var r=await sb.from("campanhas").select("*").order("criado_em",{ascending:false});window._campanhas=r.data||[];setView(function(v){return v})};
-  var loadAdminPortalUsers=async function(){var r=await sb.from("admin_portal_users").select("*").order("criado_em");window._adminUsers=r.data||[];setView(function(v){return v})};
-  var loadTenantAdmins=async function(){var r=await sb.from("admin_users").select("*").order("tenant_id,nome");var byTenant={};(r.data||[]).forEach(function(a){if(!byTenant[a.tenant_id])byTenant[a.tenant_id]=[];byTenant[a.tenant_id].push(a)});window._tenantAdmins=byTenant;setView(function(v){return v})};
-
-  var toggleLanding=async function(){
-
-  // ═══ WELCOME EMAIL ═══
-  var welcomeEmailBody=function(tenant,portalUrl){
-    var login=tenant.contato_email||tenant.slug+"@portal-corretor.com";
-    return "Olá "+( tenant.contato_nome||tenant.nome_empresa)+"!\n\n"+
-    "Seja bem-vindo(a) ao Portal do Corretor! 🎉\n\n"+
-    "Seu portal está pronto e esperando por você. Aqui estão seus dados de acesso:\n\n"+
-    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"+
-    "🔗 SEU PORTAL\n"+
-    portalUrl+"\n\n"+
-    "🔐 DADOS DE ACESSO\n"+
-    "Email: "+login+"\n"+
-    "Senha: portal2024\n"+
-    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"+
-    "📋 PRIMEIROS PASSOS\n\n"+
-    "1️⃣ ACESSE SEU PORTAL\n"+
-    "Abra o link acima no navegador e faça login com suas credenciais.\n\n"+
-    "2️⃣ CONFIGURE SUA EMPRESA\n"+
-    "Ao fazer o primeiro login, um assistente de configuração vai guiá-lo:\n"+
-    "   • Nome e logo da sua empresa\n"+
-    "   • Dados de contato (WhatsApp, Instagram, email)\n"+
-    "   • Cadastro do primeiro empreendimento\n"+
-    "   • Tabela de preços inicial\n\n"+
-    "3️⃣ ADICIONE SEUS EMPREENDIMENTOS\n"+
-    "No menu Gerenciar, adicione seus empreendimentos com:\n"+
-    "   • Fotos e plantas\n"+
-    "   • Tabela de unidades com preços\n"+
-    "   • Status de cada unidade (disponível, reservada, vendida)\n"+
-    "   • Informações do empreendimento\n\n"+
-    "4️⃣ CADASTRE SEUS CORRETORES\n"+
-    "Cada corretor terá acesso exclusivo ao portal com:\n"+
-    "   • Visualização da tabela de preços atualizada\n"+
-    "   • Simulador de financiamento\n"+
-    "   • Registro de vendas\n"+
-    "   • Dashboard individual com ranking\n\n"+
-    "5️⃣ ATIVE O CRM\n"+
-    "Configure o CRM integrado para:\n"+
-    "   • Receber leads automaticamente\n"+
-    "   • Gerenciar atendimentos\n"+
-    "   • Acompanhar o funil de vendas\n"+
-    "   • Enviar propostas digitais\n\n"+
-    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"+
-    "📱 RECURSOS DISPONÍVEIS\n\n"+
-    "✅ Tabela de vendas interativa com preços atualizados\n"+
-    "✅ Simulador de financiamento completo\n"+
-    "✅ CRM com funil Kanban\n"+
-    "✅ Gestão de corretores com ranking\n"+
-    "✅ Propostas digitais\n"+
-    "✅ Agendamento de visitas\n"+
-    "✅ Relatórios e analytics\n"+
-    "✅ Modo claro e escuro\n"+
-    "✅ Funciona em desktop, tablet e celular\n\n"+
-    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"+
-    "📞 SUPORTE\n\n"+
-    "Qualquer dúvida, entre em contato:\n"+
-    "📱 WhatsApp: (47) 98802-0495\n"+
-    "📧 Email: contato@portal-corretor.com\n\n"+
-    "Estamos à disposição para ajudá-lo a configurar seu portal e maximizar suas vendas!\n\n"+
-    "Abraços,\n"+
-    "Equipe Portal do Corretor 🏢"
-  };
-
-  var sendWelcomeEmail=function(tenant,portalUrl){
-    var email=tenant.contato_email;
-    if(!email)return;
-    var subject="🏢 Bem-vindo ao Portal do Corretor — Seus dados de acesso";
-    var body=welcomeEmailBody(tenant,portalUrl);
-    // Open in email client
-    window.open("mailto:"+encodeURIComponent(email)+"?subject="+encodeURIComponent(subject)+"&body="+encodeURIComponent(body),"_blank");
-    // Log
-    sb.from("interacoes_tenant").insert({tenant_id:tenant.id,tipo:"email",conteudo:"Email de boas-vindas enviado para "+email,usuario:user?user.nome:"Admin"});
-  };
-    var novo=!landingOn;
-    // Delete and re-insert (most reliable)
-    await sb.from("config_whatsapp").delete().eq("chave","landing_ativa");
-    var ins=await sb.from("config_whatsapp").insert({chave:"landing_ativa",valor:novo,tenant_id:ADMIN_TID});
-    if(ins.error){msg("❌ Erro: "+ins.error.message);return}
-    // Verify
-    var check=await sb.from("config_whatsapp").select("valor").eq("chave","landing_ativa").limit(1);
-    var saved=check.data&&check.data[0]?check.data[0].valor:null;
-    setLandingOn(novo);
-    msg(saved===novo?(novo?"🟢 Landing ativada ✅":"🔴 Landing desativada ✅"):"⚠️ valor: "+JSON.stringify(saved));
-  };
-
-  var doLogin=async function(){
-    var e=document.getElementById("adm_email").value;
-    var p=document.getElementById("adm_pass").value;
-    if(!e||!p){msg("Preencha email e senha");return}
-    var r=await sb.rpc("login_admin_saas",{p_email:e,p_senha:p});
-    if(r.data&&r.data.ok){
-      setAuth(true);setUser(r.data.user);sessionStorage.setItem("admin_session",JSON.stringify({user:r.data.user,ts:Date.now()}));await loadAll();await loadGH();
-    }else{msg("❌ Credenciais inválidas")}
-  };
-
-  // Pipeline
-  var pipes=[{k:"lead",l:"Lead",c:B,e:"🎯"},{k:"qualificado",l:"Qualificado",c:W,e:"⭐"},{k:"trial",l:"Trial",c:P,e:"🧪"},{k:"negociacao",l:"Negociação",c:R,e:"💬"},{k:"ativo",l:"Ativo",c:GR,e:"✅"},{k:"cancelado",l:"Cancelado",c:R,e:"❌"}];
-  var pC=function(p){var f=pipes.find(function(x){return x.k===p});return f?f.c:"#555"};
-
-  // KPIs
-  var ativos=tenants.filter(function(t){return t.pipeline==="ativo"});
-  var trials=tenants.filter(function(t){return t.pipeline==="trial"});
-  var mrr=ativos.reduce(function(s,t){return s+(t.valor_mensal||0)},0);
-  var arr=mrr*12;
-  var cancelados=tenants.filter(function(t){return t.pipeline==="cancelado"}).length;
-  var churn=tenants.length>0?Math.round(cancelados/tenants.length*100):0;
-  var hoje=new Date().toISOString().split("T")[0];
-  var mesAtual=hoje.substring(0,7);
-  var recebidoMes=pagtos.filter(function(p){return p.status==="pago"&&p.pago_em&&p.pago_em.substring(0,7)===mesAtual}).reduce(function(s,p){return s+(p.valor||0)},0);
-  var pendentes=pagtos.filter(function(p){return p.status==="pendente"&&p.vencimento&&p.vencimento<hoje});
-  var aReceber=pagtos.filter(function(p){return p.status==="pendente"}).reduce(function(s,p){return s+(p.valor||0)},0);
-
-  // ═══ LOGIN ═══
-  if(!auth) return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:dark?"linear-gradient(135deg,#08080a,#0d0d12,#08080a)":"linear-gradient(135deg,#F5F2ED,#EDE8E0,#F5F2ED)"}}>
-    <div className="fade-in" style={{width:380,padding:40,borderRadius:20,background:cardBg,border:"1px solid "+border,boxShadow:dark?"0 20px 80px rgba(0,0,0,0.5)":"0 20px 80px rgba(0,0,0,0.08)"}}>
-      <div style={{textAlign:"center",marginBottom:32}}>
-        <div style={{fontSize:36,marginBottom:8}}>🏢</div>
-        <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:28,fontWeight:500,color:textColor,letterSpacing:"-0.02em"}}>Portal Admin</div>
-        <div style={{fontSize:13,color:subColor,marginTop:4}}>Gestão de assinantes e plataforma</div>
-      </div>
-      <div style={{marginBottom:12}}>
-        <div style={{fontSize:12,color:subColor,marginBottom:4}}>Email</div>
-        <input id="adm_email" style={iS} placeholder="admin@portal-corretor.com" onKeyDown={function(e){if(e.key==="Enter")doLogin()}}/>
-      </div>
-      <div style={{marginBottom:20}}>
-        <div style={{fontSize:12,color:subColor,marginBottom:4}}>Senha</div>
-        <input id="adm_pass" type="password" style={iS} placeholder="••••••••" onKeyDown={function(e){if(e.key==="Enter")doLogin()}}/>
-      </div>
-      <button className="bh" onClick={doLogin} style={{width:"100%",padding:"14px",borderRadius:10,background:"linear-gradient(135deg,"+G+",#a88a3c)",color:"#0a0a09",fontSize:15,fontWeight:700,border:"none",cursor:"pointer"}}>Entrar</button>
-      <div className="bh" onClick={toggleTheme} style={{textAlign:"center",marginTop:16,fontSize:12,color:subColor,cursor:"pointer"}}>{dark?"☀️ Tema Claro":"🌙 Tema Escuro"}</div>
-    </div>
-    {toast&&<div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",padding:"10px 24px",borderRadius:10,background:cardBg,color:textColor,fontSize:14,border:"1px solid "+border}}>{toast}</div>}
-  </div>;
-
-  // ═══ MAIN LAYOUT ═══
-  // ═══ AI BRAIN COMPONENT ═══
-  function AIBrainView(){
+// ═══ AI BRAIN COMPONENT (standalone) ═══
+  function AIBrainView(props){
+    var tenants=props.tenants||[];var mrr=props.mrr||0;var ativos=props.ativos||[];var pendentes=props.pendentes||[];
+    var dark=props.dark;var msg=props.msg;var cardBg=props.cardBg;var border=props.border;
+    var textColor=props.textColor;var subColor=props.subColor;
     var _tab=useState("chat");var tab=_tab[0];var setTab=_tab[1];
     var _team=useState("brain");var team=_team[0];var setTeam=_team[1];
     var _msgs3=useState([]);var msgs3=_msgs3[0];var setMsgs3=_msgs3[1];
@@ -800,6 +578,235 @@ function App(){
 
     </div>
   }
+
+
+function App(){
+  var _auth=useState(false);var auth=_auth[0];var setAuth=_auth[1];
+  var _user=useState(null);var user=_user[0];var setUser=_user[1];
+  var _view=useState("dash");var view=_view[0];var setView=_view[1];
+  var _dark=useState(localStorage.getItem("admin_theme")!=="light");var dark=_dark[0];var setDark=_dark[1];
+  var toggleTheme=function(){var n=!dark;setDark(n);localStorage.setItem("admin_theme",n?"dark":"light");document.body.classList.toggle("light",!n)};
+  useEffect(function(){document.body.classList.toggle("light",!dark)},[]);
+  // Restore session
+  useEffect(function(){
+    try{var s=sessionStorage.getItem("admin_session");if(s){var d=JSON.parse(s);if(d.user&&Date.now()-d.ts<86400000){setAuth(true);setUser(d.user);loadAll();loadGH()}}}catch(e){}
+  },[]);
+  // Theme colors
+  var bg=dark?"#08080a":"#F5F2ED";
+  var cardBg=dark?"#0f0f12":"#fff";
+  var sidebar=dark?"#0c0c0e":"#EFEBE4";
+  var border=dark?border:"#E0DCD4";
+  var textColor=dark?"#E8E4DD":"#1a1a19";
+  var subColor=dark?"#555":"#888";
+  var inputBg=dark?"#111":"#F8F5F0";
+  var inputBorder=dark?"#222":"#D8D4CC";
+  var iS={width:"100%",padding:"10px 14px",borderRadius:8,border:"1px solid "+inputBorder,background:inputBg,color:textColor,fontSize:14,outline:"none",marginBottom:8};
+  var _tenants=useState([]);var tenants=_tenants[0];var setTenants=_tenants[1];
+  var _subs=useState([]);var subs=_subs[0];var setSubs=_subs[1];
+  var _pagtos=useState([]);var pagtos=_pagtos[0];var setPagtos=_pagtos[1];
+  var _planos=useState([]);var planos=_planos[0];var setPlanos=_planos[1];
+  var _inter=useState([]);var inter=_inter[0];var setInter=_inter[1];
+  var _toast=useState(null);var toast=_toast[0];var setToast=_toast[1];
+  var _selClient=useState(null);var selClient=_selClient[0];var setSelClient=_selClient[1];
+  var _landingOn=useState(false);var landingOn=_landingOn[0];var setLandingOn=_landingOn[1];
+  var _expandP=useState(null);var expandP=_expandP[0];var setExpandP=_expandP[1];
+  var _deploying=useState(false);var deploying=_deploying[0];var setDeploying=_deploying[1];
+  var msg=function(m){setToast(m);setTimeout(function(){setToast(null)},4000)};
+
+  // ═══ ACCESS CONTROL ═══
+  var canAdmin=function(section){
+    if(!user)return false;
+    var p=user.perfil||user.role||"viewer";
+    if(p==="super_admin")return true;
+    var perms={
+      admin:{dash:true,clients:true,pipeline:true,payments:true,links:true,plans:true,landing:true,aibrain:true,marketing:true,users:false,integrations:false,reports:true,overdue:true},
+      gerente:{dash:true,clients:true,pipeline:true,payments:true,links:false,plans:false,landing:false,aibrain:false,marketing:false,users:false,integrations:false,reports:true,overdue:true},
+      viewer:{dash:true,clients:false,pipeline:false,payments:false,links:false,plans:false,landing:false,aibrain:false,marketing:false,users:false,integrations:false,reports:true,overdue:false}
+    };
+    return perms[p]?perms[p][section]===true:false;
+  };
+
+  var GH_TOKEN="";
+  var GH_USER="";
+  var GH_TEMPLATE="portal-corretor";
+
+  var loadGH=async function(){
+    var r1=await sb.from("config_whatsapp").select("valor").eq("chave","github_token").single();
+    var r2=await sb.from("config_whatsapp").select("valor").eq("chave","github_user").single();
+    if(r1.data)GH_TOKEN=(r1.data.valor||"").replace(/"/g,"");
+    if(r2.data)GH_USER=(r2.data.valor||"").replace(/"/g,"");
+  };
+
+  var deployPortal=async function(tenant){
+    if(!tenant||!tenant.slug){msg("❌ Salve o cliente primeiro");return}
+    setDeploying(true);msg("⏳ Ativando portal para "+tenant.nome_empresa+"...");
+    try{
+      var portalUrl="https://portal-corretor.com/"+tenant.slug;
+      // Create admin user for tenant
+      var existsAdmin=await sb.from("admin_users").select("id").eq("tenant_id",tenant.slug).limit(1);
+      if(!existsAdmin.data||existsAdmin.data.length===0){
+        await sb.from("admin_users").insert({nome:tenant.contato_nome||tenant.nome_empresa,email:tenant.contato_email||tenant.slug+"@portal-corretor.com",senha:"portal2024",role:"super_admin",tenant_id:tenant.slug});
+      }
+      // Update tenant
+      await sb.from("tenants").update({ativo:true,setup_completo:false,setup_step:0,portal_url:portalUrl}).eq("id",tenant.id);
+      await sb.from("interacoes_tenant").insert({tenant_id:tenant.id,tipo:"deploy",conteudo:"Portal ativado: "+portalUrl+"\nLogin: "+(tenant.contato_email||tenant.slug+"@portal-corretor.com")+" / portal2024",usuario:user?user.nome:"Admin"});
+      await loadAll();setDeploying(false);
+      var updated=Object.assign({},tenant,{portal_url:portalUrl});setSelClient(updated);
+      // Send welcome email
+      sendWelcomeEmail(tenant,portalUrl);
+      msg("✅ Portal ativado! "+portalUrl);
+    }catch(e){setDeploying(false);msg("❌ "+e.message)}
+  };
+
+  var loadAll=async function(){
+    var r1=await sb.from("tenants").select("*").order("criado_em",{ascending:false});setTenants(r1.data||[]);
+    var r2=await sb.from("assinaturas").select("*").order("criado_em",{ascending:false});setSubs(r2.data||[]);
+    var r3=await sb.from("pagamentos").select("*").order("vencimento",{ascending:false}).limit(500);setPagtos(r3.data||[]);
+    var r4=await sb.from("planos").select("*").eq("ativo",true).order("valor_mensal");setPlanos(r4.data||[]);
+    var r5=await sb.from("config_whatsapp").select("valor").eq("chave","landing_ativa").single();
+    if(r5.data){var lv=r5.data.valor;setLandingOn(lv===true||lv==="true"||String(lv).replace(/"/g,"")==="true")}
+    await loadCampanhas();await loadAdminPortalUsers();await loadTenantAdmins();
+  };
+  var loadCampanhas=async function(){var r=await sb.from("campanhas").select("*").order("criado_em",{ascending:false});window._campanhas=r.data||[];setView(function(v){return v})};
+  var loadAdminPortalUsers=async function(){var r=await sb.from("admin_portal_users").select("*").order("criado_em");window._adminUsers=r.data||[];setView(function(v){return v})};
+  var loadTenantAdmins=async function(){var r=await sb.from("admin_users").select("*").order("tenant_id,nome");var byTenant={};(r.data||[]).forEach(function(a){if(!byTenant[a.tenant_id])byTenant[a.tenant_id]=[];byTenant[a.tenant_id].push(a)});window._tenantAdmins=byTenant;setView(function(v){return v})};
+
+  var toggleLanding=async function(){
+
+  // ═══ WELCOME EMAIL ═══
+  var welcomeEmailBody=function(tenant,portalUrl){
+    var login=tenant.contato_email||tenant.slug+"@portal-corretor.com";
+    return "Olá "+( tenant.contato_nome||tenant.nome_empresa)+"!\n\n"+
+    "Seja bem-vindo(a) ao Portal do Corretor! 🎉\n\n"+
+    "Seu portal está pronto e esperando por você. Aqui estão seus dados de acesso:\n\n"+
+    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"+
+    "🔗 SEU PORTAL\n"+
+    portalUrl+"\n\n"+
+    "🔐 DADOS DE ACESSO\n"+
+    "Email: "+login+"\n"+
+    "Senha: portal2024\n"+
+    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"+
+    "📋 PRIMEIROS PASSOS\n\n"+
+    "1️⃣ ACESSE SEU PORTAL\n"+
+    "Abra o link acima no navegador e faça login com suas credenciais.\n\n"+
+    "2️⃣ CONFIGURE SUA EMPRESA\n"+
+    "Ao fazer o primeiro login, um assistente de configuração vai guiá-lo:\n"+
+    "   • Nome e logo da sua empresa\n"+
+    "   • Dados de contato (WhatsApp, Instagram, email)\n"+
+    "   • Cadastro do primeiro empreendimento\n"+
+    "   • Tabela de preços inicial\n\n"+
+    "3️⃣ ADICIONE SEUS EMPREENDIMENTOS\n"+
+    "No menu Gerenciar, adicione seus empreendimentos com:\n"+
+    "   • Fotos e plantas\n"+
+    "   • Tabela de unidades com preços\n"+
+    "   • Status de cada unidade (disponível, reservada, vendida)\n"+
+    "   • Informações do empreendimento\n\n"+
+    "4️⃣ CADASTRE SEUS CORRETORES\n"+
+    "Cada corretor terá acesso exclusivo ao portal com:\n"+
+    "   • Visualização da tabela de preços atualizada\n"+
+    "   • Simulador de financiamento\n"+
+    "   • Registro de vendas\n"+
+    "   • Dashboard individual com ranking\n\n"+
+    "5️⃣ ATIVE O CRM\n"+
+    "Configure o CRM integrado para:\n"+
+    "   • Receber leads automaticamente\n"+
+    "   • Gerenciar atendimentos\n"+
+    "   • Acompanhar o funil de vendas\n"+
+    "   • Enviar propostas digitais\n\n"+
+    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"+
+    "📱 RECURSOS DISPONÍVEIS\n\n"+
+    "✅ Tabela de vendas interativa com preços atualizados\n"+
+    "✅ Simulador de financiamento completo\n"+
+    "✅ CRM com funil Kanban\n"+
+    "✅ Gestão de corretores com ranking\n"+
+    "✅ Propostas digitais\n"+
+    "✅ Agendamento de visitas\n"+
+    "✅ Relatórios e analytics\n"+
+    "✅ Modo claro e escuro\n"+
+    "✅ Funciona em desktop, tablet e celular\n\n"+
+    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"+
+    "📞 SUPORTE\n\n"+
+    "Qualquer dúvida, entre em contato:\n"+
+    "📱 WhatsApp: (47) 98802-0495\n"+
+    "📧 Email: contato@portal-corretor.com\n\n"+
+    "Estamos à disposição para ajudá-lo a configurar seu portal e maximizar suas vendas!\n\n"+
+    "Abraços,\n"+
+    "Equipe Portal do Corretor 🏢"
+  };
+
+  var sendWelcomeEmail=function(tenant,portalUrl){
+    var email=tenant.contato_email;
+    if(!email)return;
+    var subject="🏢 Bem-vindo ao Portal do Corretor — Seus dados de acesso";
+    var body=welcomeEmailBody(tenant,portalUrl);
+    // Open in email client
+    window.open("mailto:"+encodeURIComponent(email)+"?subject="+encodeURIComponent(subject)+"&body="+encodeURIComponent(body),"_blank");
+    // Log
+    sb.from("interacoes_tenant").insert({tenant_id:tenant.id,tipo:"email",conteudo:"Email de boas-vindas enviado para "+email,usuario:user?user.nome:"Admin"});
+  };
+    var novo=!landingOn;
+    // Delete and re-insert (most reliable)
+    await sb.from("config_whatsapp").delete().eq("chave","landing_ativa");
+    var ins=await sb.from("config_whatsapp").insert({chave:"landing_ativa",valor:novo,tenant_id:ADMIN_TID});
+    if(ins.error){msg("❌ Erro: "+ins.error.message);return}
+    // Verify
+    var check=await sb.from("config_whatsapp").select("valor").eq("chave","landing_ativa").limit(1);
+    var saved=check.data&&check.data[0]?check.data[0].valor:null;
+    setLandingOn(novo);
+    msg(saved===novo?(novo?"🟢 Landing ativada ✅":"🔴 Landing desativada ✅"):"⚠️ valor: "+JSON.stringify(saved));
+  };
+
+  var doLogin=async function(){
+    var e=document.getElementById("adm_email").value;
+    var p=document.getElementById("adm_pass").value;
+    if(!e||!p){msg("Preencha email e senha");return}
+    var r=await sb.rpc("login_admin_saas",{p_email:e,p_senha:p});
+    if(r.data&&r.data.ok){
+      setAuth(true);setUser(r.data.user);sessionStorage.setItem("admin_session",JSON.stringify({user:r.data.user,ts:Date.now()}));await loadAll();await loadGH();
+    }else{msg("❌ Credenciais inválidas")}
+  };
+
+  // Pipeline
+  var pipes=[{k:"lead",l:"Lead",c:B,e:"🎯"},{k:"qualificado",l:"Qualificado",c:W,e:"⭐"},{k:"trial",l:"Trial",c:P,e:"🧪"},{k:"negociacao",l:"Negociação",c:R,e:"💬"},{k:"ativo",l:"Ativo",c:GR,e:"✅"},{k:"cancelado",l:"Cancelado",c:R,e:"❌"}];
+  var pC=function(p){var f=pipes.find(function(x){return x.k===p});return f?f.c:"#555"};
+
+  // KPIs
+  var ativos=tenants.filter(function(t){return t.pipeline==="ativo"});
+  var trials=tenants.filter(function(t){return t.pipeline==="trial"});
+  var mrr=ativos.reduce(function(s,t){return s+(t.valor_mensal||0)},0);
+  var arr=mrr*12;
+  var cancelados=tenants.filter(function(t){return t.pipeline==="cancelado"}).length;
+  var churn=tenants.length>0?Math.round(cancelados/tenants.length*100):0;
+  var hoje=new Date().toISOString().split("T")[0];
+  var mesAtual=hoje.substring(0,7);
+  var recebidoMes=pagtos.filter(function(p){return p.status==="pago"&&p.pago_em&&p.pago_em.substring(0,7)===mesAtual}).reduce(function(s,p){return s+(p.valor||0)},0);
+  var pendentes=pagtos.filter(function(p){return p.status==="pendente"&&p.vencimento&&p.vencimento<hoje});
+  var aReceber=pagtos.filter(function(p){return p.status==="pendente"}).reduce(function(s,p){return s+(p.valor||0)},0);
+
+  // ═══ LOGIN ═══
+  if(!auth) return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:dark?"linear-gradient(135deg,#08080a,#0d0d12,#08080a)":"linear-gradient(135deg,#F5F2ED,#EDE8E0,#F5F2ED)"}}>
+    <div className="fade-in" style={{width:380,padding:40,borderRadius:20,background:cardBg,border:"1px solid "+border,boxShadow:dark?"0 20px 80px rgba(0,0,0,0.5)":"0 20px 80px rgba(0,0,0,0.08)"}}>
+      <div style={{textAlign:"center",marginBottom:32}}>
+        <div style={{fontSize:36,marginBottom:8}}>🏢</div>
+        <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:28,fontWeight:500,color:textColor,letterSpacing:"-0.02em"}}>Portal Admin</div>
+        <div style={{fontSize:13,color:subColor,marginTop:4}}>Gestão de assinantes e plataforma</div>
+      </div>
+      <div style={{marginBottom:12}}>
+        <div style={{fontSize:12,color:subColor,marginBottom:4}}>Email</div>
+        <input id="adm_email" style={iS} placeholder="admin@portal-corretor.com" onKeyDown={function(e){if(e.key==="Enter")doLogin()}}/>
+      </div>
+      <div style={{marginBottom:20}}>
+        <div style={{fontSize:12,color:subColor,marginBottom:4}}>Senha</div>
+        <input id="adm_pass" type="password" style={iS} placeholder="••••••••" onKeyDown={function(e){if(e.key==="Enter")doLogin()}}/>
+      </div>
+      <button className="bh" onClick={doLogin} style={{width:"100%",padding:"14px",borderRadius:10,background:"linear-gradient(135deg,"+G+",#a88a3c)",color:"#0a0a09",fontSize:15,fontWeight:700,border:"none",cursor:"pointer"}}>Entrar</button>
+      <div className="bh" onClick={toggleTheme} style={{textAlign:"center",marginTop:16,fontSize:12,color:subColor,cursor:"pointer"}}>{dark?"☀️ Tema Claro":"🌙 Tema Escuro"}</div>
+    </div>
+    {toast&&<div style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",padding:"10px 24px",borderRadius:10,background:cardBg,color:textColor,fontSize:14,border:"1px solid "+border}}>{toast}</div>}
+  </div>;
+
+  // ═══ MAIN LAYOUT ═══
+  // ═══ AI BRAIN COMPONENT ═══
 
 
   return <div className="admin-layout" style={{display:"flex",minHeight:"100vh"}}>
@@ -1768,7 +1775,7 @@ function App(){
       </div>}
 
       {/* ═══ AI BRAIN ═══ */}
-      {view==="aibrain"&&<AIBrainView/>}
+      {view==="aibrain"&&<AIBrainView tenants={tenants} mrr={mrr} ativos={ativos} pendentes={pendentes} dark={dark} msg={msg} cardBg={cardBg} border={border} textColor={textColor} subColor={subColor}/>}
 
       {/* ═══ MARKETING ═══ */}
       {view==="marketing"&&<div className="fade-in">
