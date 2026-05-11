@@ -2071,16 +2071,19 @@ function App(){
     var msgs2=_msgs2[0];var setMsgs2=_msgs2[1];
     var _input2=useState("");var input2=_input2[0];var setInput2=_input2[1];
     var _loading2=useState(false);var loading2=_loading2[0];var setLoading2=_loading2[1];
+    var _aiKey=useState("");var aiKey=_aiKey[0];var setAiKey=_aiKey[1];
     var scrollRef=useRef(null);
     useEffect(function(){if(scrollRef.current)scrollRef.current.scrollTop=scrollRef.current.scrollHeight},[msgs2]);
-    var sysP="Você é o Assistente de Suporte do Portal do Corretor, um SaaS para incorporadoras. Responda em português, claro e objetivo. Funcionalidades: Gerenciar (empreendimentos, unidades, fotos, corretores), CRM (WhatsApp, funil, contatos, visitas, propostas), Simulador financiamento, Agente IA, Temas claro/escuro. Configurar empresa em Gerenciar > Dados da Empresa. WhatsApp Business API na mesma tela. Admin SaaS: Dashboard, Clientes (stepper 4 passos), Pipeline, Pagamentos, Portais, Planos, Marketing, Usuários, Integrações. Tabelas: buildings, units, photos, brokers, admin_users (coluna senha), config_whatsapp (coluna valor é JSON), leads_whatsapp, tenants, assinaturas, pagamentos, planos. Multi-tenant: todas queries filtram por tenant_id. RLS desabilitado.";
+    useEffect(function(){sb.from("config_whatsapp").select("valor").eq("chave","anthropic_api_key").eq("tenant_id",DB._tid).single().then(function(r){if(r.data&&r.data.valor)setAiKey(r.data.valor.replace(/^"|"$/g,""))}).catch(function(){});},[]);
+    var sysP="Você é o Assistente de Suporte do Portal do Corretor, um SaaS para incorporadoras. Responda em português, claro e objetivo. Funcionalidades: Gerenciar (empreendimentos, unidades, fotos, corretores), CRM (WhatsApp, funil, contatos, visitas, propostas), Simulador financiamento, Agente IA, Temas claro/escuro. Configurar empresa em Gerenciar > Dados da Empresa. WhatsApp Business API na mesma tela. Tabelas: buildings, units, photos, brokers, admin_users, config_whatsapp, leads_whatsapp, tenants. Multi-tenant: todas queries filtram por tenant_id.";
     var sendMsg=async function(){
       if(!input2.trim()||loading2)return;
+      if(!aiKey){setMsgs2(msgs2.concat([{role:"assistant",content:"⚠️ API Key não configurada. Peça ao administrador para configurar em Admin → Integrações."}]));return}
       var userMsg={role:"user",content:input2.trim()};
       var newMsgs=msgs2.concat([userMsg]);
       setMsgs2(newMsgs);setInput2("");setLoading2(true);
       try{
-        var resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:sysP,messages:newMsgs.map(function(m){return{role:m.role,content:m.content}})})});
+        var resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":aiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:sysP,messages:newMsgs.map(function(m){return{role:m.role,content:m.content}})})});
         var data=await resp.json();
         var aiText=data.content?data.content.map(function(c2){return c2.text||""}).join(""):"Desculpe, tente novamente.";
         setMsgs2(newMsgs.concat([{role:"assistant",content:aiText}]));
