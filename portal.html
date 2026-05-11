@@ -645,9 +645,10 @@ function App(){
 
   // === LOAD ALL DATA FROM SUPABASE ===
   var loadAll = async function(){
+    var tr={data:null};
     try {
       // Load tenant first
-      var tr=await sb.from("tenants").select("*").eq("slug",slug).eq("ativo",true).single();
+      tr=await sb.from("tenants").select("*").eq("slug",slug).eq("ativo",true).single();
       if(!tr.data){tr=await sb.from("tenants").select("*").eq("ativo",true).order("criado_em").limit(1).single()}
       if(tr.data){
         setTenant(tr.data);
@@ -660,6 +661,8 @@ function App(){
       var safe=function(fn){return fn().catch(function(){return[]})};
       var results = await Promise.all([safe(DB.loadConfig),safe(DB.loadBuildings),safe(DB.loadAllUnits),safe(DB.loadPhotos),safe(DB.loadPlants),safe(DB.loadDocuments),safe(DB.loadNotices),safe(DB.loadBrokers),safe(DB.loadSales),safe(DB.loadAdminUsers),safe(DB.loadTasks)]);
       setCfg(results[0]);setBuildings(results[1]||[]);setAllUnits(results[2]||[]);setAllPhotos(results[3]||[]);setAllPlants(results[4]||[]);setAllDocs(results[5]||[]);setAllNotices(results[6]||[]);setBrokers(results[7]||[]);setSales(results[8]||[]);setAdminUsers(results[9]||[]);setTasks(results[10]||[]);
+    }catch(e){}
+    var tenant2=tr.data||{};
     setRdy(true);
     // Restore session
     try{
@@ -2278,6 +2281,7 @@ function App(){
           }
           setMdl(null);
           msg("Salvo! CUB "+fmt(newCub)+" em "+updated+" empreendimentos.");
+        }catch(e){msg("Erro ao salvar")}
       }}>Salvar</button>
       <button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
     </div>;
