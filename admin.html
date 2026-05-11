@@ -305,6 +305,14 @@ function App(){
     var _inp=useState("");var inp=_inp[0];var setInp=_inp[1];
     var _busy=useState(false);var busy=_busy[0];var setBusy=_busy[1];
     var _history=useState([]);var history2=_history[0];var setHistory2=_history[1];
+    var _apiKey=useState("");var apiKey=_apiKey[0];var setApiKey=_apiKey[1];
+
+    // Load API key on mount
+    useEffect(function(){
+      sb.from("config_whatsapp").select("valor").eq("chave","anthropic_api_key").eq("tenant_id",ADMIN_TID).single().then(function(r){
+        if(r.data&&r.data.valor)setApiKey(r.data.valor.replace(/^"|"$/g,""));
+      });
+    },[]);
 
     var teams={
       brain:{name:"🧠 Cérebro",color:"#C8A45C",desc:"Coordenador central — valida ações, identifica bugs, mantém tudo conectado",
@@ -325,8 +333,9 @@ function App(){
       var newMsgs=msgs3.concat([{role:"user",content:q,team:tk}]);
       setMsgs3(newMsgs);setInp("");
       try{
+        if(!apiKey){setMsgs3(newMsgs.concat([{role:"assistant",content:"⚠️ API Key não configurada. Configure em Integrações → Anthropic API Key.",team:tk}]));setBusy(false);return}
         var apiMsgs=newMsgs.filter(function(m){return m.team===tk||m.team==="brain"}).map(function(m){return{role:m.role,content:m.content}}).slice(-10);
-        var r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1500,system:t2.sys,messages:apiMsgs})});
+        var r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1500,system:t2.sys,messages:apiMsgs})});
         var d=await r.json();
         var txt=d.content?d.content.map(function(c2){return c2.text||""}).join(""):"Erro na resposta.";
         setMsgs3(newMsgs.concat([{role:"assistant",content:txt,team:tk}]));
@@ -347,6 +356,20 @@ function App(){
 
     return <div className="fade-in">
       <div style={{fontSize:24,fontWeight:700,color:textColor,marginBottom:20}}>🧠 Cérebro IA — Central de Inteligência</div>
+      {/* API Key config */}
+      {!apiKey&&<div style={{padding:20,borderRadius:14,background:W+"08",border:"1px solid "+W+"20",marginBottom:16}}>
+        <div style={{fontSize:16,fontWeight:700,color:textColor,marginBottom:8}}>🔑 Configure sua API Key Anthropic</div>
+        <div style={{fontSize:13,color:subColor,marginBottom:12}}>Para usar o Cérebro IA, insira sua API Key da Anthropic (console.anthropic.com)</div>
+        <div style={{display:"flex",gap:8}}>
+          <input id="brain_api_key" type="password" onKeyDown={function(e){e.stopPropagation()}} placeholder="sk-ant-..." style={{flex:1,padding:"10px 14px",borderRadius:8,border:"1px solid "+border,background:dark?"#111":"#f8f5f0",color:textColor,fontSize:13,outline:"none"}}/>
+          <button className="bh" onClick={async function(){
+            var k=document.getElementById("brain_api_key").value;if(!k){msg("Insira a API Key");return}
+            await sb.from("config_whatsapp").delete().eq("chave","anthropic_api_key").eq("tenant_id",ADMIN_TID);
+            await sb.from("config_whatsapp").insert({chave:"anthropic_api_key",valor:k,tenant_id:ADMIN_TID});
+            setApiKey(k);msg("✅ API Key salva!");
+          }} style={{padding:"10px 20px",borderRadius:8,background:G,color:"#0a0a09",fontWeight:700,border:"none",cursor:"pointer"}}>Salvar</button>
+        </div>
+      </div>}
       <div style={{display:"flex",gap:6,marginBottom:16,overflow:"auto",paddingBottom:4}}>
         {Object.keys(teams).map(function(k){var t2=teams[k];return <div key={k} className="bh" onClick={function(){setTeam(k)}} style={{padding:"10px 16px",borderRadius:10,background:team===k?t2.color+"15":"transparent",border:team===k?"1px solid "+t2.color+"30":"1px solid "+border,color:team===k?t2.color:subColor,fontSize:13,fontWeight:team===k?700:400,whiteSpace:"nowrap",cursor:"pointer"}}>{t2.name}</div>})}
       </div>
@@ -1519,27 +1542,24 @@ function App(){
       {/* ═══ INTEGRATIONS ═══ */}
       {view==="integrations"&&<div className="fade-in">
         <div style={{fontSize:24,fontWeight:700,color:textColor,marginBottom:20}}>⚡ Integrações</div>
-        {/* WhatsApp */}
+        {/* Anthropic API Key */}
         <div style={{padding:20,borderRadius:14,background:cardBg,border:"1px solid "+border,marginBottom:12}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
-              <span style={{fontSize:28}}>💬</span>
-              <div><div style={{fontSize:16,fontWeight:700,color:textColor}}>WhatsApp Business API</div><div style={{fontSize:12,color:subColor}}>CRM integrado, envio automático, chatbot</div></div>
+              <span style={{fontSize:28}}>🧠</span>
+              <div><div style={{fontSize:16,fontWeight:700,color:textColor}}>Anthropic API (Claude IA)</div><div style={{fontSize:12,color:subColor}}>Cérebro IA, Suporte IA, Agente IA — todos os agentes</div></div>
             </div>
-            <span style={{fontSize:11,padding:"4px 12px",borderRadius:8,background:GR+"15",color:GR,fontWeight:600}}>Configurado</span>
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Phone Number ID</div><input id="int_wa_phone" onKeyDown={function(e){e.stopPropagation()}} style={iS} defaultValue="1064884910048060"/></div>
-            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Business Account ID</div><input id="int_wa_biz" onKeyDown={function(e){e.stopPropagation()}} style={iS} defaultValue="963918186561932"/></div>
+          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>API Key</div><input id="int_anthropic_key" type="password" onKeyDown={function(e){e.stopPropagation()}} style={iS} placeholder="sk-ant-..."/></div>
+          <div style={{padding:10,borderRadius:8,background:dark?"#111":"#f8f5f0",marginBottom:10,fontSize:12,color:subColor}}>
+            Obtenha sua API Key em <b>console.anthropic.com</b>. Usada por: 🧠 Cérebro IA (5 equipes), 🤖 Suporte IA (chatbot do portal), 📊 Agente IA (relatórios automáticos).
           </div>
-          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Token de Acesso</div><input id="int_wa_token" type="password" onKeyDown={function(e){e.stopPropagation()}} style={iS} placeholder="Token permanente do WhatsApp"/></div>
-          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Webhook URL</div><input style={Object.assign({},iS,{color:subColor})} readOnly value="https://zztqlktqevfdxjyzvand.supabase.co/functions/v1/webhook-whatsapp"/></div>
           <button className="bh" onClick={async function(){
-            var configs=[{chave:"wa_phone_id",valor:document.getElementById("int_wa_phone").value},{chave:"wa_business_id",valor:document.getElementById("int_wa_biz").value}];
-            var tk=document.getElementById("int_wa_token").value;if(tk)configs.push({chave:"wa_token",valor:tk});
-            for(var i=0;i<configs.length;i++){await sb.from("config_whatsapp").delete().eq("chave",configs[i].chave);await sb.from("config_whatsapp").insert({chave:configs[i].chave,valor:configs[i].valor,tenant_id:ADMIN_TID})}
-            msg("✅ WhatsApp atualizado!")
-          }} style={{padding:"10px 20px",borderRadius:8,background:GR,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>💾 Salvar Configurações</button>
+            var k=document.getElementById("int_anthropic_key").value;if(!k){msg("Insira a API Key");return}
+            await sb.from("config_whatsapp").delete().eq("chave","anthropic_api_key").eq("tenant_id",ADMIN_TID);
+            await sb.from("config_whatsapp").insert({chave:"anthropic_api_key",valor:k,tenant_id:ADMIN_TID});
+            msg("✅ API Key Anthropic salva!")
+          }} style={{padding:"10px 20px",borderRadius:8,background:P,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>💾 Salvar API Key</button>
         </div>
 
         {/* WhatsApp Vendas (admin CRM) */}
