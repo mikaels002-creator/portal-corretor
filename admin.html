@@ -220,6 +220,93 @@ var G="#C8A45C";var B="#5B8FD4";var GR="#4CAF7D";var P="#8B6FBF";var R="#D45B5B"
       {l:"\ud83d\udd04 Validar tudo",team:"brain",q:"Valida\u00e7\u00e3o completa. Metas atingidas? Tarefas pendentes? O que fazer agora? Liste TAREFA: para cada a\u00e7\u00e3o necess\u00e1ria."}
     ];
 
+
+    // ═══ DEVOPS FUNCTIONS ═══
+    var ghAPI=function(path,method,body){
+      return fetch("https://api.github.com/repos/"+ghUser+"/"+ghRepo+"/"+path,{
+        method:method||"GET",
+        headers:{"Authorization":"token "+ghToken,"Content-Type":"application/json","Accept":"application/vnd.github.v3+json"},
+        body:body?JSON.stringify(body):undefined
+      }).then(function(r){return r.json()});
+    };
+
+    var readFile=async function(filename){
+      var r=await ghAPI("contents/"+filename);
+      if(r.content){return{content:atob(r.content),sha:r.sha}}
+      return null;
+    };
+
+    var writeFile=async function(filename,content,message,sha){
+      return ghAPI("contents/"+filename,"PUT",{
+        message:message||"[AI DevOps] Update "+filename,
+        content:btoa(unescape(encodeURIComponent(content))),
+        sha:sha
+      });
+    };
+
+    var execSQL=async function(sql){
+      try{
+        var r=await fetch(SUPABASE_URL+"/rest/v1/rpc/exec_sql",{
+          method:"POST",
+          headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json"},
+          body:JSON.stringify({sql_text:sql})
+        });
+        return await r.json();
+      }catch(e){return{error:e.message}}
+    };
+
+    var devSysPrompt="Voc\u00ea \u00e9 o AGENTE DEVOPS do Portal do Corretor SaaS.\n\nARQUITETURA:\n- portal.html (~5700 linhas): Portal dos clientes (React/Babel)\n- admin.html (~1900 linhas): Painel admin SaaS\n- index.html (~375 linhas): Landing page\n- 404.html (~31 linhas): Routing\n- Backend: Supabase (PostgreSQL)\n- GitHub: "+ghUser+"/"+ghRepo+"\n\nVoc\u00ea pode:\n1. LER arquivos do GitHub (comando: READ:filename)\n2. EDITAR arquivos (comando: EDIT:filename)\n3. EXECUTAR SQL no Supabase (comando: SQL:query)\n\nQuando o usu\u00e1rio pedir uma melhoria:\n1. Analise o que precisa mudar\n2. Gere o c\u00f3digo/SQL exato\n3. Mostre preview das mudan\u00e7as\n4. Pergunte se deve aplicar\n\nQuando confirmar, use os comandos:\n- APPLY_EDIT:filename:::conteudo_completo_do_arquivo\n- APPLY_SQL:::sql_query\n\nResponda SEMPRE em portugu\u00eas. Seja preciso e teste mentalmente o c\u00f3digo antes de sugerir.";
+
+    var sendDevMsg=async function(q){
+      if(!q||!q.trim()||devBusy)return;
+      if(!apiKey){setDevMsgs(devMsgs.concat([{role:"assistant",content:"\u26a0\ufe0f Configure a API Key em Integra\u00e7\u00f5es."}]));return}
+      if(!ghToken){setDevMsgs(devMsgs.concat([{role:"assistant",content:"\u26a0\ufe0f Configure o GitHub Token em Integra\u00e7\u00f5es."}]));return}
+      setDevBusy(true);
+      var newMsgs=devMsgs.concat([{role:"user",content:q}]);
+      setDevMsgs(newMsgs);setDevInp("");
+
+      // Check for auto-commands
+      if(q.startsWith("CONFIRMAR_DEPLOY:")){
+        var parts=q.split(":::");
+        var filename=parts[0].replace("CONFIRMAR_DEPLOY:","").trim();
+        var content=parts.slice(1).join(":::");
+        setDevLog(devLog.concat([{t:Date.now(),m:"\ud83d\ude80 Deployando "+filename+"..."}]));
+        try{
+          var current=await readFile(filename);
+          var r=await writeFile(filename,content,"[AI DevOps] "+filename,current?current.sha:undefined);
+          if(r.content){
+            setDevMsgs(newMsgs.concat([{role:"assistant",content:"\u2705 Deploy realizado com sucesso!\n\nArquivo: "+filename+"\nCommit: "+r.commit.sha.substring(0,7)+"\nMensagem: "+r.commit.message}]));
+            setDevLog(devLog.concat([{t:Date.now(),m:"\u2705 "+filename+" deployado: "+r.commit.sha.substring(0,7)}]));
+          }else{
+            setDevMsgs(newMsgs.concat([{role:"assistant",content:"\u274c Erro no deploy: "+JSON.stringify(r)}]));
+          }
+        }catch(e){setDevMsgs(newMsgs.concat([{role:"assistant",content:"\u274c Erro: "+e.message}]))}
+        setDevBusy(false);return;
+      }
+
+      if(q.startsWith("EXECUTAR_SQL:")){
+        var sql=q.replace("EXECUTAR_SQL:","").trim();
+        setDevLog(devLog.concat([{t:Date.now(),m:"\ud83d\udcbe Executando SQL..."}]));
+        var r2=await execSQL(sql);
+        setDevMsgs(newMsgs.concat([{role:"assistant",content:r2.error?"\u274c SQL Erro: "+JSON.stringify(r2.error):"\u2705 SQL executado com sucesso!\n\nResultado: "+JSON.stringify(r2).substring(0,500)}]));
+        setDevBusy(false);return;
+      }
+
+      // Regular AI conversation
+      var txt=await callAI(devSysPrompt,newMsgs.map(function(m){return{role:m.role,content:m.content}}).slice(-10));
+      setDevMsgs(newMsgs.concat([{role:"assistant",content:txt}]));
+      setDevBusy(false);
+    };
+
+    var quickDevActions=[
+      {l:"\ud83d\udcca Ler portal.html",cmd:"Leia o portal.html do GitHub e me diga quantas linhas tem e liste as principais fun\u00e7\u00f5es."},
+      {l:"\ud83d\udc1b Scan de bugs",cmd:"Analise o c\u00f3digo atual e identifique poss\u00edveis bugs, fun\u00e7\u00f5es vazias, ou erros de sintaxe."},
+      {l:"\u26a1 Otimizar performance",cmd:"Sugira otimiza\u00e7\u00f5es de performance para o portal: lazy loading, debounce, cache, queries."},
+      {l:"\ud83d\udd12 Audit seguran\u00e7a",cmd:"Fa\u00e7a um audit de seguran\u00e7a: senhas, tokens expostos, XSS, SQL injection, RLS."},
+      {l:"\ud83d\udcf1 Fix mobile",cmd:"Identifique problemas de responsividade mobile e gere os CSS fixes necess\u00e1rios."},
+      {l:"\ud83d\udcbe Criar tabela SQL",cmd:"Que tabelas novas poderiam melhorar o sistema? Sugira com CREATE TABLE completo."}
+    ];
+
     // ═══ RENDER ═══
     return <div className="fade-in">
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
@@ -400,92 +487,8 @@ var G="#C8A45C";var B="#5B8FD4";var GR="#4CAF7D";var P="#8B6FBF";var R="#D45B5B"
       {tab==="deploy"&&<div>
         <div style={{fontSize:16,fontWeight:600,color:textColor,marginBottom:12}}>{"\ud83d\udee0\ufe0f"} Agente DevOps — Deploy Automatizado</div>
 
-          var ghAPI=function(path,method,body){
-            return fetch("https://api.github.com/repos/"+ghUser+"/"+ghRepo+"/"+path,{
-              method:method||"GET",
-              headers:{"Authorization":"token "+ghToken,"Content-Type":"application/json","Accept":"application/vnd.github.v3+json"},
-              body:body?JSON.stringify(body):undefined
-            }).then(function(r){return r.json()});
-          };
 
-          var readFile=async function(filename){
-            var r=await ghAPI("contents/"+filename);
-            if(r.content){return{content:atob(r.content),sha:r.sha}}
-            return null;
-          };
-
-          var writeFile=async function(filename,content,message,sha){
-            return ghAPI("contents/"+filename,"PUT",{
-              message:message||"[AI DevOps] Update "+filename,
-              content:btoa(unescape(encodeURIComponent(content))),
-              sha:sha
-            });
-          };
-
-          var execSQL=async function(sql){
-            try{
-              var r=await fetch(SUPABASE_URL+"/rest/v1/rpc/exec_sql",{
-                method:"POST",
-                headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json"},
-                body:JSON.stringify({sql_text:sql})
-              });
-              return await r.json();
-            }catch(e){return{error:e.message}}
-          };
-
-          var devSysPrompt="Voc\u00ea \u00e9 o AGENTE DEVOPS do Portal do Corretor SaaS.\n\nARQUITETURA:\n- portal.html (~5700 linhas): Portal dos clientes (React/Babel)\n- admin.html (~1900 linhas): Painel admin SaaS\n- index.html (~375 linhas): Landing page\n- 404.html (~31 linhas): Routing\n- Backend: Supabase (PostgreSQL)\n- GitHub: "+ghUser+"/"+ghRepo+"\n\nVoc\u00ea pode:\n1. LER arquivos do GitHub (comando: READ:filename)\n2. EDITAR arquivos (comando: EDIT:filename)\n3. EXECUTAR SQL no Supabase (comando: SQL:query)\n\nQuando o usu\u00e1rio pedir uma melhoria:\n1. Analise o que precisa mudar\n2. Gere o c\u00f3digo/SQL exato\n3. Mostre preview das mudan\u00e7as\n4. Pergunte se deve aplicar\n\nQuando confirmar, use os comandos:\n- APPLY_EDIT:filename:::conteudo_completo_do_arquivo\n- APPLY_SQL:::sql_query\n\nResponda SEMPRE em portugu\u00eas. Seja preciso e teste mentalmente o c\u00f3digo antes de sugerir.";
-
-          var sendDevMsg=async function(q){
-            if(!q||!q.trim()||devBusy)return;
-            if(!apiKey){setDevMsgs(devMsgs.concat([{role:"assistant",content:"\u26a0\ufe0f Configure a API Key em Integra\u00e7\u00f5es."}]));return}
-            if(!ghToken){setDevMsgs(devMsgs.concat([{role:"assistant",content:"\u26a0\ufe0f Configure o GitHub Token em Integra\u00e7\u00f5es."}]));return}
-            setDevBusy(true);
-            var newMsgs=devMsgs.concat([{role:"user",content:q}]);
-            setDevMsgs(newMsgs);setDevInp("");
-
-            // Check for auto-commands
-            if(q.startsWith("CONFIRMAR_DEPLOY:")){
-              var parts=q.split(":::");
-              var filename=parts[0].replace("CONFIRMAR_DEPLOY:","").trim();
-              var content=parts.slice(1).join(":::");
-              setDevLog(devLog.concat([{t:Date.now(),m:"\ud83d\ude80 Deployando "+filename+"..."}]));
-              try{
-                var current=await readFile(filename);
-                var r=await writeFile(filename,content,"[AI DevOps] "+filename,current?current.sha:undefined);
-                if(r.content){
-                  setDevMsgs(newMsgs.concat([{role:"assistant",content:"\u2705 Deploy realizado com sucesso!\n\nArquivo: "+filename+"\nCommit: "+r.commit.sha.substring(0,7)+"\nMensagem: "+r.commit.message}]));
-                  setDevLog(devLog.concat([{t:Date.now(),m:"\u2705 "+filename+" deployado: "+r.commit.sha.substring(0,7)}]));
-                }else{
-                  setDevMsgs(newMsgs.concat([{role:"assistant",content:"\u274c Erro no deploy: "+JSON.stringify(r)}]));
-                }
-              }catch(e){setDevMsgs(newMsgs.concat([{role:"assistant",content:"\u274c Erro: "+e.message}]))}
-              setDevBusy(false);return;
-            }
-
-            if(q.startsWith("EXECUTAR_SQL:")){
-              var sql=q.replace("EXECUTAR_SQL:","").trim();
-              setDevLog(devLog.concat([{t:Date.now(),m:"\ud83d\udcbe Executando SQL..."}]));
-              var r2=await execSQL(sql);
-              setDevMsgs(newMsgs.concat([{role:"assistant",content:r2.error?"\u274c SQL Erro: "+JSON.stringify(r2.error):"\u2705 SQL executado com sucesso!\n\nResultado: "+JSON.stringify(r2).substring(0,500)}]));
-              setDevBusy(false);return;
-            }
-
-            // Regular AI conversation
-            var txt=await callAI(devSysPrompt,newMsgs.map(function(m){return{role:m.role,content:m.content}}).slice(-10));
-            setDevMsgs(newMsgs.concat([{role:"assistant",content:txt}]));
-            setDevBusy(false);
-          };
-
-          var quickDevActions=[
-            {l:"\ud83d\udcca Ler portal.html",cmd:"Leia o portal.html do GitHub e me diga quantas linhas tem e liste as principais fun\u00e7\u00f5es."},
-            {l:"\ud83d\udc1b Scan de bugs",cmd:"Analise o c\u00f3digo atual e identifique poss\u00edveis bugs, fun\u00e7\u00f5es vazias, ou erros de sintaxe."},
-            {l:"\u26a1 Otimizar performance",cmd:"Sugira otimiza\u00e7\u00f5es de performance para o portal: lazy loading, debounce, cache, queries."},
-            {l:"\ud83d\udd12 Audit seguran\u00e7a",cmd:"Fa\u00e7a um audit de seguran\u00e7a: senhas, tokens expostos, XSS, SQL injection, RLS."},
-            {l:"\ud83d\udcf1 Fix mobile",cmd:"Identifique problemas de responsividade mobile e gere os CSS fixes necess\u00e1rios."},
-            {l:"\ud83d\udcbe Criar tabela SQL",cmd:"Que tabelas novas poderiam melhorar o sistema? Sugira com CREATE TABLE completo."}
-          ];
-
-          return <div>
+          <div>
             {/* GitHub config */}
             {(!ghToken||!ghUser)&&<div style={{padding:16,borderRadius:12,background:W+"08",border:"1px solid "+W+"20",marginBottom:12}}>
               <div style={{fontSize:14,fontWeight:700,color:textColor,marginBottom:8}}>{"\ud83d\udd11"} Configure GitHub</div>
@@ -563,7 +566,7 @@ var G="#C8A45C";var B="#5B8FD4";var GR="#4CAF7D";var P="#8B6FBF";var R="#D45B5B"
                         else{setDevLog(devLog.concat([{t:Date.now(),m:"\u274c Erro: "+JSON.stringify(r.message||r)}]));msg("\u274c Erro no deploy")}
                       };reader.readAsText(f);
                     };el.click();
-                  }} style={{width:"100%",padding:"8px",borderRadius:6,background:GR+"12",color:GR,border:"none",fontSize:12,fontWeight:600,cursor:"pointer",marginBottom:4}}>{"\ud83d\udce4"} Upload &amp; Deploy</button>
+                  }} style={{width:"100%",padding:"8px",borderRadius:6,background:GR+"12",color:GR,border:"none",fontSize:12,fontWeight:600,cursor:"pointer",marginBottom:4}}>{"\ud83d\udce4"} Upload & Deploy</button>
                 </div>
 
                 <div style={{padding:12,borderRadius:12,background:cardBg,border:"1px solid "+border}}>
