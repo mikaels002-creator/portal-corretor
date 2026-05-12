@@ -257,92 +257,26 @@ function AIBrainView(props){
     {/* ═══ ESCRITORIO ═══ */}
     {tab==="office"&&<div>
       {/* ANIMATED OFFICE SVG */}
-      <div style={{borderRadius:14,overflow:"hidden",border:"1px solid "+border,marginBottom:10,background:dark?"#0a0a12":"#f0ede8"}}>
-        <svg viewBox="0 0 700 280" style={{width:"100%",display:"block"}}>
-          {/* Floor */}
-          <defs>
-            <pattern id="floor" width="20" height="20" patternUnits="userSpaceOnUse">
-              <rect width="20" height="20" fill={dark?"#0c0c14":"#ece8e1"}/>
-              <rect width="10" height="10" fill={dark?"#0e0e16":"#e8e4dd"}/>
-              <rect x="10" y="10" width="10" height="10" fill={dark?"#0e0e16":"#e8e4dd"}/>
-            </pattern>
-          </defs>
-          <rect width="700" height="280" fill="url(#floor)"/>
-          {/* Walls */}
-          <rect x="0" y="0" width="700" height="8" fill={dark?"#1a1a28":"#c8c0b4"} rx="2"/>
-          <rect x="0" y="0" width="8" height="280" fill={dark?"#1a1a28":"#c8c0b4"} rx="2"/>
-          <rect x="692" y="0" width="8" height="280" fill={dark?"#1a1a28":"#c8c0b4"} rx="2"/>
-          <rect x="0" y="272" width="700" height="8" fill={dark?"#1a1a28":"#c8c0b4"} rx="2"/>
-          {/* Meeting room walls */}
-          <rect x="480" y="8" width="4" height="120" fill={dark?"#1a1a28":"#c8c0b4"}/>
-          <rect x="480" y="8" width="212" height="4" fill={dark?"#1a1a28":"#c8c0b4"}/>
-          <rect x="480" y="124" width="140" height="4" fill={dark?"#1a1a28":"#c8c0b4"}/>
-          {/* Door */}
-          <rect x="600" y="124" width="30" height="4" fill={dark?"#252530":"#b8b0a4"} rx="1"/>
-          {/* Meeting room label */}
-          <text x="590" y="28" textAnchor="middle" fill={subColor} fontSize="10" fontWeight="600">Sala de Reuniao</text>
-          {/* Meeting table */}
-          <rect x="530" y="50" width="120" height="55" fill={dark?"#14141e":"#d8d0c6"} rx="8" stroke={dark?"#222":"#bbb"} strokeWidth="1"/>
-          {/* Meeting chairs */}
-          {[540,570,600,630].map(function(cx,ci){return <circle key={"mc"+ci} cx={cx+10} cy={45} r="8" fill={dark?"#18182a":"#ccc5bb"} stroke={dark?"#252530":"#b0a89c"} strokeWidth="1"/>})}
-          {[540,570,600,630].map(function(cx,ci){return <circle key={"mc2"+ci} cx={cx+10} cy={112} r="8" fill={dark?"#18182a":"#ccc5bb"} stroke={dark?"#252530":"#b0a89c"} strokeWidth="1"/>})}
-          {/* Plant decorations */}
-          <text x="25" y="28" fontSize="16">🌿</text>
-          <text x="460" y="28" fontSize="14">🪴</text>
-          <text x="25" y="270" fontSize="14">🪴</text>
-          {/* Water cooler */}
-          <text x="460" y="270" fontSize="14">🚰</text>
-          {/* Whiteboard in meeting room */}
-          <rect x="490" y="30" width="60" height="35" fill={dark?"#1a1a2a":"#fff"} rx="3" stroke={dark?"#333":"#aaa"} strokeWidth="1"/>
-          <text x="520" y="52" textAnchor="middle" fill={dark?"#444":"#999"} fontSize="8">Whiteboard</text>
-          {/* Meeting button */}
-          <g onClick={function(){
-            sendMsg2("brain","REUNIAO GERAL. Convoque TODOS os agentes. Para cada um, use CHAMAR:[slug] pedindo status e sugestoes. CHAMAR:[mkt] qual o status do marketing e proximas acoes? CHAMAR:[sales] status comercial e pipeline? CHAMAR:[finance] status financeiro? CHAMAR:[tech] bugs pendentes? Compile tudo em plano de acao.");
-          }} style={{cursor:"pointer"}}>
-            <rect x="530" y="72" width="80" height="22" fill={G+"40"} rx="6" stroke={G} strokeWidth="1"/>
-            <text x="570" y="87" textAnchor="middle" fill={G} fontSize="10" fontWeight="700">Reuniao</text>
-          </g>
-          {/* Agent desks - 2 rows */}
-          {agents.map(function(ag,idx){
-            var row=idx<3?0:1;
-            var col=idx<3?idx:idx-3;
-            var x=40+col*150;var y=row===0?145:210;
-            var isBusy2=busyAgent===ag.slug;var isAct=sel===ag.slug;
-            return <g key={ag.slug} onClick={function(){setSel(ag.slug);loadConvo(ag.slug)}} style={{cursor:"pointer"}}>
-              {/* Desk shadow */}
-              <rect x={x+2} y={y+22} width="120" height="32" fill={dark?"#08080f":"#d0c8bc"} rx="4" opacity="0.3"/>
-              {/* Desk */}
-              <rect x={x} y={y+20} width="120" height="32" fill={dark?"#161622":"#ddd6cc"} rx="4" stroke={isAct?ag.cor:(dark?"#252530":"#c0b8ac")} strokeWidth={isAct?2:1}/>
-              {/* Keyboard */}
-              <rect x={x+15} y={y+30} width="30" height="12" fill={dark?"#1a1a2a":"#ccc5bb"} rx="2"/>
-              {/* Monitor */}
-              <rect x={x+55} y={y+22} width="36" height="24" fill={isBusy2?ag.cor+"50":(dark?"#1a1a2a":"#c0b8ac")} rx="3" stroke={isAct?ag.cor:(dark?"#333":"#aaa")} strokeWidth="1"/>
-              {/* Monitor stand */}
-              <rect x={x+70} y={y+46} width="6" height="6" fill={dark?"#222":"#bbb"}/>
-              {/* Monitor screen glow */}
-              {isBusy2&&<rect x={x+57} y={y+24} width="32" height="20" fill={ag.cor} rx="2" opacity="0.15">
-              </rect>}
-              {/* Chair */}
-              <ellipse cx={x+40} cy={y+12} rx="14" ry="12" fill={dark?"#1a1a28":"#d8d0c6"} stroke={isAct?ag.cor:"none"} strokeWidth="2"/>
-              {/* Avatar */}
-              <text x={x+40} y={y+17} textAnchor="middle" fontSize="16">
-                {ag.avatar}
-              </text>
-              {/* Float animation for online agents */}
-              
-              {/* Work animation for busy agents */}
-              
-              {/* Name plate */}
-              <rect x={x+10} y={y+54} width="100" height="18" fill={isAct?ag.cor+"15":"transparent"} rx="4"/>
-              <text x={x+60} y={y+66} textAnchor="middle" fill={isAct?ag.cor:textColor} fontSize="10" fontWeight={isAct?700:400}>{ag.nome} - {ag.cargo}</text>
-              {/* Status */}
-              <circle cx={x+110} cy={y+26} r="5" fill={isBusy2?W:GR}>
-              </circle>
-            </g>
+      <div style={{padding:12,borderRadius:12,background:dark?"#0a0a12":"#f0ede8",border:"1px solid "+border,marginBottom:10}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+          <span style={{fontSize:13,fontWeight:600,color:textColor}}>Escritorio Virtual</span>
+          <button className="bh" onClick={function(){
+            sendMsg2("brain","REUNIAO GERAL. Convoque TODOS agentes. CHAMAR:[mkt] status marketing. CHAMAR:[sales] status comercial. CHAMAR:[finance] status financeiro. CHAMAR:[tech] status TI. Compile plano de acao.");
+          }} style={{padding:"5px 12px",borderRadius:6,background:G+"15",color:G,border:"1px solid "+G+"30",fontSize:11,cursor:"pointer"}}>Reuniao Geral</button>
+        </div>
+        <div style={{display:"flex",gap:8,overflow:"auto"}}>
+          {agents.map(function(ag){var isAct=sel===ag.slug;var isBusy2=busyAgent===ag.slug;
+            return <div key={ag.slug} className="bh" onClick={function(){setSel(ag.slug);loadConvo(ag.slug)}} style={{padding:"10px",borderRadius:10,background:isAct?ag.cor+"12":"transparent",border:isAct?"2px solid "+ag.cor+"30":"1px solid "+border,cursor:"pointer",minWidth:90,textAlign:"center"}}>
+              <div style={{fontSize:26}}>{ag.avatar}</div>
+              <div style={{fontSize:11,fontWeight:700,color:isAct?ag.cor:textColor}}>{ag.nome}</div>
+              <div style={{fontSize:9,color:subColor}}>{ag.cargo}</div>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:3,marginTop:3}}>
+                <div style={{width:5,height:5,borderRadius:"50%",background:isBusy2?W:GR}}/>
+                <span style={{fontSize:8,color:isBusy2?W:GR}}>{isBusy2?"ocupado":"online"}</span>
+              </div>
+            </div>
           })}
-          {/* Clock */}
-          <text x="670" y="270" textAnchor="end" fill={subColor} fontSize="10">{new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</text>
-        </svg>
+        </div>
       </div>
 
       {/* CHAT */}
@@ -2491,7 +2425,8 @@ function App(){
   </div>;
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+window.onerror=function(msg,url,line){document.getElementById("root").innerHTML="<div style='padding:40px;color:red;font-family:monospace'><h2>Erro:</h2><pre>"+msg+"\nLine: "+line+"</pre><button onclick='location.reload()'>Recarregar</button></div>"};
+try{ReactDOM.createRoot(document.getElementById("root")).render(<App/>)}catch(e){document.getElementById("root").innerHTML="<div style='padding:40px;color:red'><h2>Erro:</h2><pre>"+e.message+"</pre></div>"}
 </script>
 </body>
 </html>
