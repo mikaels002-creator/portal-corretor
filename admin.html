@@ -717,7 +717,7 @@ function App(){
     var r1=await sb.from("tenants").select("*").order("criado_em",{ascending:false});setTenants(r1.data||[]);
     var r2=await sb.from("assinaturas").select("*").order("criado_em",{ascending:false});setSubs(r2.data||[]);
     var r3=await sb.from("pagamentos").select("*").order("vencimento",{ascending:false}).limit(500);setPagtos(r3.data||[]);
-    var r4=await sb.from("planos").select("*").eq("ativo",true).order("valor_mensal");setPlanos(r4.data||[]);
+    var r4=await sb.from("planos").select("*").order("valor_mensal");setPlanos(r4.data||[]);
     var r5=await sb.from("config_whatsapp").select("valor").eq("chave","landing_ativa").single();
     if(r5.data){var lv=r5.data.valor;setLandingOn(lv===true||lv==="true"||String(lv).replace(/"/g,"")==="true")}
     await loadCampanhas();await loadAdminPortalUsers();await loadTenantAdmins();
@@ -1239,6 +1239,10 @@ function App(){
               </div>
               <div style={{textAlign:"right"}}>
                 {t.valor_mensal>0&&<div style={{fontSize:18,fontWeight:700,color:GR}}>{fmt(t.valor_mensal)}<span style={{fontSize:11,color:subColor}}>/m</span></div>}
+                {t.valor_mensal===0&&<div style={{fontSize:14,fontWeight:700,color:P}}>🎁 Cortesia</div>}
+                <div style={{display:"flex",gap:4,marginTop:6}}>
+                  <button className="bh" onClick={async function(e2){e2.stopPropagation();var isC=t.valor_mensal===0;await sb.from("tenants").update({valor_mensal:isC?null:0,cortesia:!isC}).eq("id",t.id);await loadAll();msg(isC?"Cortesia removida":"🎁 Cortesia ativada!")}} style={{padding:"3px 8px",borderRadius:4,background:t.valor_mensal===0?W+"12":P+"12",color:t.valor_mensal===0?W:P,border:"none",fontSize:10,cursor:"pointer"}}>{t.valor_mensal===0?"💰 Cobrar":"🎁 Cortesia"}</button>
+                </div>
                 {sub&&<div style={{fontSize:11,color:P}}>{sub.plano} · {sub.status}</div>}
                 {t.portal_url&&<a href={t.portal_url} target="_blank" onClick={function(e){e.stopPropagation()}} style={{fontSize:10,color:B,textDecoration:"none"}}>🔗 Portal</a>}
                 <div style={{fontSize:11,color:subColor}}>{pgCount} pagtos</div>
@@ -1487,7 +1491,9 @@ function App(){
                   },50);
                 }} style={{padding:"8px 16px",borderRadius:8,background:B+"15",color:B,border:"none",fontSize:13,fontWeight:600}}>✏️ Editar</button>
                 <button className="bh" onClick={async function(){if(!confirm("Desativar plano "+pl.nome+"?"))return;await sb.from("planos").update({ativo:false}).eq("id",pl.id);await loadAll();msg("Removido")}} style={{padding:"8px 16px",borderRadius:8,background:R+"15",color:R,border:"none",fontSize:13}}>🗑️</button>
+                <button className="bh" onClick={async function(){await sb.from("planos").update({ativo:!pl.ativo}).eq("id",pl.id);await loadAll();msg(pl.ativo?"Plano oculto":"Plano público!")}} style={{padding:"8px 16px",borderRadius:8,background:pl.ativo?GR+"15":W+"15",color:pl.ativo?GR:W,border:"none",fontSize:13}}>{pl.ativo?"👁️ Público":"🔒 Oculto"}</button>
               </div>
+              {!pl.ativo&&<div style={{marginTop:8,padding:"4px 10px",borderRadius:6,background:W+"12",color:W,fontSize:11,fontWeight:600}}>🔒 Oculto — não visível para clientes</div>}
             </div>
           })}
         </div>
@@ -2117,12 +2123,12 @@ function App(){
           }} style={{padding:"10px 20px",borderRadius:8,background:"#25D366",color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>💾 Salvar WhatsApp Vendas</button>
         </div>
 
-        {/* Instagram Business API */}
+        {/* Instagram + Facebook Business API */}
         <div style={{padding:20,borderRadius:14,background:cardBg,border:"1px solid "+border,marginBottom:12}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
               <span style={{fontSize:28}}>📸</span>
-              <div><div style={{fontSize:16,fontWeight:700,color:textColor}}>Instagram Business API</div><div style={{fontSize:12,color:subColor}}>Postagem automática via Cérebro IA</div></div>
+              <div><div style={{fontSize:16,fontWeight:700,color:textColor}}>Instagram + Facebook API</div><div style={{fontSize:12,color:subColor}}>Postagem automática via Cérebro IA (Instagram publica no Facebook automaticamente)</div></div>
             </div>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -2131,18 +2137,15 @@ function App(){
           </div>
           <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Token de Acesso (Long-lived)</div><input id="int_ig_token" type="password" onKeyDown={function(e){e.stopPropagation()}} style={iS} placeholder="Token permanente do Facebook/Instagram"/></div>
           <div style={{padding:10,borderRadius:8,background:dark?"#111":"#f8f5f0",marginBottom:10,fontSize:12,color:subColor,lineHeight:1.8}}>
-            <b>Como obter:</b> Facebook Developer Console → Seu App → Instagram Graph API<br/>
-            1. Crie um App no developers.facebook.com<br/>
-            2. Adicione o produto "Instagram Graph API"<br/>
-            3. Vincule sua conta Business do Instagram<br/>
-            4. Gere um Long-Lived Token (60 dias)
+            <b>Funciona assim:</b> Quando posta no Instagram via API, o Facebook publica automaticamente se as contas estiverem vinculadas no Meta Business Suite. Não precisa de integração separada.<br/>
+            <b>Configurar:</b> developers.facebook.com → App → Instagram Graph API → Token longo
           </div>
           <button className="bh" onClick={async function(){
             var cfgs=[{k:"ig_user_id",v:document.getElementById("int_ig_user").value},{k:"ig_page_id",v:document.getElementById("int_ig_page").value}];
             var tk=document.getElementById("int_ig_token").value;if(tk)cfgs.push({k:"ig_access_token",v:tk});
             for(var i=0;i<cfgs.length;i++){if(cfgs[i].v){await sb.from("config_whatsapp").delete().eq("chave",cfgs[i].k).eq("tenant_id",ADMIN_TID);await sb.from("config_whatsapp").insert({chave:cfgs[i].k,valor:cfgs[i].v,tenant_id:ADMIN_TID})}}
-            msg("✅ Instagram Business configurado!")
-          }} style={{padding:"10px 20px",borderRadius:8,background:"linear-gradient(135deg,#E06090,#C13584)",color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>💾 Salvar Instagram</button>
+            msg("✅ Instagram + Facebook configurado!")
+          }} style={{padding:"10px 20px",borderRadius:8,background:"linear-gradient(135deg,#E06090,#C13584)",color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>💾 Salvar Instagram + Facebook</button>
         </div>
 
         {/* Payment gateway */}
