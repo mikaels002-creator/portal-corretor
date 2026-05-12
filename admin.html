@@ -86,25 +86,26 @@ var G="#C8A45C";var B="#5B8FD4";var GR="#4CAF7D";var P="#8B6FBF";var R="#D45B5B"
 // ═══ AI BRAIN COMPONENT (standalone) ═══
 
 // ═══ AI BRAIN COMPONENT v2 ═══
+
 function AIBrainView(props){
   var tenants=props.tenants||[];var mrr=props.mrr||0;var ativos=props.ativos||[];var pendentes=props.pendentes||[];
   var dark=props.dark;var msg=props.msg;var cardBg=props.cardBg;var border=props.border;
   var textColor=props.textColor;var subColor=props.subColor;
+  var G="#C8A45C";var GR="#4CAF7D";var P="#8B6FBF";var B="#5B8FD4";var R="#D45B5B";var W="#E8A94E";
 
-  var _tab=useState("chat");var tab=_tab[0];var setTab=_tab[1];
+  var _tab=useState("office");var tab=_tab[0];var setTab=_tab[1];
   var _agents=useState([]);var agents=_agents[0];var setAgents=_agents[1];
-  var _selAgent=useState("brain");var selAgent=_selAgent[0];var setSelAgent=_selAgent[1];
+  var _sel=useState("brain");var sel=_sel[0];var setSel=_sel[1];
   var _convos=useState({});var convos=_convos[0];var setConvos=_convos[1];
   var _inp=useState("");var inp=_inp[0];var setInp=_inp[1];
   var _busy=useState(false);var busy=_busy[0];var setBusy=_busy[1];
+  var _busyAgent=useState("");var busyAgent=_busyAgent[0];var setBusyAgent=_busyAgent[1];
   var _apiKey=useState("");var apiKey=_apiKey[0];var setApiKey=_apiKey[1];
   var _aiModel=useState("claude-opus-4-6");var aiModel=_aiModel[0];var setAiModel=_aiModel[1];
   var _goals=useState([]);var goals=_goals[0];var setGoals=_goals[1];
   var _aiTasks=useState([]);var aiTasks=_aiTasks[0];var setAiTasks=_aiTasks[1];
   var _aiContent=useState([]);var aiContent=_aiContent[0];var setAiContent=_aiContent[1];
   var _workerOn=useState(false);var workerOn=_workerOn[0];var setWorkerOn=_workerOn[1];
-  var _workerLog=useState([]);var workerLog=_workerLog[0];var setWorkerLog=_workerLog[1];
-  var _autonomy=useState({generate:true,approve:false,post:false});var autonomy=_autonomy[0];var setAutonomy=_autonomy[1];
   var _activity=useState([]);var activity=_activity[0];var setActivity=_activity[1];
   var _recording=useState(false);var recording=_recording[0];var setRecording=_recording[1];
   var _mediaRec=useState(null);var mediaRec=_mediaRec[0];var setMediaRec=_mediaRec[1];
@@ -112,27 +113,14 @@ function AIBrainView(props){
   var _ghToken=useState("");var ghToken=_ghToken[0];var setGhToken=_ghToken[1];
   var _ghUser=useState("");var ghUser=_ghUser[0];var setGhUser=_ghUser[1];
   var _ghRepo=useState("portal-corretor");var ghRepo=_ghRepo[0];var setGhRepo=_ghRepo[1];
+  var _archived=useState([]);var archived=_archived[0];var setArchived=_archived[1];
+  var chatRef=useRef(null);
 
-  var G="#C8A45C";var GR="#4CAF7D";var P="#8B6FBF";var B="#5B8FD4";var R="#D45B5B";var W="#E8A94E";
+  var sysCtx="CONTEXTO SISTEMA Portal do Corretor SaaS. GitHub:"+ghUser+"/"+ghRepo+". Supabase:zztqlktqevfdxjyzvand. "+tenants.length+" clientes, "+ativos.length+" ativos, MRR R$"+mrr+". "+pendentes.length+" pendentes. Voce TEM ACESSO TOTAL. REGRA CRITICA: Quando precisar de outro agente, use EXATAMENTE este formato em uma linha separada: CHAMAR:[slug] mensagem. Slugs disponiveis: brain,mkt,sales,finance,tech. Exemplo: CHAMAR:[mkt] crie 3 posts para instagram. SEMPRE use CHAMAR quando a tarefa envolve outra area. ";
 
-  // ═══ SYSTEM CONTEXT ═══
-  var sysCtx="CONTEXTO DO SISTEMA Portal do Corretor SaaS:\n"+
-    "GitHub: "+ghUser+"/"+ghRepo+" (acesso total)\n"+
-    "Supabase: zztqlktqevfdxjyzvand.supabase.co (33 tabelas)\n"+
-    "Arquivos: portal.html(~5700 lin), admin.html(~2500 lin), index.html(~375 lin)\n"+
-    "Stack: React/Babel, Supabase PostgreSQL, WhatsApp Cloud API\n"+
-    "Clientes: "+tenants.length+" total, "+ativos.length+" ativos, MRR R$"+mrr+"\n"+
-    "Pipeline: "+tenants.filter(function(t){return t.pipeline==="lead"}).length+" leads\n"+
-    "Voce TEM ACESSO TOTAL. Nao peca acesso, execute.\n"+
-    "Para chamar outro agente: CHAMAR:[slug] [mensagem]\n"+
-    "Para corrigir codigo: EXECUTAR_FIX:[arquivo]:::[buscar]:::[substituir]\n"+
-    "Para SQL: EXECUTAR_SQL:::[query]\n\n";
-
-  // ═══ LOAD DATA ═══
   var loadAll2=async function(){
-    var r1=await sb.from("ai_agents").select("*").eq("tenant_id",ADMIN_TID).eq("ativo",true).order("ordem");
-    setAgents(r1.data||[]);
-    var r2=await sb.from("config_whatsapp").select("chave,valor").in("chave",["anthropic_api_key","ai_model","ai_worker_active","ai_autonomy","github_token","github_user","github_repo"]).eq("tenant_id",ADMIN_TID);
+    var r1=await sb.from("ai_agents").select("*").eq("tenant_id",ADMIN_TID).eq("ativo",true).order("ordem");setAgents(r1.data||[]);
+    var r2=await sb.from("config_whatsapp").select("chave,valor").in("chave",["anthropic_api_key","ai_model","ai_worker_active","github_token","github_user","github_repo"]).eq("tenant_id",ADMIN_TID);
     (r2.data||[]).forEach(function(c){var v=String(c.valor||"").replace(/^"|"$/g,"");
       if(c.chave==="anthropic_api_key"&&v.startsWith("sk-"))setApiKey(v);
       if(c.chave==="ai_model"&&v.startsWith("claude"))setAiModel(v);
@@ -140,379 +128,306 @@ function AIBrainView(props){
       if(c.chave==="github_token")setGhToken(v);
       if(c.chave==="github_user")setGhUser(v);
       if(c.chave==="github_repo")setGhRepo(v);
-      if(c.chave==="ai_autonomy"){try{setAutonomy(JSON.parse(v))}catch(e){}}
     });
-    var r3=await sb.from("ai_goals").select("*").eq("tenant_id",ADMIN_TID).order("criado_em",{ascending:false});setGoals(r3.data||[]);
-    var r4=await sb.from("ai_tasks").select("*").eq("tenant_id",ADMIN_TID).order("criado_em",{ascending:false}).limit(50);setAiTasks(r4.data||[]);
-    var r5=await sb.from("ai_content").select("*").eq("tenant_id",ADMIN_TID).order("criado_em",{ascending:false}).limit(30);setAiContent(r5.data||[]);
-    var r6=await sb.from("ai_worker_log").select("*").eq("tenant_id",ADMIN_TID).order("criado_em",{ascending:false}).limit(10);setWorkerLog(r6.data||[]);
-    var r7=await sb.from("ai_agent_chats").select("*").eq("tenant_id",ADMIN_TID).order("criado_em",{ascending:false}).limit(30);setAgentChats(r7.data||[]);
-    // Load conversations for selected agent
-    await loadConvo(selAgent);
+    var r3=await sb.from("ai_goals").select("*").eq("tenant_id",ADMIN_TID).eq("status","ativo");setGoals(r3.data||[]);
+    var r4=await sb.from("ai_tasks").select("*").eq("tenant_id",ADMIN_TID).order("criado_em",{ascending:false}).limit(30);setAiTasks(r4.data||[]);
+    var r5=await sb.from("ai_content").select("*").eq("tenant_id",ADMIN_TID).order("criado_em",{ascending:false}).limit(20);setAiContent(r5.data||[]);
+    var r6=await sb.from("ai_agent_chats").select("*").eq("tenant_id",ADMIN_TID).order("criado_em",{ascending:false}).limit(30);setAgentChats(r6.data||[]);
+    await loadConvo(sel);
   };
   var loadConvo=async function(slug){
     var r=await sb.from("ai_conversations").select("*").eq("agent_slug",slug).eq("tenant_id",ADMIN_TID).order("criado_em").limit(100);
-    var c2=Object.assign({},convos);c2[slug]=r.data||[];setConvos(c2);
+    var c2=Object.assign({},convos);c2[slug]=(r.data||[]).filter(function(m){return!m.metadata||!m.metadata.archived});setConvos(c2);
+    setTimeout(function(){if(chatRef.current)chatRef.current.scrollTop=chatRef.current.scrollHeight},100);
   };
   useEffect(function(){loadAll2()},[]);
+  useEffect(function(){setTimeout(function(){if(chatRef.current)chatRef.current.scrollTop=chatRef.current.scrollHeight},150)},[convos,busy]);
 
-  // ═══ CALL AI ═══
   var callAI=async function(sys,messages){
-    if(!apiKey)return"Erro: API Key nao configurada. Va em Integracoes.";
+    if(!apiKey)return"Configure API Key em Integracoes";
     try{
       var r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:aiModel,max_tokens:4096,system:sys,messages:messages})});
-      var d=await r.json();if(d.error)return"Erro API: "+(d.error.message||JSON.stringify(d.error));
+      var d=await r.json();if(d.error)return"Erro: "+(d.error.message||"");
       return d.content?d.content.map(function(c2){return c2.text||""}).join(""):"Erro";
     }catch(e){return"Erro: "+e.message}
   };
 
-  // ═══ GITHUB ═══
-  var ghAPI=function(path,method,body){
-    return fetch("https://api.github.com/repos/"+ghUser+"/"+ghRepo+"/"+path,{
-      method:method||"GET",headers:{"Authorization":"token "+ghToken,"Content-Type":"application/json","Accept":"application/vnd.github.v3+json"},
-      body:body?JSON.stringify(body):undefined
-    }).then(function(r){return r.json()});
-  };
-  var readGHFile=async function(f){var r=await ghAPI("contents/"+f);if(r.content)return{content:atob(r.content.replace(/\n/g,"")),sha:r.sha};return null};
-  var writeGHFile=async function(f,content,msg2,sha){return ghAPI("contents/"+f,"PUT",{message:msg2||"[AI] "+f,content:btoa(unescape(encodeURIComponent(content))),sha:sha})};
-
-  // ═══ SEND MESSAGE ═══
-  var sendMsg2=async function(agentSlug,text){
-    if(!text||!text.trim()||busy)return;
-    var agent=agents.find(function(a){return a.slug===agentSlug})||{nome:"?",system_prompt:""};
-    setBusy(true);setInp("");
-    // Save user message
-    await sb.from("ai_conversations").insert({agent_slug:agentSlug,role:"user",content:text.trim(),tenant_id:ADMIN_TID});
-    var msgs2=(convos[agentSlug]||[]).concat([{role:"user",content:text.trim(),agent_slug:agentSlug}]);
-    var c2=Object.assign({},convos);c2[agentSlug]=msgs2;setConvos(c2);
-    setActivity(activity.concat([{agent:agent.nome,action:"Processando...",ts:Date.now(),color:agent.cor}]));
-
-    // Auto-read GitHub for tech agent
-    var finalText=text;
-    if(agentSlug==="tech"&&ghToken&&(/bug|erro|fix|melhor|analis|audit/i.test(text))){
-      setActivity(activity.concat([{agent:"Dev",action:"Lendo codigo do GitHub...",ts:Date.now(),color:P}]));
-      try{
-        var codeCtx="";
-        for(var fi=0;fi<["portal.html","admin.html","index.html"].length;fi++){
-          var fn=["portal.html","admin.html","index.html"][fi];
-          var gf=await readGHFile(fn);
-          if(gf)codeCtx+="\n=== "+fn+" ("+gf.content.split("\n").length+" linhas) ===\n"+gf.content;
-        }
-        if(codeCtx)finalText=text+"\n\nCODIGO COMPLETO:\n"+codeCtx;
-      }catch(e){}
-    }
-
-    // Build messages for API
-    var fullSys=sysCtx+(agent.system_prompt||"")+(agent.treinamento?"\n\nTREINAMENTO EXTRA:\n"+agent.treinamento:"");
-    var apiMsgs=msgs2.map(function(m){return{role:m.role,content:m.content}}).slice(-12);
-    apiMsgs[apiMsgs.length-1]={role:"user",content:finalText};
-
-    var txt=await callAI(fullSys,apiMsgs);
-
-    // Save assistant response
-    await sb.from("ai_conversations").insert({agent_slug:agentSlug,role:"assistant",content:txt,tenant_id:ADMIN_TID});
-    c2[agentSlug]=msgs2.concat([{role:"assistant",content:txt,agent_slug:agentSlug}]);setConvos(c2);
-    setActivity(activity.concat([{agent:agent.nome,action:"Resposta entregue",ts:Date.now(),color:agent.cor}]));
-
-    // ═══ PARSE COMMANDS ═══
-    // CHAMAR:[slug] [msg]
-    var chamarMatches=txt.match(/CHAMAR:\[?(\w+)\]?\s+([^\n]+)/g);
-    if(chamarMatches){
-      for(var ci=0;ci<chamarMatches.length;ci++){
-        var cm=chamarMatches[ci].match(/CHAMAR:\[?(\w+)\]?\s+(.+)/);
-        if(cm){
-          var targetSlug=cm[1];var targetMsg=cm[2];
-          await sb.from("ai_agent_chats").insert({from_agent:agentSlug,to_agent:targetSlug,content:targetMsg,tenant_id:ADMIN_TID});
-          setActivity(activity.concat([{agent:agent.nome,action:"Chamou "+targetSlug+": "+targetMsg.substring(0,40),ts:Date.now(),color:agent.cor}]));
-          // Auto-forward to target agent
-          setTimeout(function(){sendMsg2(targetSlug,"[De "+agent.nome+"] "+targetMsg)},500);
+  // ═══ CHAMAR PROTOCOL - ROBUST ═══
+  var processCommands=async function(agentSlug,txt){
+    // Find ALL CHAMAR commands - very flexible regex
+    var lines2=txt.split("\n");
+    for(var i=0;i<lines2.length;i++){
+      var line=lines2[i];
+      var m=line.match(/CHAMAR:\s*\[?(\w+)\]?\s+(.*)/i);
+      if(m){
+        var target=m[1].toLowerCase();var tmsg=m[2].trim();
+        var fromAgent=agents.find(function(a){return a.slug===agentSlug});
+        var toAgent=agents.find(function(a){return a.slug===target});
+        if(toAgent){
+          setActivity(activity.concat([{agent:fromAgent?fromAgent.nome:"?",action:"Chamou "+toAgent.nome+": "+tmsg.substring(0,40),ts:Date.now(),color:fromAgent?fromAgent.cor:G}]));
+          await sb.from("ai_agent_chats").insert({from_agent:agentSlug,to_agent:target,content:tmsg,tenant_id:ADMIN_TID});
+          // ACTUALLY send to the target agent
+          await sendMsg2(target,"[Solicitacao de "+(fromAgent?fromAgent.nome:"?")+"] "+tmsg,true);
         }
       }
-    }
-
-    // EXECUTAR_FIX:[arquivo]:::[buscar]:::[substituir]
-    var fixMatches=txt.match(/EXECUTAR_FIX:\[?(\w+\.\w+)\]?:::(.*?):::(.*?)(?=\n|$)/gs);
-    if(fixMatches&&ghToken){
-      for(var fxi=0;fxi<fixMatches.length;fxi++){
-        var fxm=fixMatches[fxi].match(/EXECUTAR_FIX:\[?(\w+\.\w+)\]?:::(.*?):::(.*?)$/s);
-        if(fxm){
-          var fxFile=fxm[1];var fxOld=fxm[2].trim();var fxNew=fxm[3].trim();
-          setActivity(activity.concat([{agent:"Dev",action:"Aplicando fix em "+fxFile+"...",ts:Date.now(),color:P}]));
-          try{
-            var gf2=await readGHFile(fxFile);
-            if(gf2&&gf2.content.includes(fxOld)){
-              var newContent=gf2.content.replace(fxOld,fxNew);
-              var wr=await writeGHFile(fxFile,newContent,"[AI Fix] "+fxFile,gf2.sha);
-              if(wr.content){
-                setActivity(activity.concat([{agent:"Dev",action:"Fix aplicado em "+fxFile+"!",ts:Date.now(),color:GR}]));
-                await sb.from("ai_conversations").insert({agent_slug:agentSlug,role:"assistant",content:"Fix aplicado em "+fxFile+" com sucesso! Commit: "+wr.commit.sha.substring(0,7),tenant_id:ADMIN_TID});
-              }
-            }
-          }catch(e){}
-        }
-      }
-    }
-
-    // EXECUTAR_SQL:::[query]
-    var sqlMatches=txt.match(/EXECUTAR_SQL:::(.*?)(?=\n\n|$)/gs);
-    if(sqlMatches){
-      for(var si=0;si<sqlMatches.length;si++){
-        var sql=sqlMatches[si].replace("EXECUTAR_SQL:::","").trim();
+      // EXECUTAR_FIX
+      var fx=line.match(/EXECUTAR_FIX:\s*\[?(\w+\.\w+)\]?\s*:::\s*(.*?)\s*:::\s*(.*)/);
+      if(fx&&ghToken){
         try{
-          await sb.rpc("exec_sql",{sql_text:sql});
-          setActivity(activity.concat([{agent:"Dev",action:"SQL executado!",ts:Date.now(),color:GR}]));
+          var gf=await fetch("https://api.github.com/repos/"+ghUser+"/"+ghRepo+"/contents/"+fx[1],{headers:{"Authorization":"token "+ghToken}}).then(function(r){return r.json()});
+          if(gf.content){
+            var decoded=atob(gf.content.replace(/\n/g,""));
+            if(decoded.includes(fx[2])){
+              var newC=decoded.replace(fx[2],fx[3]);
+              await fetch("https://api.github.com/repos/"+ghUser+"/"+ghRepo+"/contents/"+fx[1],{method:"PUT",headers:{"Authorization":"token "+ghToken,"Content-Type":"application/json"},body:JSON.stringify({message:"[AI Fix] "+fx[1],content:btoa(unescape(encodeURIComponent(newC))),sha:gf.sha})});
+              setActivity(activity.concat([{agent:"Dev",action:"Fix aplicado: "+fx[1],ts:Date.now(),color:GR}]));
+            }
+          }
         }catch(e){}
       }
     }
+  };
 
-    // Save content from mkt/sales
+  // ═══ SEND MESSAGE ═══
+  var sendMsg2=async function(agentSlug,text,isAutoCall){
+    if(!text||!text.trim())return;
+    if(busy&&!isAutoCall)return;
+    var agent=agents.find(function(a){return a.slug===agentSlug})||{nome:"?",system_prompt:"",cor:G};
+    if(!isAutoCall){setBusy(true);setInp("")}
+    setBusyAgent(agentSlug);
+    await sb.from("ai_conversations").insert({agent_slug:agentSlug,role:"user",content:text.trim(),tenant_id:ADMIN_TID});
+    var msgs2=(convos[agentSlug]||[]).concat([{role:"user",content:text.trim()}]);
+    var c2=Object.assign({},convos);c2[agentSlug]=msgs2;setConvos(c2);
+    setActivity(activity.concat([{agent:agent.nome,action:"Processando...",ts:Date.now(),color:agent.cor}]));
+    // Build context
+    var fullSys=sysCtx+(agent.system_prompt||"")+(agent.treinamento?"\nTREINAMENTO:\n"+agent.treinamento:"");
+    var apiMsgs=msgs2.map(function(m){return{role:m.role,content:m.content}}).slice(-12);
+    var txt=await callAI(fullSys,apiMsgs);
+    await sb.from("ai_conversations").insert({agent_slug:agentSlug,role:"assistant",content:txt,tenant_id:ADMIN_TID});
+    c2=Object.assign({},convos);c2[agentSlug]=(c2[agentSlug]||[]).concat([{role:"assistant",content:txt}]);setConvos(c2);
+    setActivity(activity.concat([{agent:agent.nome,action:"Respondeu",ts:Date.now(),color:agent.cor}]));
+    // Process CHAMAR and other commands
+    await processCommands(agentSlug,txt);
+    // Save content
     if((agentSlug==="mkt"||agentSlug==="sales")&&txt.length>100){
-      sb.from("ai_content").insert({equipe:agentSlug,tipo:agentSlug==="mkt"?"post":"script",titulo:text.substring(0,100),conteudo:txt,status:"rascunho",tenant_id:ADMIN_TID}).catch(function(){});
+      sb.from("ai_content").insert({equipe:agentSlug,tipo:agentSlug==="mkt"?"post":"script",titulo:text.substring(0,80),conteudo:txt,status:"rascunho",tenant_id:ADMIN_TID}).catch(function(){});
     }
-
-    setBusy(false);
+    if(!isAutoCall)setBusy(false);
+    setBusyAgent("");
     await loadConvo(agentSlug);
   };
 
-  // ═══ AUDIO ═══
-  var startRec=async function(){
-    try{var stream=await navigator.mediaDevices.getUserMedia({audio:true});
-      var rec=new MediaRecorder(stream);var chunks=[];
-      rec.ondataavailable=function(e){chunks.push(e.data)};
-      rec.onstop=function(){stream.getTracks().forEach(function(t){t.stop()});setRecording(false);
-        sendMsg2(selAgent,"[Audio recebido] O usuario enviou um audio. Responda normalmente.");
-      };
-      rec.start();setMediaRec(rec);setRecording(true);msg("Gravando...");
-    }catch(e){msg("Microfone nao disponivel")}
+  // Archive conversation
+  var archiveConvo=async function(slug){
+    await sb.from("ai_conversations").update({metadata:{archived:true}}).eq("agent_slug",slug).eq("tenant_id",ADMIN_TID);
+    var c2=Object.assign({},convos);c2[slug]=[];setConvos(c2);
+    setArchived(archived.concat([{slug:slug,ts:new Date().toLocaleString("pt-BR")}]));
+    msg("Conversa arquivada (usada como aprendizado)");
   };
+
+  // Audio
+  var startRec=async function(){try{var stream=await navigator.mediaDevices.getUserMedia({audio:true});var rec=new MediaRecorder(stream);var chunks=[];rec.ondataavailable=function(e){chunks.push(e.data)};rec.onstop=function(){stream.getTracks().forEach(function(t){t.stop()});setRecording(false);sendMsg2(sel,"[Audio recebido] Responda normalmente.")};rec.start();setMediaRec(rec);setRecording(true)}catch(e){msg("Microfone indisponivel")}};
   var stopRec=function(){if(mediaRec&&mediaRec.state==="recording"){mediaRec.stop();setMediaRec(null)}};
 
-  // ═══ WORKER ═══
-  var runWorker=async function(){
-    if(!apiKey)return;
-    setActivity(activity.concat([{agent:"Sistema",action:"Worker executando...",ts:Date.now(),color:G}]));
-    await sb.rpc("run_ai_worker");
-    // Process pending tasks with AI
-    var r=await sb.from("ai_tasks").select("*").eq("status","pendente").eq("tenant_id",ADMIN_TID).order("prioridade").limit(3);
-    for(var i=0;i<(r.data||[]).length;i++){
-      var task=r.data[i];
-      await sb.from("ai_tasks").update({status:"gerando"}).eq("id",task.id);
-      var agent2=agents.find(function(a){return a.slug===task.equipe})||agents[0];
-      var result=await callAI(sysCtx+(agent2?agent2.system_prompt:""),[{role:"user",content:task.conteudo||task.titulo}]);
-      await sb.from("ai_tasks").update({status:"pronto",resultado:result,gerado_em:new Date().toISOString()}).eq("id",task.id);
-      await sb.from("ai_content").insert({equipe:task.equipe,tipo:task.tipo,titulo:task.titulo,conteudo:result,status:autonomy.approve?"aprovado":"rascunho",task_id:task.id,tenant_id:ADMIN_TID});
-    }
-    await loadAll2();
-    msg("Worker: "+(r.data||[]).length+" tarefas processadas");
-  };
+  var runWorker=async function(){await sb.rpc("run_ai_worker");await loadAll2();msg("Worker executado")};
 
-  // Auto worker
-  useEffect(function(){if(!workerOn||!apiKey)return;var iv=setInterval(runWorker,1800000);return function(){clearInterval(iv)}},[workerOn,apiKey]);
+  var cur=agents.find(function(a){return a.slug===sel})||{slug:"brain",nome:"Ana",cargo:"Coordenadora",avatar:"\ud83d\udc69\u200d\ud83d\udcbc",cor:"#C8A45C"};
+  var curMsgs=convos[sel]||[];
 
-  // ═══ CURRENT AGENT ═══
-  var curAgent=agents.find(function(a){return a.slug===selAgent})||{slug:"brain",nome:"Ana",cargo:"Coordenadora",avatar:"\ud83d\udc69\u200d\ud83d\udcbc",cor:"#C8A45C"};
-  var curMsgs=convos[selAgent]||[];
-
-  // ═══ RENDER ═══
   return <div className="fade-in">
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-      <div style={{fontSize:24,fontWeight:700,color:textColor}}>{"\ud83e\udde0"} Escritorio Virtual</div>
-      <div style={{display:"flex",gap:6,alignItems:"center"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+      <div style={{fontSize:22,fontWeight:700,color:textColor}}>{"\ud83e\udde0"} Escritorio Virtual</div>
+      <div style={{display:"flex",gap:4,alignItems:"center"}}>
         <div style={{width:8,height:8,borderRadius:"50%",background:workerOn?GR:R}}/>
-        <span style={{fontSize:11,color:workerOn?GR:subColor}}>{workerOn?"24h ativo":"parado"}</span>
-        <button className="bh" onClick={async function(){var nv=!workerOn;setWorkerOn(nv);await sb.from("config_whatsapp").delete().eq("chave","ai_worker_active").eq("tenant_id",ADMIN_TID);await sb.from("config_whatsapp").insert({chave:"ai_worker_active",valor:String(nv),tenant_id:ADMIN_TID});if(nv)runWorker();msg(nv?"Worker ativado":"Worker parado")}} style={{padding:"5px 12px",borderRadius:6,background:workerOn?R+"12":GR+"12",color:workerOn?R:GR,border:"none",fontSize:11,fontWeight:600,cursor:"pointer"}}>{workerOn?"Parar":"Ligar 24h"}</button>
-        <button className="bh" onClick={runWorker} style={{padding:"5px 12px",borderRadius:6,background:G+"12",color:G,border:"none",fontSize:11,fontWeight:600,cursor:"pointer"}}>Executar</button>
-        <select value={aiModel} onChange={async function(e){setAiModel(e.target.value);await sb.from("config_whatsapp").delete().eq("chave","ai_model").eq("tenant_id",ADMIN_TID);await sb.from("config_whatsapp").insert({chave:"ai_model",valor:e.target.value,tenant_id:ADMIN_TID})}} style={{padding:"4px 8px",borderRadius:6,border:"1px solid "+border,background:dark?"#111":"#f8f5f0",color:textColor,fontSize:11}}>
-          <option value="claude-opus-4-6">Opus 4.6</option>
-          <option value="claude-sonnet-4-6">Sonnet 4.6</option>
+        <span style={{fontSize:10,color:workerOn?GR:subColor}}>{workerOn?"24h":"off"}</span>
+        <button className="bh" onClick={async function(){var nv=!workerOn;setWorkerOn(nv);await sb.from("config_whatsapp").delete().eq("chave","ai_worker_active").eq("tenant_id",ADMIN_TID);await sb.from("config_whatsapp").insert({chave:"ai_worker_active",valor:String(nv),tenant_id:ADMIN_TID});if(nv)runWorker()}} style={{padding:"4px 10px",borderRadius:6,background:workerOn?R+"12":GR+"12",color:workerOn?R:GR,border:"none",fontSize:10,cursor:"pointer"}}>{workerOn?"Parar":"Ligar"}</button>
+        <button className="bh" onClick={runWorker} style={{padding:"4px 10px",borderRadius:6,background:G+"12",color:G,border:"none",fontSize:10,cursor:"pointer"}}>Executar</button>
+        <select value={aiModel} onChange={async function(e){setAiModel(e.target.value);await sb.from("config_whatsapp").delete().eq("chave","ai_model").eq("tenant_id",ADMIN_TID);await sb.from("config_whatsapp").insert({chave:"ai_model",valor:e.target.value,tenant_id:ADMIN_TID})}} style={{padding:"4px",borderRadius:4,border:"1px solid "+border,background:dark?"#111":"#f8f5f0",color:textColor,fontSize:10}}>
+          <option value="claude-opus-4-6">Opus</option><option value="claude-sonnet-4-6">Sonnet</option>
         </select>
       </div>
     </div>
-
-    {!apiKey&&<div style={{padding:16,borderRadius:12,background:W+"08",border:"1px solid "+W+"20",marginBottom:12}}>
-      <div style={{fontSize:14,fontWeight:700,color:textColor,marginBottom:6}}>Configure a API Key em Integracoes</div>
-    </div>}
-
-    {/* Tabs */}
-    <div style={{display:"flex",gap:4,marginBottom:12,borderBottom:"1px solid "+border,paddingBottom:6}}>
-      {[{k:"chat",l:"\ud83c\udfe2 Escritorio"},{k:"goals",l:"\ud83c\udfaf Metas"},{k:"queue",l:"\u2699\ufe0f Fila("+aiTasks.filter(function(t){return t.status==="pendente"||t.status==="gerando"}).length+")"},{k:"content",l:"\ud83d\udcc4 Conteudo("+aiContent.length+")"},{k:"team",l:"\ud83d\udc65 Equipe"},{k:"collab",l:"\ud83d\udcac Collabs("+agentChats.length+")"}].map(function(t2){
-        return <button key={t2.k} className="bh" onClick={function(){setTab(t2.k)}} style={{padding:"6px 12px",borderRadius:"8px 8px 0 0",background:tab===t2.k?G+"15":"transparent",color:tab===t2.k?G:subColor,border:"none",fontSize:12,fontWeight:tab===t2.k?700:400,cursor:"pointer",borderBottom:tab===t2.k?"2px solid "+G:"none"}}>{t2.l}</button>
+    {!apiKey&&<div style={{padding:12,borderRadius:10,background:W+"08",border:"1px solid "+W+"20",marginBottom:10,fontSize:13,color:textColor}}>Configure API Key em Integracoes</div>}
+    <div style={{display:"flex",gap:4,marginBottom:10,borderBottom:"1px solid "+border,paddingBottom:4}}>
+      {[{k:"office",l:"\ud83c\udfe2 Escritorio"},{k:"goals",l:"\ud83c\udfaf Metas"},{k:"queue",l:"\u2699\ufe0f Fila("+aiTasks.filter(function(t){return t.status==="pendente"}).length+")"},{k:"content",l:"\ud83d\udcc4 Conteudo"},{k:"team",l:"\ud83d\udc65 Equipe"},{k:"collab",l:"\ud83d\udcac Collabs"}].map(function(t2){
+        return <button key={t2.k} className="bh" onClick={function(){setTab(t2.k)}} style={{padding:"5px 10px",borderRadius:"6px 6px 0 0",background:tab===t2.k?G+"15":"transparent",color:tab===t2.k?G:subColor,border:"none",fontSize:11,fontWeight:tab===t2.k?700:400,cursor:"pointer"}}>{t2.l}</button>
       })}
     </div>
 
-    {/* ═══ TAB: ESCRITORIO ═══ */}
-    {tab==="chat"&&<div>
-      {/* Office Floor Plan */}
-      <div style={{padding:16,borderRadius:14,background:"linear-gradient(135deg,"+(dark?"#0a0a12":"#f0ede8")+","+(dark?"#0c0c14":"#faf8f5")+")",border:"1px solid "+border,marginBottom:10,position:"relative",overflow:"hidden"}}>
-        <div style={{position:"absolute",top:8,right:12,fontSize:10,color:subColor}}>{"\\ud83c\\udfe2"} Escritorio Virtual</div>
-        {/* Meeting room button */}
-        <button className="bh" onClick={async function(){
-          if(!apiKey){msg("Configure API Key");return}
-          setBusy(true);setSelAgent("brain");
-          var meetingPrompt="REUNIAO DE EQUIPE. Todos os agentes presentes. Faca um alinhamento geral:\\n1. Status de cada area\\n2. Problemas identificados\\n3. Acoes para proximos 7 dias\\nChame cada agente: CHAMAR:[mkt] status do marketing. CHAMAR:[sales] status comercial. CHAMAR:[finance] status financeiro. CHAMAR:[tech] status TI.";
-          await sendMsg2("brain",meetingPrompt);
-          setBusy(false);
-        }} style={{position:"absolute",top:8,left:12,padding:"4px 10px",borderRadius:6,background:G+"15",color:G,border:"1px solid "+G+"30",fontSize:10,fontWeight:600,cursor:"pointer"}}>{"\\ud83e\\udd1d"} Reuniao Geral</button>
-        {/* Office desks */}
-        <div style={{display:"flex",gap:8,justifyContent:"center",padding:"28px 0 8px",overflow:"auto"}}>
-          {agents.map(function(ag){var isAct=selAgent===ag.slug;var isBusy2=busy&&selAgent===ag.slug;
-            return <div key={ag.slug} className={"office-desk"+(isBusy2?" busy":"")} onClick={function(){setSelAgent(ag.slug);loadConvo(ag.slug)}} style={{width:100,textAlign:"center",padding:"12px 8px",borderRadius:12,background:isAct?"linear-gradient(135deg,"+ag.cor+"15,"+ag.cor+"08)":"transparent",border:isAct?"2px solid "+ag.cor+"40":"1px solid transparent"}}>
-              <div className="worker" style={{fontSize:32,marginBottom:2}}>{ag.avatar}</div>
+    {/* ═══ ESCRITORIO ═══ */}
+    {tab==="office"&&<div>
+      {/* ANIMATED OFFICE SVG */}
+      <div style={{borderRadius:14,overflow:"hidden",border:"1px solid "+border,marginBottom:10,background:dark?"#0a0a12":"#f0ede8"}}>
+        <svg viewBox="0 0 700 180" style={{width:"100%",display:"block"}}>
+          {/* Floor */}
+          <rect width="700" height="180" fill={dark?"#0c0c14":"#f5f2ed"}/>
+          {/* Walls */}
+          <rect x="0" y="0" width="700" height="6" fill={dark?"#1a1a22":"#d4cfc8"} rx="2"/>
+          <rect x="0" y="0" width="6" height="180" fill={dark?"#1a1a22":"#d4cfc8"} rx="2"/>
+          <rect x="694" y="0" width="6" height="180" fill={dark?"#1a1a22":"#d4cfc8"} rx="2"/>
+          {/* Meeting room */}
+          <rect x="540" y="10" width="150" height="80" fill={dark?"#111118":"#e8e4de"} rx="6" stroke={dark?"#222":"#ccc"} strokeWidth="1"/>
+          <text x="615" y="30" textAnchor="middle" fill={subColor} fontSize="9">Sala de Reuniao</text>
+          <rect x="570" y="40" width="90" height="35" fill={dark?"#161620":"#ddd8d0"} rx="4"/>
+          {/* Agent desks */}
+          {agents.map(function(ag,idx){
+            var x=30+idx*105;var y=100;var isBusy2=busyAgent===ag.slug;var isAct=sel===ag.slug;
+            return <g key={ag.slug} onClick={function(){setSel(ag.slug);loadConvo(ag.slug)}} style={{cursor:"pointer"}}>
               {/* Desk */}
-              <div style={{height:4,borderRadius:2,background:dark?"#333":"#ccc",margin:"4px auto",width:"80%"}}/>
+              <rect x={x} y={y+20} width="80" height="35" fill={dark?"#161620":"#ddd8d0"} rx="4" stroke={isAct?ag.cor:(dark?"#222":"#ccc")} strokeWidth={isAct?2:1}/>
               {/* Monitor */}
-              <div style={{width:20,height:14,borderRadius:2,background:isBusy2?ag.cor+"40":(dark?"#222":"#ddd"),margin:"0 auto 4px",border:"1px solid "+(dark?"#333":"#bbb")}}/>
-              <div style={{fontSize:11,fontWeight:700,color:isAct?ag.cor:textColor}}>{ag.nome}</div>
-              <div style={{fontSize:8,color:subColor}}>{ag.cargo}</div>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:3,marginTop:2}}>
-                <div style={{width:5,height:5,borderRadius:"50%",background:isBusy2?W:GR,boxShadow:isBusy2?"0 0 6px "+W:"0 0 4px "+GR}}/>
-                <span style={{fontSize:7,color:isBusy2?W:GR}}>{isBusy2?"trabalhando":"online"}</span>
-              </div>
-            </div>
+              <rect x={x+28} y={y+24} width="24" height="16" fill={isBusy2?ag.cor+"60":(dark?"#222":"#bbb")} rx="2"/>
+              {/* Chair */}
+              <circle cx={x+40} cy={y+12} r="12" fill={dark?"#1a1a25":"#e0dbd4"} stroke={isAct?ag.cor:"none"} strokeWidth="2"/>
+              {/* Avatar */}
+              <text x={x+40} y={y+17} textAnchor="middle" fontSize="14">
+                <tspan>{ag.avatar}</tspan>
+                {isBusy2&&<animate attributeName="dy" values="0;-2;0" dur="1s" repeatCount="indefinite"/>}
+              </text>
+              {/* Name */}
+              <text x={x+40} y={y+65} textAnchor="middle" fill={isAct?ag.cor:textColor} fontSize="10" fontWeight={isAct?700:400}>{ag.nome}</text>
+              {/* Status dot */}
+              <circle cx={x+70} cy={y+25} r="4" fill={isBusy2?W:GR}>
+                {isBusy2&&<animate attributeName="opacity" values="1;0.3;1" dur="1s" repeatCount="indefinite"/>}
+              </circle>
+            </g>
           })}
-        </div>
+          {/* Meeting button */}
+          <g onClick={function(){
+            sendMsg2("brain","REUNIAO GERAL. Convoque TODOS os agentes. Para cada um, use CHAMAR:[slug] pedindo status. Exemplo: CHAMAR:[mkt] status marketing. CHAMAR:[sales] status comercial. CHAMAR:[finance] status financeiro. CHAMAR:[tech] status TI. Depois compile tudo em um plano de acao.");
+          }} style={{cursor:"pointer"}}>
+            <rect x="560" y="52" width="80" height="20" fill={G+"30"} rx="4"/>
+            <text x="600" y="66" textAnchor="middle" fill={G} fontSize="9" fontWeight="600">Reuniao</text>
+          </g>
+        </svg>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 200px",gap:8}}>
-        <div style={{background:cardBg,borderRadius:12,border:"1px solid "+border,display:"flex",flexDirection:"column",minHeight:300,maxHeight:420}}>
-          <div style={{padding:"8px 12px",borderBottom:"1px solid "+border,display:"flex",alignItems:"center",gap:6}}>
-            <span style={{fontSize:16}}>{curAgent.avatar}</span>
-            <span style={{fontSize:13,fontWeight:700,color:curAgent.cor}}>{curAgent.nome}</span>
-            <span style={{fontSize:11,color:subColor}}>{curAgent.cargo}</span>
-            {busy&&<span style={{marginLeft:"auto",fontSize:10,color:W}}>digitando...</span>}
+
+      {/* CHAT */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 180px",gap:8}}>
+        <div style={{background:cardBg,borderRadius:10,border:"1px solid "+border,display:"flex",flexDirection:"column",maxHeight:350}}>
+          <div style={{padding:"6px 10px",borderBottom:"1px solid "+border,display:"flex",alignItems:"center",gap:6}}>
+            <span style={{fontSize:16}}>{cur.avatar}</span>
+            <span style={{fontSize:13,fontWeight:700,color:cur.cor}}>{cur.nome}</span>
+            <span style={{fontSize:10,color:subColor}}>{cur.cargo}</span>
+            {(busy||busyAgent===sel)&&<span style={{marginLeft:"auto",fontSize:10,color:W}}>digitando...</span>}
+            <button className="bh" onClick={function(){archiveConvo(sel)}} style={{marginLeft:"auto",padding:"2px 8px",borderRadius:4,background:R+"08",color:subColor,border:"none",fontSize:9,cursor:"pointer"}}>Arquivar</button>
           </div>
-          <div style={{flex:1,padding:8,overflow:"auto"}}>
-            {curMsgs.length===0&&<div style={{textAlign:"center",padding:20,color:subColor,fontSize:13}}>
-              <div style={{fontSize:30,marginBottom:6}}>{curAgent.avatar}</div>
-              Ola! Sou {curAgent.nome}, {curAgent.cargo}. Como posso ajudar?
+          <div ref={chatRef} style={{flex:1,padding:8,overflow:"auto",minHeight:200}}>
+            {curMsgs.length===0&&<div style={{textAlign:"center",padding:16,color:subColor,fontSize:12}}>
+              <div style={{fontSize:28,marginBottom:4}}>{cur.avatar}</div>
+              Ola! Sou {cur.nome}. Como posso ajudar?
             </div>}
-            {curMsgs.map(function(m,i){var isU=m.role==="user";return <div key={i} style={{display:"flex",justifyContent:isU?"flex-end":"flex-start",marginBottom:5,gap:4}}>
-              {!isU&&<span style={{fontSize:12,marginTop:4}}>{curAgent.avatar}</span>}
-              <div style={{maxWidth:"82%",padding:"7px 10px",borderRadius:isU?"10px 10px 2px 10px":"10px 10px 10px 2px",background:isU?curAgent.cor+"12":(dark?"#111":"#f8f5f0"),color:textColor,fontSize:12,lineHeight:1.7,whiteSpace:"pre-wrap"}}>{m.content}</div>
+            {curMsgs.map(function(m,i){var isU=m.role==="user";return <div key={i} style={{display:"flex",justifyContent:isU?"flex-end":"flex-start",marginBottom:4,gap:4}}>
+              {!isU&&<span style={{fontSize:11,marginTop:3}}>{cur.avatar}</span>}
+              <div style={{maxWidth:"82%",padding:"6px 10px",borderRadius:isU?"8px 8px 2px 8px":"8px 8px 8px 2px",background:isU?cur.cor+"12":(dark?"#111":"#f8f5f0"),color:textColor,fontSize:12,lineHeight:1.6,whiteSpace:"pre-wrap"}}>{m.content}</div>
             </div>})}
-            {busy&&<div style={{display:"flex",gap:4}}><span style={{fontSize:12}}>{curAgent.avatar}</span><div style={{padding:"7px 10px",borderRadius:10,background:dark?"#111":"#f8f5f0",color:subColor,fontSize:12}}>{curAgent.nome} pensando...</div></div>}
+            {(busy||busyAgent===sel)&&<div style={{display:"flex",gap:4}}><span style={{fontSize:11}}>{cur.avatar}</span><div style={{padding:"6px 10px",borderRadius:8,background:dark?"#111":"#f8f5f0",color:subColor,fontSize:12}}>{cur.nome} pensando...</div></div>}
           </div>
-          <div style={{padding:6,borderTop:"1px solid "+border,display:"flex",gap:4}}>
-            <label style={{padding:"8px 10px",borderRadius:8,border:"1px solid "+border,cursor:"pointer",fontSize:12,color:subColor}}>
-              <input type="file" accept="image/*" style={{display:"none"}} onChange={function(e){if(e.target.files&&e.target.files[0]){sendMsg2(selAgent,"[Imagem anexada: "+e.target.files[0].name+"] Analise esta imagem.")}}}/>
-              {"\ud83d\udcce"}
+          <div style={{padding:6,borderTop:"1px solid "+border,display:"flex",gap:3}}>
+            <label style={{padding:"7px 8px",borderRadius:6,border:"1px solid "+border,cursor:"pointer",fontSize:11,color:subColor}}>
+              <input type="file" accept="image/*" style={{display:"none"}} onChange={function(e){if(e.target.files[0])sendMsg2(sel,"[Imagem: "+e.target.files[0].name+"]")}}/>{"\ud83d\udcce"}
             </label>
-            <input value={inp} onChange={function(e){setInp(e.target.value)}} onKeyDown={function(e){e.stopPropagation();if(e.key==="Enter"&&!busy)sendMsg2(selAgent,inp)}} placeholder={"Falar com "+curAgent.nome+"..."} style={{flex:1,padding:"8px 10px",borderRadius:8,border:"1px solid "+border,background:dark?"#111":"#f8f5f0",color:textColor,fontSize:12,outline:"none"}}/>
-            <button className="bh" onClick={recording?stopRec:startRec} style={{padding:"8px 10px",borderRadius:8,background:recording?R:"transparent",color:recording?"#fff":subColor,border:recording?"none":"1px solid "+border,cursor:"pointer"}}>{"\ud83c\udf99\ufe0f"}</button>
-            <button className="bh" disabled={busy} onClick={function(){sendMsg2(selAgent,inp)}} style={{padding:"8px 12px",borderRadius:8,background:curAgent.cor,color:"#fff",fontWeight:700,border:"none",cursor:busy?"wait":"pointer"}}>{"\u2191"}</button>
+            <input value={inp} onChange={function(e){setInp(e.target.value)}} onKeyDown={function(e){e.stopPropagation();if(e.key==="Enter"&&!busy)sendMsg2(sel,inp)}} placeholder={cur.nome+"..."} style={{flex:1,padding:"7px 10px",borderRadius:6,border:"1px solid "+border,background:dark?"#111":"#f8f5f0",color:textColor,fontSize:12,outline:"none"}}/>
+            <button className="bh" onClick={recording?stopRec:startRec} style={{padding:"7px 8px",borderRadius:6,background:recording?R:"transparent",color:recording?"#fff":subColor,border:recording?"none":"1px solid "+border,cursor:"pointer"}}>{"\ud83c\udf99\ufe0f"}</button>
+            <button className="bh" disabled={busy} onClick={function(){sendMsg2(sel,inp)}} style={{padding:"7px 10px",borderRadius:6,background:cur.cor,color:"#fff",fontWeight:700,border:"none",cursor:busy?"wait":"pointer"}}>{"\u2191"}</button>
           </div>
+          {/* Archived conversations */}
+          {archived.filter(function(a){return a.slug===sel}).length>0&&<div style={{padding:"4px 8px",borderTop:"1px solid "+border,fontSize:10,color:subColor}}>
+            {"\ud83d\udce6"} {archived.filter(function(a){return a.slug===sel}).length} conversa(s) arquivada(s)
+          </div>}
         </div>
+        {/* Activity sidebar */}
         <div>
-          <div style={{padding:10,borderRadius:10,background:cardBg,border:"1px solid "+border,marginBottom:6}}>
-            <div style={{fontSize:11,fontWeight:700,color:textColor,marginBottom:6}}>{"\ud83d\udce1"} Atividade</div>
-            {activity.slice(-6).reverse().map(function(a2,i){return <div key={i} style={{padding:"3px 0",borderBottom:"1px solid "+(dark?"#1a1a19":"#eee"),fontSize:10}}>
+          <div style={{padding:8,borderRadius:8,background:cardBg,border:"1px solid "+border,marginBottom:6}}>
+            <div style={{fontSize:10,fontWeight:700,color:textColor,marginBottom:4}}>{"\ud83d\udce1"} Atividade</div>
+            {activity.slice(-8).reverse().map(function(a2,i){return <div key={i} style={{padding:"2px 0",fontSize:9,borderBottom:"1px solid "+(dark?"#1a1a19":"#eee")}}>
               <span style={{color:a2.color||G,fontWeight:600}}>{a2.agent}</span>
               <div style={{color:subColor}}>{a2.action}</div>
             </div>})}
-            {activity.length===0&&<div style={{fontSize:10,color:subColor,textAlign:"center"}}>Aguardando...</div>}
+            {activity.length===0&&<div style={{fontSize:9,color:subColor}}>Aguardando...</div>}
           </div>
-          <div style={{padding:10,borderRadius:10,background:cardBg,border:"1px solid "+border}}>
-            <div style={{fontSize:11,fontWeight:700,color:textColor,marginBottom:6}}>{"\ud83c\udfaf"} Metas</div>
-            {goals.slice(0,3).map(function(g){var pct=g.meta_valor>0?Math.min(100,Math.round(g.valor_atual/g.meta_valor*100)):0;return <div key={g.id} style={{marginBottom:4}}>
-              <div style={{display:"flex",justifyContent:"space-between",fontSize:10}}><span style={{color:subColor}}>{g.tipo}</span><span style={{color:pct>=80?GR:W}}>{pct}%</span></div>
-              <div style={{height:3,borderRadius:2,background:dark?"#1a1a19":"#ddd",marginTop:1}}><div style={{height:"100%",width:pct+"%",background:pct>=80?GR:W,borderRadius:2}}/></div>
+          <div style={{padding:8,borderRadius:8,background:cardBg,border:"1px solid "+border}}>
+            <div style={{fontSize:10,fontWeight:700,color:textColor,marginBottom:4}}>{"\ud83c\udfaf"} Metas</div>
+            {goals.slice(0,3).map(function(g){var pct=g.meta_valor>0?Math.min(100,Math.round(g.valor_atual/g.meta_valor*100)):0;return <div key={g.id} style={{marginBottom:3}}>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:9}}><span style={{color:subColor}}>{g.tipo}</span><span style={{color:pct>=80?GR:W}}>{pct}%</span></div>
+              <div style={{height:3,borderRadius:2,background:dark?"#1a1a19":"#ddd"}}><div style={{height:"100%",width:pct+"%",background:pct>=80?GR:W,borderRadius:2}}/></div>
             </div>})}
           </div>
         </div>
       </div>
     </div>}
 
-    {/* ═══ TAB: EQUIPE ═══ */}
+    {/* EQUIPE */}
     {tab==="team"&&<div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <div style={{fontSize:16,fontWeight:600,color:textColor}}>{"\ud83d\udc65"} Equipe de Agentes</div>
-        <button className="bh" onClick={async function(){
-          var nome=prompt("Nome do agente:");if(!nome)return;
-          var cargo=prompt("Cargo:");var avatar=prompt("Emoji avatar:","\ud83e\udd16");var cor=prompt("Cor (#hex):","#8B6FBF");
-          var slug=nome.toLowerCase().replace(/[^a-z0-9]/g,"").substring(0,20);
-          var sys=prompt("System prompt (instrucoes do agente):","Voce e "+nome+", "+cargo+". Responda em portugues.");
-          await sb.from("ai_agents").insert({slug:slug,nome:nome,cargo:cargo,avatar:avatar||"\ud83e\udd16",cor:cor||"#8B6FBF",system_prompt:sys,tenant_id:ADMIN_TID});
-          await loadAll2();msg("Agente "+nome+" adicionado!");
-        }} style={{padding:"8px 14px",borderRadius:8,background:GR+"12",color:GR,border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>+ Novo Agente</button>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
+        <div style={{fontSize:16,fontWeight:600,color:textColor}}>Equipe</div>
+        <button className="bh" onClick={async function(){var n=prompt("Nome:");if(!n)return;var c=prompt("Cargo:");var a=prompt("Avatar emoji:","\ud83e\udd16");var cor=prompt("Cor:","#8B6FBF");var s=prompt("System prompt:","Voce e "+n+", "+c+". Responda em portugues.");var slug=n.toLowerCase().replace(/[^a-z0-9]/g,"").substring(0,20);await sb.from("ai_agents").insert({slug:slug,nome:n,cargo:c,avatar:a,cor:cor,system_prompt:s,tenant_id:ADMIN_TID});await loadAll2();msg("Agente adicionado!")}} style={{padding:"6px 12px",borderRadius:6,background:GR+"12",color:GR,border:"none",fontSize:11,cursor:"pointer"}}>+ Agente</button>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
-        {agents.map(function(ag){return <div key={ag.id} style={{padding:16,borderRadius:14,background:cardBg,border:"1px solid "+border,textAlign:"center"}}>
-          <div style={{fontSize:36,marginBottom:6}}>{ag.avatar}</div>
-          <div style={{fontSize:16,fontWeight:700,color:ag.cor}}>{ag.nome}</div>
-          <div style={{fontSize:12,color:subColor,marginBottom:8}}>{ag.cargo}</div>
-          <div style={{display:"flex",gap:4,justifyContent:"center",flexWrap:"wrap"}}>
-            <button className="bh" onClick={function(){
-              var t=prompt("Cole o treinamento/script extra para "+ag.nome+":",ag.treinamento||"");if(t===null)return;
-              sb.from("ai_agents").update({treinamento:t}).eq("id",ag.id).then(function(){loadAll2();msg("Treinamento atualizado!")});
-            }} style={{padding:"4px 8px",borderRadius:4,background:B+"12",color:B,border:"none",fontSize:10,cursor:"pointer"}}>{"\ud83d\udcda"} Treinar</button>
-            <button className="bh" onClick={function(){
-              var s=prompt("System prompt de "+ag.nome+":",ag.system_prompt);if(!s)return;
-              sb.from("ai_agents").update({system_prompt:s}).eq("id",ag.id).then(function(){loadAll2();msg("Prompt atualizado!")});
-            }} style={{padding:"4px 8px",borderRadius:4,background:P+"12",color:P,border:"none",fontSize:10,cursor:"pointer"}}>{"\u270f\ufe0f"} Prompt</button>
-            <button className="bh" onClick={function(){
-              if(!confirm("Desativar "+ag.nome+"?"))return;
-              sb.from("ai_agents").update({ativo:false}).eq("id",ag.id).then(function(){loadAll2();msg("Agente desativado")});
-            }} style={{padding:"4px 8px",borderRadius:4,background:R+"12",color:R,border:"none",fontSize:10,cursor:"pointer"}}>{"\u274c"}</button>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+        {agents.map(function(ag){return <div key={ag.id} style={{padding:14,borderRadius:12,background:cardBg,border:"1px solid "+border,textAlign:"center"}}>
+          <div style={{fontSize:32,marginBottom:4}}>{ag.avatar}</div>
+          <div style={{fontSize:14,fontWeight:700,color:ag.cor}}>{ag.nome}</div>
+          <div style={{fontSize:11,color:subColor,marginBottom:6}}>{ag.cargo}</div>
+          <div style={{display:"flex",gap:3,justifyContent:"center"}}>
+            <button className="bh" onClick={function(){var t=prompt("Treinamento extra:",ag.treinamento||"");if(t!==null)sb.from("ai_agents").update({treinamento:t}).eq("id",ag.id).then(function(){loadAll2();msg("Treinado!")})}} style={{padding:"3px 6px",borderRadius:3,background:B+"12",color:B,border:"none",fontSize:9,cursor:"pointer"}}>Treinar</button>
+            <button className="bh" onClick={function(){var s=prompt("Prompt:",ag.system_prompt);if(s)sb.from("ai_agents").update({system_prompt:s}).eq("id",ag.id).then(function(){loadAll2()})}} style={{padding:"3px 6px",borderRadius:3,background:P+"12",color:P,border:"none",fontSize:9,cursor:"pointer"}}>Prompt</button>
+            <button className="bh" onClick={function(){if(confirm("Desativar?"))sb.from("ai_agents").update({ativo:false}).eq("id",ag.id).then(function(){loadAll2()})}} style={{padding:"3px 6px",borderRadius:3,background:R+"12",color:R,border:"none",fontSize:9,cursor:"pointer"}}>X</button>
           </div>
-          {ag.treinamento&&<div style={{marginTop:6,fontSize:10,color:GR}}>{"\ud83d\udcda"} Treinamento ativo</div>}
         </div>})}
       </div>
     </div>}
 
-    {/* ═══ TAB: COLLABS ═══ */}
-    {tab==="collab"&&<div>
-      <div style={{fontSize:16,fontWeight:600,color:textColor,marginBottom:12}}>{"\ud83d\udcac"} Conversas entre Agentes</div>
-      {agentChats.length===0&&<div style={{textAlign:"center",padding:30,color:subColor}}>Os agentes conversarao automaticamente quando precisarem de ajuda.</div>}
-      {agentChats.map(function(ch,i){return <div key={i} style={{padding:10,borderRadius:10,background:cardBg,border:"1px solid "+border,marginBottom:4,fontSize:12}}>
-        <div><span style={{fontWeight:600,color:G}}>{ch.from_agent}</span> {"\u2192"} <span style={{fontWeight:600,color:B}}>{ch.to_agent}</span> <span style={{fontSize:10,color:subColor}}>{new Date(ch.criado_em).toLocaleString("pt-BR")}</span></div>
-        <div style={{color:textColor,marginTop:4}}>{ch.content}</div>
-      </div>})}
-    </div>}
-
-    {/* ═══ TAB: METAS ═══ */}
+    {/* METAS */}
     {tab==="goals"&&<div>
-      <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}>
-        <div style={{fontSize:16,fontWeight:600,color:textColor}}>{"\ud83c\udfaf"} Metas</div>
-        <button className="bh" onClick={async function(){var tipo=prompt("Tipo (clientes/mrr/leads/posts/emails):","clientes");if(!tipo)return;var valor=prompt("Meta:",50);var prazo=prompt("Prazo (YYYY-MM-DD):","2026-12-31");await sb.from("ai_goals").insert({tipo:tipo,meta_valor:parseInt(valor),prazo:prazo,tenant_id:ADMIN_TID});await loadAll2();msg("Meta criada!")}} style={{padding:"6px 14px",borderRadius:8,background:GR+"12",color:GR,border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>+ Meta</button>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
+        <div style={{fontSize:16,fontWeight:600,color:textColor}}>Metas</div>
+        <button className="bh" onClick={async function(){var t=prompt("Tipo (clientes/mrr/leads/posts):","clientes");if(!t)return;var v=prompt("Meta:",50);await sb.from("ai_goals").insert({tipo:t,meta_valor:parseInt(v),tenant_id:ADMIN_TID});await loadAll2()}} style={{padding:"6px 12px",borderRadius:6,background:GR+"12",color:GR,border:"none",fontSize:11,cursor:"pointer"}}>+ Meta</button>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
-        {goals.map(function(g){var pct=g.meta_valor>0?Math.min(100,Math.round(g.valor_atual/g.meta_valor*100)):0;return <div key={g.id} style={{padding:14,borderRadius:12,background:cardBg,border:"1px solid "+border}}>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+        {goals.map(function(g){var pct=g.meta_valor>0?Math.min(100,Math.round(g.valor_atual/g.meta_valor*100)):0;return <div key={g.id} style={{padding:12,borderRadius:10,background:cardBg,border:"1px solid "+border}}>
           <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:13,fontWeight:600,color:textColor}}>{g.tipo}</span><span style={{color:pct>=100?GR:W,fontWeight:700}}>{pct}%</span></div>
-          <div style={{fontSize:22,fontWeight:700,color:pct>=100?GR:textColor,marginTop:4}}>{g.valor_atual}/{g.meta_valor}</div>
-          <div style={{height:5,borderRadius:3,background:dark?"#1a1a19":"#ddd",marginTop:6}}><div style={{height:"100%",width:pct+"%",background:pct>=100?GR:pct>=50?W:R,borderRadius:3}}/></div>
-          {g.prazo&&<div style={{fontSize:10,color:subColor,marginTop:4}}>Prazo: {new Date(g.prazo).toLocaleDateString("pt-BR")}</div>}
+          <div style={{fontSize:20,fontWeight:700,color:pct>=100?GR:textColor}}>{g.valor_atual}/{g.meta_valor}</div>
+          <div style={{height:5,borderRadius:3,background:dark?"#1a1a19":"#ddd",marginTop:4}}><div style={{height:"100%",width:pct+"%",background:pct>=100?GR:W,borderRadius:3}}/></div>
         </div>})}
       </div>
     </div>}
 
-    {/* ═══ TAB: FILA ═══ */}
+    {/* FILA */}
     {tab==="queue"&&<div>
-      <div style={{fontSize:16,fontWeight:600,color:textColor,marginBottom:12}}>{"\u2699\ufe0f"} Fila</div>
-      {aiTasks.slice(0,15).map(function(t2){var cols={pendente:W,gerando:P,pronto:GR,erro:R};return <div key={t2.id} style={{padding:10,borderRadius:8,background:cardBg,border:"1px solid "+border,marginBottom:4,display:"flex",alignItems:"center",gap:8}}>
+      {aiTasks.slice(0,15).map(function(t2){var cols={pendente:W,gerando:P,pronto:GR,erro:R};return <div key={t2.id} style={{padding:8,borderRadius:6,background:cardBg,border:"1px solid "+border,marginBottom:3,display:"flex",gap:6,alignItems:"center"}}>
         <div style={{width:6,height:6,borderRadius:"50%",background:cols[t2.status]||"#555"}}/>
-        <div style={{flex:1}}><div style={{fontSize:12,fontWeight:600,color:textColor}}>[{t2.equipe}] {t2.titulo}</div><div style={{fontSize:10,color:subColor}}>{t2.status}</div></div>
+        <div style={{flex:1,fontSize:12}}><span style={{fontWeight:600,color:textColor}}>[{t2.equipe}]</span> {t2.titulo}</div>
+        <span style={{fontSize:10,color:subColor}}>{t2.status}</span>
       </div>})}
       {aiTasks.length===0&&<div style={{textAlign:"center",padding:20,color:subColor}}>Fila vazia</div>}
     </div>}
 
-    {/* ═══ TAB: CONTEUDO ═══ */}
+    {/* CONTEUDO */}
     {tab==="content"&&<div>
-      <div style={{fontSize:16,fontWeight:600,color:textColor,marginBottom:12}}>{"\ud83d\udcc4"} Conteudo</div>
-      {aiContent.map(function(c2){return <div key={c2.id} style={{padding:12,borderRadius:10,background:cardBg,border:"1px solid "+border,marginBottom:6}}>
-        <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+      {aiContent.map(function(c2){return <div key={c2.id} style={{padding:10,borderRadius:8,background:cardBg,border:"1px solid "+border,marginBottom:4}}>
+        <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
           <span style={{fontSize:12,fontWeight:600,color:textColor}}>[{c2.equipe}] {c2.titulo||c2.tipo}</span>
-          <span style={{fontSize:10,color:c2.status==="aprovado"?GR:W}}>{c2.status}</span>
+          <span style={{fontSize:9,color:c2.status==="aprovado"?GR:W}}>{c2.status}</span>
         </div>
-        <div style={{fontSize:12,color:textColor,lineHeight:1.6,whiteSpace:"pre-wrap",maxHeight:120,overflow:"auto",padding:8,borderRadius:6,background:dark?"#0a0a0a":"#f8f5f0"}}>{c2.conteudo}</div>
-        <div style={{display:"flex",gap:4,marginTop:6}}>
-          <button className="bh" onClick={function(){navigator.clipboard.writeText(c2.conteudo);msg("Copiado!")}} style={{padding:"3px 8px",borderRadius:4,background:B+"12",color:B,border:"none",fontSize:10,cursor:"pointer"}}>Copiar</button>
-          <button className="bh" onClick={async function(){await sb.from("ai_content").update({status:"aprovado"}).eq("id",c2.id);await loadAll2()}} style={{padding:"3px 8px",borderRadius:4,background:GR+"12",color:GR,border:"none",fontSize:10,cursor:"pointer"}}>Aprovar</button>
-          <button className="bh" onClick={async function(){await sb.from("ai_content").update({status:"descartado"}).eq("id",c2.id);await loadAll2()}} style={{padding:"3px 8px",borderRadius:4,background:R+"12",color:R,border:"none",fontSize:10,cursor:"pointer"}}>Descartar</button>
+        <div style={{fontSize:11,color:textColor,lineHeight:1.5,whiteSpace:"pre-wrap",maxHeight:100,overflow:"auto",padding:6,borderRadius:4,background:dark?"#0a0a0a":"#f8f5f0"}}>{c2.conteudo}</div>
+        <div style={{display:"flex",gap:3,marginTop:4}}>
+          <button className="bh" onClick={function(){navigator.clipboard.writeText(c2.conteudo);msg("Copiado!")}} style={{padding:"2px 6px",borderRadius:3,background:B+"12",color:B,border:"none",fontSize:9,cursor:"pointer"}}>Copiar</button>
+          <button className="bh" onClick={async function(){await sb.from("ai_content").update({status:"aprovado"}).eq("id",c2.id);await loadAll2()}} style={{padding:"2px 6px",borderRadius:3,background:GR+"12",color:GR,border:"none",fontSize:9,cursor:"pointer"}}>Aprovar</button>
         </div>
       </div>})}
-      {aiContent.length===0&&<div style={{textAlign:"center",padding:20,color:subColor}}>Nenhum conteudo</div>}
+    </div>}
+
+    {/* COLLABS */}
+    {tab==="collab"&&<div>
+      {agentChats.length===0&&<div style={{textAlign:"center",padding:20,color:subColor}}>Agentes conversarao quando necessario</div>}
+      {agentChats.map(function(ch,i){return <div key={i} style={{padding:8,borderRadius:6,background:cardBg,border:"1px solid "+border,marginBottom:3,fontSize:11}}>
+        <span style={{fontWeight:600,color:G}}>{ch.from_agent}</span>{" \u2192 "}<span style={{fontWeight:600,color:B}}>{ch.to_agent}</span>
+        <div style={{color:textColor,marginTop:2}}>{ch.content}</div>
+      </div>})}
     </div>}
   </div>
 }
+
 
 
 
