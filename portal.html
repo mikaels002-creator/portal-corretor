@@ -2083,7 +2083,7 @@ function App(){
       var newMsgs=msgs2.concat([userMsg]);
       setMsgs2(newMsgs);setInput2("");setLoading2(true);
       try{
-        var resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":aiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-3-haiku-20240307",max_tokens:1000,system:sysP,messages:newMsgs.map(function(m){return{role:m.role,content:m.content}})})});
+        var resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":aiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:1000,system:sysP,messages:newMsgs.map(function(m){return{role:m.role,content:m.content}})})});
         var data=await resp.json();
         var aiText=data.content?data.content.map(function(c2){return c2.text||""}).join(""):"Desculpe, tente novamente.";
         setMsgs2(newMsgs.concat([{role:"assistant",content:aiText}]));
