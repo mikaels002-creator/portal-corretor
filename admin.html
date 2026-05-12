@@ -321,7 +321,6 @@ function AIBrainView(props){
               <rect x={x+70} y={y+46} width="6" height="6" fill={dark?"#222":"#bbb"}/>
               {/* Monitor screen glow */}
               {isBusy2&&<rect x={x+57} y={y+24} width="32" height="20" fill={ag.cor} rx="2" opacity="0.15">
-                <animate attributeName="opacity" values="0.1;0.25;0.1" dur="2s" repeatCount="indefinite"/>
               </rect>}
               {/* Chair */}
               <ellipse cx={x+40} cy={y+12} rx="14" ry="12" fill={dark?"#1a1a28":"#d8d0c6"} stroke={isAct?ag.cor:"none"} strokeWidth="2"/>
@@ -330,15 +329,14 @@ function AIBrainView(props){
                 {ag.avatar}
               </text>
               {/* Float animation for online agents */}
-              {!isBusy2&&<animateTransform attributeName="transform" type="translate" values="0,0;0,-2;0,0" dur="3s" repeatCount="indefinite"/>}
+              
               {/* Work animation for busy agents */}
-              {isBusy2&&<animateTransform attributeName="transform" type="translate" values="0,0;1,0;0,0;-1,0;0,0" dur="0.5s" repeatCount="indefinite"/>}
+              
               {/* Name plate */}
               <rect x={x+10} y={y+54} width="100" height="18" fill={isAct?ag.cor+"15":"transparent"} rx="4"/>
               <text x={x+60} y={y+66} textAnchor="middle" fill={isAct?ag.cor:textColor} fontSize="10" fontWeight={isAct?700:400}>{ag.nome} - {ag.cargo}</text>
               {/* Status */}
               <circle cx={x+110} cy={y+26} r="5" fill={isBusy2?W:GR}>
-                <animate attributeName="r" values="5;6;5" dur="2s" repeatCount="indefinite"/>
               </circle>
             </g>
           })}
@@ -709,6 +707,7 @@ function App(){
   var _user=useState(null);var user=_user[0];var setUser=_user[1];
   var _view=useState("dash");var view=_view[0];var setView=_view[1];
   var _apiKeySaved=useState("");var apiKeySaved=_apiKeySaved[0];var setApiKeySaved=_apiKeySaved[1];
+  var _logData=useState([]);var logData=_logData[0];var setLogData=_logData[1];
   var _dark=useState(localStorage.getItem("admin_theme")!=="light");var dark=_dark[0];var setDark=_dark[1];
   var toggleTheme=function(){var n=!dark;setDark(n);localStorage.setItem("admin_theme",n?"dark":"light");document.body.classList.toggle("light",!n)};
   useEffect(function(){document.body.classList.toggle("light",!dark)},[]);
@@ -1898,6 +1897,7 @@ function App(){
             </div>
           })}
         </div>
+        </div>{/* close report-content */}
       </div>}
 
       {/* ═══ LANDING PAGE ═══ */}
@@ -2421,7 +2421,6 @@ function App(){
             <b>Tipos sugeridos:</b> Contrato de Compra e Venda, Termo de Aceite, NDA, Proposta Comercial, Procuração
           </div>
         </div>
-        </div>{/* close report-content */}
       </div>}
 
       {/* ═══ LOGS ═══ */}
@@ -2433,49 +2432,39 @@ function App(){
             <input type="date" id="log_to" onKeyDown={function(e){e.stopPropagation()}} style={{padding:"6px 10px",borderRadius:6,border:"1px solid "+border,background:dark?"#111":"#f8f5f0",color:textColor,fontSize:12}}/>
             <button className="bh" onClick={async function(){
               var from=document.getElementById("log_from").value;var to=document.getElementById("log_to").value;
-              var q=sb.from("interacoes_tenant").select("*").eq("tenant_id",ADMIN_TID).order("criado_em",{ascending:false}).limit(200);
+              var q=sb.from("interacoes_tenant").select("*").order("criado_em",{ascending:false}).limit(200);
               if(from)q=q.gte("criado_em",from);if(to)q=q.lte("criado_em",to+"T23:59:59");
-              var r=await q;window._filteredLogs=r.data||[];setView("logs");msg("Filtrado: "+(r.data||[]).length+" registros");
+              var r=await q;setLogData(r.data||[]);msg((r.data||[]).length+" registros")
             }} style={{padding:"6px 12px",borderRadius:6,background:B+"12",color:B,border:"none",fontSize:11,cursor:"pointer"}}>Filtrar</button>
+            <button className="bh" onClick={async function(){
+              var r=await sb.from("interacoes_tenant").select("*").order("criado_em",{ascending:false}).limit(100);
+              setLogData(r.data||[])
+            }} style={{padding:"6px 12px",borderRadius:6,background:GR+"12",color:GR,border:"none",fontSize:11,cursor:"pointer"}}>Carregar</button>
           </div>
         </div>
-        {(function(){
-          var logs2=window._filteredLogs||[];
-          if(logs2.length===0){
-            sb.from("interacoes_tenant").select("*").order("criado_em",{ascending:false}).limit(100).then(function(r){window._filteredLogs=r.data||[];setView("logs")});
-            return <div style={{textAlign:"center",padding:20,color:subColor}}>Carregando...</div>
-          }
-          return <div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:12}}>
-              {[{l:"Total",v:logs2.length,c:B},{l:"Deploy",v:logs2.filter(function(l){return l.tipo==="deploy"}).length,c:GR},{l:"Login",v:logs2.filter(function(l){return l.tipo==="login"}).length,c:P},{l:"Upgrades",v:logs2.filter(function(l){return l.tipo==="upgrade"}).length,c:G}].map(function(k,i){
-                return <div key={i} style={{padding:12,borderRadius:10,background:cardBg,border:"1px solid "+border,textAlign:"center"}}>
-                  <div style={{fontSize:20,fontWeight:700,color:k.c}}>{k.v}</div>
-                  <div style={{fontSize:10,color:subColor}}>{k.l}</div>
-                </div>
-              })}
-            </div>
-            <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-              <thead><tr style={{borderBottom:"2px solid "+border}}>
-                <th style={{textAlign:"left",padding:8,color:subColor}}>Data/Hora</th>
-                <th style={{textAlign:"left",padding:8,color:subColor}}>Usuário</th>
-                <th style={{textAlign:"left",padding:8,color:subColor}}>Tipo</th>
-                <th style={{textAlign:"left",padding:8,color:subColor}}>Detalhes</th>
-              </tr></thead>
-              <tbody>{logs2.map(function(l,i){
-                var cols2={deploy:GR,login:B,upgrade:G,config:P,erro:R};
-                return <tr key={i} style={{borderBottom:"1px solid "+(dark?"#1a1a19":"#eee")}}>
-                  <td style={{padding:8,color:subColor,whiteSpace:"nowrap"}}>{l.criado_em?new Date(l.criado_em).toLocaleString("pt-BR"):"-"}</td>
-                  <td style={{padding:8,color:textColor,fontWeight:600}}>{l.usuario||"-"}</td>
-                  <td style={{padding:8}}><span style={{padding:"2px 8px",borderRadius:4,background:(cols2[l.tipo]||"#555")+"15",color:cols2[l.tipo]||"#555",fontSize:10}}>{l.tipo}</span></td>
-                  <td style={{padding:8,color:subColor,maxWidth:300,overflow:"hidden",textOverflow:"ellipsis"}}>{l.conteudo||"-"}</td>
-                </tr>
-              })}</tbody>
-            </table>
+        {logData.length===0&&<div style={{textAlign:"center",padding:30,color:subColor}}>Clique em "Carregar" para ver os logs</div>}
+        {logData.length>0&&<div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:12}}>
+            {[{l:"Total",v:logData.length,c:B},{l:"Deploy",v:logData.filter(function(l2){return l2.tipo==="deploy"}).length,c:GR},{l:"Login",v:logData.filter(function(l2){return l2.tipo==="login"}).length,c:P},{l:"Config",v:logData.filter(function(l2){return l2.tipo==="config"}).length,c:G}].map(function(k,i){
+              return <div key={i} style={{padding:10,borderRadius:8,background:cardBg,border:"1px solid "+border,textAlign:"center"}}>
+                <div style={{fontSize:18,fontWeight:700,color:k.c}}>{k.v}</div>
+                <div style={{fontSize:10,color:subColor}}>{k.l}</div>
+              </div>
+            })}
           </div>
-        })()}
+          {logData.map(function(l2,i){
+            var cols2={deploy:GR,login:B,upgrade:G,config:P,erro:R};
+            return <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:"1px solid "+(dark?"#1a1a19":"#eee"),fontSize:12}}>
+              <span style={{color:subColor,width:120,flexShrink:0}}>{l2.criado_em?new Date(l2.criado_em).toLocaleString("pt-BR"):"-"}</span>
+              <span style={{fontWeight:600,color:textColor,width:80,flexShrink:0}}>{l2.usuario||"-"}</span>
+              <span style={{padding:"2px 6px",borderRadius:4,background:(cols2[l2.tipo]||"#555")+"12",color:cols2[l2.tipo]||"#555",fontSize:10,flexShrink:0}}>{l2.tipo}</span>
+              <span style={{color:subColor,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{l2.conteudo||"-"}</span>
+            </div>
+          })}
+        </div>}
       </div>}
 
-      {/* ═══ OVERDUE ═══ */}
+            {/* ═══ OVERDUE ═══ */}
       {view==="overdue"&&<div className="fade-in">
         <div style={{fontSize:24,fontWeight:700,color:textColor,marginBottom:20}}>⚠️ Inadimplentes</div>
         {pendentes.length===0?<div style={{padding:40,textAlign:"center",color:GR,fontSize:16}}>✅ Nenhum pagamento atrasado!</div>:
@@ -2494,7 +2483,7 @@ function App(){
         })}
       </div>}
 
-    </div>{/* close scrollable content */}
+    </div>{/* close scrollable */}
     </div>{/* close admin-main */}
 
     {/* Toast */}
