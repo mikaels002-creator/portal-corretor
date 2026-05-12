@@ -238,7 +238,7 @@ function AIBrainView(props){
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
       <div style={{fontSize:22,fontWeight:700,color:textColor}}>{"\ud83e\udde0"} Escritorio Virtual</div>
       <div style={{display:"flex",gap:4,alignItems:"center"}}>
-        <div style={{width:8,height:8,borderRadius:"50%",background:workerOn?GR:R}}/>
+        <div style={{width:8,height:8,borderRadius:"50%",background:GR}}/>
         <span style={{fontSize:10,color:workerOn?GR:subColor}}>{workerOn?"24h":"off"}</span>
         <button className="bh" onClick={async function(){var nv=!workerOn;setWorkerOn(nv);await sb.from("config_whatsapp").delete().eq("chave","ai_worker_active").eq("tenant_id",ADMIN_TID);await sb.from("config_whatsapp").insert({chave:"ai_worker_active",valor:String(nv),tenant_id:ADMIN_TID});if(nv)runWorker()}} style={{padding:"4px 10px",borderRadius:6,background:workerOn?R+"12":GR+"12",color:workerOn?R:GR,border:"none",fontSize:10,cursor:"pointer"}}>{workerOn?"Parar":"Ligar"}</button>
         <button className="bh" onClick={runWorker} style={{padding:"4px 10px",borderRadius:6,background:G+"12",color:G,border:"none",fontSize:10,cursor:"pointer"}}>Executar</button>
@@ -257,23 +257,29 @@ function AIBrainView(props){
     {/* ═══ ESCRITORIO ═══ */}
     {tab==="office"&&<div>
       {/* ANIMATED OFFICE SVG */}
-      <div style={{padding:12,borderRadius:12,background:dark?"#0a0a12":"#f0ede8",border:"1px solid "+border,marginBottom:10}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-          <span style={{fontSize:13,fontWeight:600,color:textColor}}>Escritorio Virtual</span>
-          <button className="bh" onClick={function(){
-            sendMsg2("brain","REUNIAO GERAL. Convoque TODOS agentes. CHAMAR:[mkt] status marketing. CHAMAR:[sales] status comercial. CHAMAR:[finance] status financeiro. CHAMAR:[tech] status TI. Compile plano de acao.");
-          }} style={{padding:"5px 12px",borderRadius:6,background:G+"15",color:G,border:"1px solid "+G+"30",fontSize:11,cursor:"pointer"}}>Reuniao Geral</button>
+      <div style={{borderRadius:14,overflow:"hidden",border:"1px solid "+border,marginBottom:10,background:dark?"linear-gradient(135deg,#08080e,#0a0a14)":"linear-gradient(135deg,#e8e4dc,#f0ece4)"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 14px",background:dark?"rgba(0,0,0,0.3)":"rgba(255,255,255,0.5)"}}>
+          <span style={{fontSize:12,fontWeight:700,color:textColor}}>Escritorio Virtual</span>
+          <div style={{display:"flex",gap:6}}>
+            <span style={{fontSize:10,color:GR}}>{agents.length} online</span>
+            <button className="bh" onClick={function(){sendMsg2("brain","REUNIAO GERAL. CHAMAR:[mkt] status marketing. CHAMAR:[sales] status comercial. CHAMAR:[finance] status financeiro. CHAMAR:[tech] status TI.")}} style={{padding:"3px 10px",borderRadius:4,background:G+"20",color:G,border:"none",fontSize:10,fontWeight:600,cursor:"pointer"}}>Reuniao</button>
+          </div>
         </div>
-        <div style={{display:"flex",gap:8,overflow:"auto"}}>
-          {agents.map(function(ag){var isAct=sel===ag.slug;var isBusy2=busyAgent===ag.slug;
-            return <div key={ag.slug} className="bh" onClick={function(){setSel(ag.slug);loadConvo(ag.slug)}} style={{padding:"10px",borderRadius:10,background:isAct?ag.cor+"12":"transparent",border:isAct?"2px solid "+ag.cor+"30":"1px solid "+border,cursor:"pointer",minWidth:90,textAlign:"center"}}>
-              <div style={{fontSize:26}}>{ag.avatar}</div>
-              <div style={{fontSize:11,fontWeight:700,color:isAct?ag.cor:textColor}}>{ag.nome}</div>
-              <div style={{fontSize:9,color:subColor}}>{ag.cargo}</div>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:3,marginTop:3}}>
-                <div style={{width:5,height:5,borderRadius:"50%",background:isBusy2?W:GR}}/>
-                <span style={{fontSize:8,color:isBusy2?W:GR}}>{isBusy2?"ocupado":"online"}</span>
-              </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:0,padding:10,minHeight:180}}>
+          <div style={{gridColumn:"4/6",gridRow:"1/3",background:dark?"rgba(200,164,92,0.04)":"rgba(200,164,92,0.08)",borderRadius:10,border:"1px dashed "+G+"30",margin:4,padding:10,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+            <div style={{fontSize:10,color:G,fontWeight:600,marginBottom:6}}>Sala de Reuniao</div>
+            <div style={{width:"80%",height:30,background:dark?"#12101a":"#d8d0c6",borderRadius:6,border:"1px solid "+(dark?"#222":"#bbb"),display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:subColor}}>Mesa</div>
+            <div style={{display:"flex",gap:3,marginTop:4}}>{agents.slice(0,4).map(function(ag,idx){return <div key={idx} style={{width:14,height:14,borderRadius:"50%",background:dark?"#1a1a28":"#ccc",display:"flex",alignItems:"center",justifyContent:"center",fontSize:7}}>{ag.avatar}</div>})}</div>
+          </div>
+          {agents.map(function(ag,idx){
+            var isAct=sel===ag.slug;var isBusy2=busyAgent===ag.slug;
+            return <div key={ag.slug} className={"office-desk"+(isBusy2?" busy":"")} onClick={function(){setSel(ag.slug);loadConvo(ag.slug)}} style={{gridColumn:(idx%3)+1,gridRow:Math.floor(idx/3)+1,margin:4,padding:8,borderRadius:10,background:isAct?(ag.cor+"12"):(dark?"rgba(255,255,255,0.02)":"rgba(0,0,0,0.02)"),border:isAct?"2px solid "+ag.cor+"40":"1px solid "+(dark?"#1a1a22":"#d0c8bc"),cursor:"pointer",textAlign:"center",position:"relative"}}>
+              <div style={{position:"absolute",top:4,right:4,width:7,height:7,borderRadius:"50%",background:isBusy2?W:GR,boxShadow:"0 0 4px "+(isBusy2?W:GR)}}/>
+              <div style={{width:"55%",height:16,margin:"0 auto 4px",borderRadius:2,background:isBusy2?(ag.cor+"30"):(dark?"#1a1a28":"#ccc"),border:"1px solid "+(dark?"#252530":"#aaa")}}/>
+              <div style={{width:"70%",height:6,margin:"0 auto 3px",borderRadius:1,background:dark?"#1a1a22":"#c8c0b4"}}/>
+              <div className="worker" style={{fontSize:24}}>{ag.avatar}</div>
+              <div style={{fontSize:10,fontWeight:700,color:isAct?ag.cor:textColor}}>{ag.nome}</div>
+              <div style={{fontSize:7,color:subColor}}>{ag.cargo}</div>
             </div>
           })}
         </div>
@@ -466,7 +472,7 @@ function FinanceiroView(props){
 
     {/* Sub-tabs */}
     <div style={{display:"flex",gap:4,marginBottom:14,borderBottom:"1px solid "+border,paddingBottom:6}}>
-      {[{k:"resumo",l:"\ud83d\udcca Resumo"},{k:"lancamentos",l:"\ud83d\udccb Lan\u00e7amentos"},{k:"contas",l:"\ud83c\udfe6 Contas"},{k:"apis",l:"\ud83e\udd16 Custos APIs"},{k:"fiscal",l:"\ud83d\udcc4 Fiscal"},{k:"fluxo",l:"\ud83d\udcc8 Fluxo de Caixa"}].map(function(t){
+      {[{k:"resumo",l:"📊 Resumo"},{k:"pagamentos",l:"💰 Receitas"},{k:"lancamentos",l:"📋 Lançamentos"},{k:"contas",l:"🏦 Contas"},{k:"apis",l:"🤖 Custos APIs"},{k:"fiscal",l:"📄 Fiscal"},{k:"fluxo",l:"📈 Fluxo de Caixa"}].map(function(t){
         return <button key={t.k} className="bh" onClick={function(){setFtab(t.k)}} style={{padding:"6px 12px",borderRadius:"8px 8px 0 0",background:ftab===t.k?G+"15":"transparent",color:ftab===t.k?G:subColor,border:"none",fontSize:12,fontWeight:ftab===t.k?700:400,cursor:"pointer"}}>{t.l}</button>
       })}
     </div>
@@ -1855,7 +1861,7 @@ function App(){
             <span style={{fontSize:13,fontWeight:600,color:textColor}}>📱 Preview (como está publicada)</span>
             <button className="bh" onClick={function(){var f=document.getElementById("lp_preview");if(f)f.src=f.src}} style={{padding:"4px 10px",borderRadius:4,background:B+"12",color:B,border:"none",fontSize:10,cursor:"pointer"}}>🔄 Atualizar</button>
           </div>
-          <iframe id="lp_preview" src="/" style={{width:"100%",height:250,border:"1px solid "+border,borderRadius:8}} title="Preview"/>
+          <iframe id="lp_preview" src={"https://portal-corretor.com/"} style={{width:"100%",height:300,border:"1px solid "+border,borderRadius:8}} title="Preview"/>
         </div>
         {/* Hero Section */}
         <div style={{padding:20,borderRadius:14,background:cardBg,border:"1px solid "+border,marginBottom:12}}>
@@ -2289,7 +2295,7 @@ function App(){
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
             <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Plataforma</div>
-              <select id="int_email_plat" style={iS}><option value="">Selecione...</option><option value="mailchimp">Mailchimp</option><option value="sendgrid">SendGrid</option><option value="resend">Resend</option><option value="brevo">Brevo</option></select></div>
+              <select id="int_email_plat" style={iS}><option value="">Selecione...</option><option value="mailchimp">Mailchimp</option><option value="sendgrid">SendGrid</option><option value="resend">Resend</option><option value="brevo">Brevo</option><option value="gmail">Gmail SMTP</option><option value="locaweb">Locaweb</option></select></div>
             <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>API Key</div><input id="int_email_key" type="password" onKeyDown={function(e){e.stopPropagation()}} style={iS} placeholder="API Key"/></div>
           </div>
           <button className="bh" onClick={async function(){
@@ -2425,6 +2431,7 @@ function App(){
   </div>;
 }
 
+window.onerror=function(msg,url,line){document.getElementById("root").innerHTML="<div style='padding:40px;color:red;font-family:monospace'><h2>Erro:</h2><pre>"+msg+"\nLine: "+line+"</pre><button onclick='location.reload()'>Recarregar</button></div>"};
 ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
 </script>
 </body>
