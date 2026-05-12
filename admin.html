@@ -258,47 +258,92 @@ function AIBrainView(props){
     {tab==="office"&&<div>
       {/* ANIMATED OFFICE SVG */}
       <div style={{borderRadius:14,overflow:"hidden",border:"1px solid "+border,marginBottom:10,background:dark?"#0a0a12":"#f0ede8"}}>
-        <svg viewBox="0 0 700 180" style={{width:"100%",display:"block"}}>
+        <svg viewBox="0 0 700 280" style={{width:"100%",display:"block"}}>
           {/* Floor */}
-          <rect width="700" height="180" fill={dark?"#0c0c14":"#f5f2ed"}/>
+          <defs>
+            <pattern id="floor" width="20" height="20" patternUnits="userSpaceOnUse">
+              <rect width="20" height="20" fill={dark?"#0c0c14":"#ece8e1"}/>
+              <rect width="10" height="10" fill={dark?"#0e0e16":"#e8e4dd"}/>
+              <rect x="10" y="10" width="10" height="10" fill={dark?"#0e0e16":"#e8e4dd"}/>
+            </pattern>
+          </defs>
+          <rect width="700" height="280" fill="url(#floor)"/>
           {/* Walls */}
-          <rect x="0" y="0" width="700" height="6" fill={dark?"#1a1a22":"#d4cfc8"} rx="2"/>
-          <rect x="0" y="0" width="6" height="180" fill={dark?"#1a1a22":"#d4cfc8"} rx="2"/>
-          <rect x="694" y="0" width="6" height="180" fill={dark?"#1a1a22":"#d4cfc8"} rx="2"/>
-          {/* Meeting room */}
-          <rect x="540" y="10" width="150" height="80" fill={dark?"#111118":"#e8e4de"} rx="6" stroke={dark?"#222":"#ccc"} strokeWidth="1"/>
-          <text x="615" y="30" textAnchor="middle" fill={subColor} fontSize="9">Sala de Reuniao</text>
-          <rect x="570" y="40" width="90" height="35" fill={dark?"#161620":"#ddd8d0"} rx="4"/>
-          {/* Agent desks */}
+          <rect x="0" y="0" width="700" height="8" fill={dark?"#1a1a28":"#c8c0b4"} rx="2"/>
+          <rect x="0" y="0" width="8" height="280" fill={dark?"#1a1a28":"#c8c0b4"} rx="2"/>
+          <rect x="692" y="0" width="8" height="280" fill={dark?"#1a1a28":"#c8c0b4"} rx="2"/>
+          <rect x="0" y="272" width="700" height="8" fill={dark?"#1a1a28":"#c8c0b4"} rx="2"/>
+          {/* Meeting room walls */}
+          <rect x="480" y="8" width="4" height="120" fill={dark?"#1a1a28":"#c8c0b4"}/>
+          <rect x="480" y="8" width="212" height="4" fill={dark?"#1a1a28":"#c8c0b4"}/>
+          <rect x="480" y="124" width="140" height="4" fill={dark?"#1a1a28":"#c8c0b4"}/>
+          {/* Door */}
+          <rect x="600" y="124" width="30" height="4" fill={dark?"#252530":"#b8b0a4"} rx="1"/>
+          {/* Meeting room label */}
+          <text x="590" y="28" textAnchor="middle" fill={subColor} fontSize="10" fontWeight="600">Sala de Reuniao</text>
+          {/* Meeting table */}
+          <rect x="530" y="50" width="120" height="55" fill={dark?"#14141e":"#d8d0c6"} rx="8" stroke={dark?"#222":"#bbb"} strokeWidth="1"/>
+          {/* Meeting chairs */}
+          {[540,570,600,630].map(function(cx,ci){return <circle key={"mc"+ci} cx={cx+10} cy={45} r="8" fill={dark?"#18182a":"#ccc5bb"} stroke={dark?"#252530":"#b0a89c"} strokeWidth="1"/>})}
+          {[540,570,600,630].map(function(cx,ci){return <circle key={"mc2"+ci} cx={cx+10} cy={112} r="8" fill={dark?"#18182a":"#ccc5bb"} stroke={dark?"#252530":"#b0a89c"} strokeWidth="1"/>})}
+          {/* Plant decorations */}
+          <text x="25" y="28" fontSize="16">🌿</text>
+          <text x="460" y="28" fontSize="14">🪴</text>
+          <text x="25" y="270" fontSize="14">🪴</text>
+          {/* Water cooler */}
+          <text x="460" y="270" fontSize="14">🚰</text>
+          {/* Whiteboard in meeting room */}
+          <rect x="490" y="30" width="60" height="35" fill={dark?"#1a1a2a":"#fff"} rx="3" stroke={dark?"#333":"#aaa"} strokeWidth="1"/>
+          <text x="520" y="52" textAnchor="middle" fill={dark?"#444":"#999"} fontSize="8">Whiteboard</text>
+          {/* Meeting button */}
+          <g onClick={function(){
+            sendMsg2("brain","REUNIAO GERAL. Convoque TODOS os agentes. Para cada um, use CHAMAR:[slug] pedindo status e sugestoes. CHAMAR:[mkt] qual o status do marketing e proximas acoes? CHAMAR:[sales] status comercial e pipeline? CHAMAR:[finance] status financeiro? CHAMAR:[tech] bugs pendentes? Compile tudo em plano de acao.");
+          }} style={{cursor:"pointer"}}>
+            <rect x="530" y="72" width="80" height="22" fill={G+"40"} rx="6" stroke={G} strokeWidth="1"/>
+            <text x="570" y="87" textAnchor="middle" fill={G} fontSize="10" fontWeight="700">Reuniao</text>
+          </g>
+          {/* Agent desks - 2 rows */}
           {agents.map(function(ag,idx){
-            var x=30+idx*105;var y=100;var isBusy2=busyAgent===ag.slug;var isAct=sel===ag.slug;
+            var row=idx<3?0:1;
+            var col=idx<3?idx:idx-3;
+            var x=40+col*150;var y=row===0?145:210;
+            var isBusy2=busyAgent===ag.slug;var isAct=sel===ag.slug;
             return <g key={ag.slug} onClick={function(){setSel(ag.slug);loadConvo(ag.slug)}} style={{cursor:"pointer"}}>
+              {/* Desk shadow */}
+              <rect x={x+2} y={y+22} width="120" height="32" fill={dark?"#08080f":"#d0c8bc"} rx="4" opacity="0.3"/>
               {/* Desk */}
-              <rect x={x} y={y+20} width="80" height="35" fill={dark?"#161620":"#ddd8d0"} rx="4" stroke={isAct?ag.cor:(dark?"#222":"#ccc")} strokeWidth={isAct?2:1}/>
+              <rect x={x} y={y+20} width="120" height="32" fill={dark?"#161622":"#ddd6cc"} rx="4" stroke={isAct?ag.cor:(dark?"#252530":"#c0b8ac")} strokeWidth={isAct?2:1}/>
+              {/* Keyboard */}
+              <rect x={x+15} y={y+30} width="30" height="12" fill={dark?"#1a1a2a":"#ccc5bb"} rx="2"/>
               {/* Monitor */}
-              <rect x={x+28} y={y+24} width="24" height="16" fill={isBusy2?ag.cor+"60":(dark?"#222":"#bbb")} rx="2"/>
+              <rect x={x+55} y={y+22} width="36" height="24" fill={isBusy2?ag.cor+"50":(dark?"#1a1a2a":"#c0b8ac")} rx="3" stroke={isAct?ag.cor:(dark?"#333":"#aaa")} strokeWidth="1"/>
+              {/* Monitor stand */}
+              <rect x={x+70} y={y+46} width="6" height="6" fill={dark?"#222":"#bbb"}/>
+              {/* Monitor screen glow */}
+              {isBusy2&&<rect x={x+57} y={y+24} width="32" height="20" fill={ag.cor} rx="2" opacity="0.15">
+                <animate attributeName="opacity" values="0.1;0.25;0.1" dur="2s" repeatCount="indefinite"/>
+              </rect>}
               {/* Chair */}
-              <circle cx={x+40} cy={y+12} r="12" fill={dark?"#1a1a25":"#e0dbd4"} stroke={isAct?ag.cor:"none"} strokeWidth="2"/>
+              <ellipse cx={x+40} cy={y+12} rx="14" ry="12" fill={dark?"#1a1a28":"#d8d0c6"} stroke={isAct?ag.cor:"none"} strokeWidth="2"/>
               {/* Avatar */}
-              <text x={x+40} y={y+17} textAnchor="middle" fontSize="14">
-                <tspan>{ag.avatar}</tspan>
-                {isBusy2&&<animate attributeName="dy" values="0;-2;0" dur="1s" repeatCount="indefinite"/>}
+              <text x={x+40} y={y+17} textAnchor="middle" fontSize="16">
+                {ag.avatar}
               </text>
-              {/* Name */}
-              <text x={x+40} y={y+65} textAnchor="middle" fill={isAct?ag.cor:textColor} fontSize="10" fontWeight={isAct?700:400}>{ag.nome}</text>
-              {/* Status dot */}
-              <circle cx={x+70} cy={y+25} r="4" fill={isBusy2?W:GR}>
-                {isBusy2&&<animate attributeName="opacity" values="1;0.3;1" dur="1s" repeatCount="indefinite"/>}
+              {/* Float animation for online agents */}
+              {!isBusy2&&<animateTransform attributeName="transform" type="translate" values="0,0;0,-2;0,0" dur="3s" repeatCount="indefinite"/>}
+              {/* Work animation for busy agents */}
+              {isBusy2&&<animateTransform attributeName="transform" type="translate" values="0,0;1,0;0,0;-1,0;0,0" dur="0.5s" repeatCount="indefinite"/>}
+              {/* Name plate */}
+              <rect x={x+10} y={y+54} width="100" height="18" fill={isAct?ag.cor+"15":"transparent"} rx="4"/>
+              <text x={x+60} y={y+66} textAnchor="middle" fill={isAct?ag.cor:textColor} fontSize="10" fontWeight={isAct?700:400}>{ag.nome} - {ag.cargo}</text>
+              {/* Status */}
+              <circle cx={x+110} cy={y+26} r="5" fill={isBusy2?W:GR}>
+                <animate attributeName="r" values="5;6;5" dur="2s" repeatCount="indefinite"/>
               </circle>
             </g>
           })}
-          {/* Meeting button */}
-          <g onClick={function(){
-            sendMsg2("brain","REUNIAO GERAL. Convoque TODOS os agentes. Para cada um, use CHAMAR:[slug] pedindo status. Exemplo: CHAMAR:[mkt] status marketing. CHAMAR:[sales] status comercial. CHAMAR:[finance] status financeiro. CHAMAR:[tech] status TI. Depois compile tudo em um plano de acao.");
-          }} style={{cursor:"pointer"}}>
-            <rect x="560" y="52" width="80" height="20" fill={G+"30"} rx="4"/>
-            <text x="600" y="66" textAnchor="middle" fill={G} fontSize="9" fontWeight="600">Reuniao</text>
-          </g>
+          {/* Clock */}
+          <text x="670" y="270" textAnchor="end" fill={subColor} fontSize="10">{new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</text>
         </svg>
       </div>
 
@@ -699,7 +744,7 @@ function App(){
     var p=user.perfil||user.role||"viewer";
     if(p==="super_admin")return true;
     var perms={
-      admin:{dash:true,clients:true,pipeline:true,payments:true,financeiro:true,links:true,plans:true,landing:true,aibrain:true,marketing:true,users:false,integrations:false,reports:true,overdue:true},
+      admin:{dash:true,clients:true,pipeline:true,payments:true,financeiro:true,links:true,plans:true,landing:true,aibrain:true,marketing:true,users:false,integrations:false,reports:true,logs:true,overdue:true},
       gerente:{dash:true,clients:true,pipeline:true,payments:true,financeiro:false,links:false,plans:false,landing:false,aibrain:false,marketing:false,users:false,integrations:false,reports:true,overdue:true},
       viewer:{dash:true,clients:false,pipeline:false,payments:false,financeiro:false,links:false,plans:false,landing:false,aibrain:false,marketing:false,users:false,integrations:false,reports:true,overdue:false}
     };
@@ -899,7 +944,7 @@ function App(){
         <div style={{fontSize:11,color:subColor,marginTop:4}}>Portal do Corretor</div>
       </div>
       <div className="admin-nav-items" style={{flex:1,padding:"12px 10px"}}>
-        {[{k:"dash",l:"Dashboard",i:"📊"},{k:"clients",l:"Clientes",i:"👥"},{k:"pipeline",l:"Pipeline",i:"🔄"},{k:"financeiro",l:"Financeiro",i:"🏦"},{k:"links",l:"Portais",i:"🔗"},{k:"plans",l:"Planos",i:"📦"},{k:"landing",l:"Landing Page",i:"🌐"},{k:"aibrain",l:"Cérebro IA",i:"🧠"},{k:"marketing",l:"Marketing",i:"📣"},{k:"users",l:"Usuários",i:"🔐"},{k:"integrations",l:"Integrações",i:"⚡"},{k:"reports",l:"Relatórios",i:"📈"},{k:"overdue",l:"Inadimplentes",i:"⚠️"}].filter(function(item){return canAdmin(item.k)}).map(function(item){
+        {[{k:"dash",l:"Dashboard",i:"📊"},{k:"clients",l:"Clientes",i:"👥"},{k:"pipeline",l:"Pipeline",i:"🔄"},{k:"financeiro",l:"Financeiro",i:"🏦"},{k:"links",l:"Portais",i:"🔗"},{k:"plans",l:"Planos",i:"📦"},{k:"landing",l:"Landing Page",i:"🌐"},{k:"aibrain",l:"Cérebro IA",i:"🧠"},{k:"marketing",l:"Marketing",i:"📣"},{k:"users",l:"Usuários",i:"🔐"},{k:"integrations",l:"Integrações",i:"⚡"},{k:"reports",l:"Relatórios",i:"📈"},{k:"logs",l:"Logs",i:"📋"},{k:"overdue",l:"Inadimplentes",i:"⚠️"}].filter(function(item){return canAdmin(item.k)}).map(function(item){
           return <div key={item.k} className="bh" onClick={function(){setView(item.k);setSelClient(null)}} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:10,marginBottom:2,background:view===item.k?"rgba(200,164,92,0.08)":"transparent",color:view===item.k?G:"#888",fontSize:14,fontWeight:view===item.k?600:400}}>
             <span style={{fontSize:16}}>{item.i}</span>{item.l}
             {item.k==="overdue"&&pendentes.length>0&&<span style={{marginLeft:"auto",background:R,color:textColor,fontSize:10,fontWeight:700,padding:"2px 6px",borderRadius:8}}>{pendentes.length}</span>}
@@ -924,7 +969,30 @@ function App(){
     </div>
 
     {/* Content */}
-    <div className="admin-main" style={{flex:1,padding:"24px 32px",overflow:"auto",maxHeight:"100vh"}}>
+    <div className="admin-main" style={{flex:1,display:"flex",flexDirection:"column",maxHeight:"100vh"}}>
+      {/* TOP BAR */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 24px",borderBottom:"1px solid "+border,background:sidebar,flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <span style={{fontSize:16}}>{view==="dash"?"📊":view==="clients"?"👥":view==="pipeline"?"🔄":view==="financeiro"?"🏦":view==="aibrain"?"🧠":view==="reports"?"📈":"🏢"}</span>
+          <span style={{fontSize:16,fontWeight:600,color:textColor}}>{view==="dash"?"Dashboard":view==="clients"?"Clientes":view==="pipeline"?"Pipeline":view==="financeiro"?"Financeiro":view==="aibrain"?"Cérebro IA":view==="reports"?"Relatórios":view==="landing"?"Landing Page":view==="plans"?"Planos":view==="links"?"Portais":view==="marketing"?"Marketing":view==="integrations"?"Integrações":view==="users"?"Usuários":view==="overdue"?"Inadimplentes":"Admin"}</span>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <div style={{display:"flex",alignItems:"center",gap:6}}>
+            <div style={{width:8,height:8,borderRadius:"50%",background:workerOn?GR:R}}/>
+            <span style={{fontSize:10,color:workerOn?GR:subColor}}>Worker {workerOn?"ON":"OFF"}</span>
+          </div>
+          <div style={{height:20,width:1,background:border}}/>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <div style={{width:32,height:32,borderRadius:"50%",background:G+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,color:G}}>{user&&user.nome?user.nome.charAt(0).toUpperCase():"A"}</div>
+            <div>
+              <div style={{fontSize:13,fontWeight:600,color:textColor}}>{user?user.nome:"Admin"}</div>
+              <div style={{fontSize:10,color:subColor}}>{user?(user.perfil||user.role||"admin"):""}</div>
+            </div>
+          </div>
+          <button className="bh" onClick={function(){setAuth(false);setUser(null);sessionStorage.removeItem("admin_session")}} style={{padding:"6px 14px",borderRadius:6,background:R+"10",color:R,border:"none",fontSize:11,fontWeight:600,cursor:"pointer"}}>Sair</button>
+        </div>
+      </div>
+      <div style={{flex:1,padding:"24px 32px",overflow:"auto"}}>
 
       {/* ═══ DASHBOARD ═══ */}
       {view==="dash"&&<div className="fade-in">
@@ -1834,12 +1902,26 @@ function App(){
 
       {/* ═══ LANDING PAGE ═══ */}
       {view==="landing"&&<div className="fade-in">
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-          <div style={{fontSize:24,fontWeight:700,color:textColor}}>🌐 Landing Page</div>
-          <div style={{display:"flex",gap:8,alignItems:"center"}}>
-            <a href="/" target="_blank" className="bh" style={{padding:"8px 16px",borderRadius:8,background:B+"12",color:B,textDecoration:"none",fontSize:13,fontWeight:600}}>👁️ Visualizar</a>
-            <div className="bh" onClick={toggleLanding} style={{padding:"8px 16px",borderRadius:8,background:landingOn?GR+"12":R+"12",color:landingOn?GR:R,cursor:"pointer",fontSize:13,fontWeight:600}}>{landingOn?"🟢 Ativa":"🔴 Desativada"}</div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+          <div style={{fontSize:24,fontWeight:700,color:textColor}}>🌐 Landing Page CMS</div>
+          <div style={{display:"flex",gap:6}}>
+            <button className="bh" onClick={async function(){
+              var fields=["lp_title","lp_subtitle","lp_cta","lp_hero_bg","lp_features","lp_steps","lp_testimonials","lp_whats","lp_email","lp_final_cta"];
+              var r=await sb.from("config_whatsapp").select("chave,valor").in("chave",fields).eq("tenant_id",ADMIN_TID);
+              (r.data||[]).forEach(function(c){var el=document.getElementById(c.chave);if(el){var v=String(c.valor||"").replace(/^"|"$/g,"");el.value=v}});
+              msg("Valores carregados!");
+            }} style={{padding:"8px 14px",borderRadius:8,background:B+"12",color:B,border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>📥 Carregar Salvos</button>
+            <a href="/" target="_blank" className="bh" style={{padding:"8px 14px",borderRadius:8,background:P+"12",color:P,textDecoration:"none",fontSize:12,fontWeight:600}}>👁️ Ver Publicada</a>
+            <button className="bh" onClick={toggleLanding} style={{padding:"8px 14px",borderRadius:8,background:landingOn?GR+"12":R+"12",color:landingOn?GR:R,border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>{landingOn?"🟢 Ativa":"🔴 Off"}</button>
           </div>
+        </div>
+        {/* Preview */}
+        <div style={{padding:12,borderRadius:14,background:dark?"#0a0a09":"#fff",border:"1px solid "+border,marginBottom:12}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+            <span style={{fontSize:13,fontWeight:600,color:textColor}}>📱 Preview (como está publicada)</span>
+            <button className="bh" onClick={function(){var f=document.getElementById("lp_preview");if(f)f.src=f.src}} style={{padding:"4px 10px",borderRadius:4,background:B+"12",color:B,border:"none",fontSize:10,cursor:"pointer"}}>🔄 Atualizar</button>
+          </div>
+          <iframe id="lp_preview" src="/" style={{width:"100%",height:250,border:"1px solid "+border,borderRadius:8}} title="Preview"/>
         </div>
         {/* Hero Section */}
         <div style={{padding:20,borderRadius:14,background:cardBg,border:"1px solid "+border,marginBottom:12}}>
@@ -2342,6 +2424,57 @@ function App(){
         </div>{/* close report-content */}
       </div>}
 
+      {/* ═══ LOGS ═══ */}
+      {view==="logs"&&<div className="fade-in">
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+          <div style={{fontSize:24,fontWeight:700,color:textColor}}>📋 Logs de Atividade</div>
+          <div style={{display:"flex",gap:6}}>
+            <input type="date" id="log_from" onKeyDown={function(e){e.stopPropagation()}} style={{padding:"6px 10px",borderRadius:6,border:"1px solid "+border,background:dark?"#111":"#f8f5f0",color:textColor,fontSize:12}}/>
+            <input type="date" id="log_to" onKeyDown={function(e){e.stopPropagation()}} style={{padding:"6px 10px",borderRadius:6,border:"1px solid "+border,background:dark?"#111":"#f8f5f0",color:textColor,fontSize:12}}/>
+            <button className="bh" onClick={async function(){
+              var from=document.getElementById("log_from").value;var to=document.getElementById("log_to").value;
+              var q=sb.from("interacoes_tenant").select("*").eq("tenant_id",ADMIN_TID).order("criado_em",{ascending:false}).limit(200);
+              if(from)q=q.gte("criado_em",from);if(to)q=q.lte("criado_em",to+"T23:59:59");
+              var r=await q;window._filteredLogs=r.data||[];setView("logs");msg("Filtrado: "+(r.data||[]).length+" registros");
+            }} style={{padding:"6px 12px",borderRadius:6,background:B+"12",color:B,border:"none",fontSize:11,cursor:"pointer"}}>Filtrar</button>
+          </div>
+        </div>
+        {(function(){
+          var logs2=window._filteredLogs||[];
+          if(logs2.length===0){
+            sb.from("interacoes_tenant").select("*").order("criado_em",{ascending:false}).limit(100).then(function(r){window._filteredLogs=r.data||[];setView("logs")});
+            return <div style={{textAlign:"center",padding:20,color:subColor}}>Carregando...</div>
+          }
+          return <div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:12}}>
+              {[{l:"Total",v:logs2.length,c:B},{l:"Deploy",v:logs2.filter(function(l){return l.tipo==="deploy"}).length,c:GR},{l:"Login",v:logs2.filter(function(l){return l.tipo==="login"}).length,c:P},{l:"Upgrades",v:logs2.filter(function(l){return l.tipo==="upgrade"}).length,c:G}].map(function(k,i){
+                return <div key={i} style={{padding:12,borderRadius:10,background:cardBg,border:"1px solid "+border,textAlign:"center"}}>
+                  <div style={{fontSize:20,fontWeight:700,color:k.c}}>{k.v}</div>
+                  <div style={{fontSize:10,color:subColor}}>{k.l}</div>
+                </div>
+              })}
+            </div>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+              <thead><tr style={{borderBottom:"2px solid "+border}}>
+                <th style={{textAlign:"left",padding:8,color:subColor}}>Data/Hora</th>
+                <th style={{textAlign:"left",padding:8,color:subColor}}>Usuário</th>
+                <th style={{textAlign:"left",padding:8,color:subColor}}>Tipo</th>
+                <th style={{textAlign:"left",padding:8,color:subColor}}>Detalhes</th>
+              </tr></thead>
+              <tbody>{logs2.map(function(l,i){
+                var cols2={deploy:GR,login:B,upgrade:G,config:P,erro:R};
+                return <tr key={i} style={{borderBottom:"1px solid "+(dark?"#1a1a19":"#eee")}}>
+                  <td style={{padding:8,color:subColor,whiteSpace:"nowrap"}}>{l.criado_em?new Date(l.criado_em).toLocaleString("pt-BR"):"-"}</td>
+                  <td style={{padding:8,color:textColor,fontWeight:600}}>{l.usuario||"-"}</td>
+                  <td style={{padding:8}}><span style={{padding:"2px 8px",borderRadius:4,background:(cols2[l.tipo]||"#555")+"15",color:cols2[l.tipo]||"#555",fontSize:10}}>{l.tipo}</span></td>
+                  <td style={{padding:8,color:subColor,maxWidth:300,overflow:"hidden",textOverflow:"ellipsis"}}>{l.conteudo||"-"}</td>
+                </tr>
+              })}</tbody>
+            </table>
+          </div>
+        })()}
+      </div>}
+
       {/* ═══ OVERDUE ═══ */}
       {view==="overdue"&&<div className="fade-in">
         <div style={{fontSize:24,fontWeight:700,color:textColor,marginBottom:20}}>⚠️ Inadimplentes</div>
@@ -2361,7 +2494,8 @@ function App(){
         })}
       </div>}
 
-    </div>
+    </div>{/* close scrollable content */}
+    </div>{/* close admin-main */}
 
     {/* Toast */}
     {toast&&<div style={{position:"fixed",bottom:24,right:24,padding:"12px 24px",borderRadius:12,background:cardBg,color:textColor,fontSize:14,border:"1px solid "+border,zIndex:999}}>{toast}</div>}
