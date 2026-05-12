@@ -100,6 +100,7 @@ var G="#C8A45C";var B="#5B8FD4";var GR="#4CAF7D";var P="#8B6FBF";var R="#D45B5B"
     var _ghToken=useState("");var ghToken=_ghToken[0];var setGhToken=_ghToken[1];
     var _ghRepo=useState("portal-corretor");var ghRepo=_ghRepo[0];var setGhRepo=_ghRepo[1];
     var _ghUser=useState("");var ghUser=_ghUser[0];var setGhUser=_ghUser[1];
+    var _aiProviders=useState({});var aiProviders=_aiProviders[0];var setAiProviders=_aiProviders[1];
 
     var loadBrainData=async function(){
       var r1=await sb.from("config_whatsapp").select("valor").eq("chave","anthropic_api_key").eq("tenant_id",ADMIN_TID).single();
@@ -114,6 +115,12 @@ var G="#C8A45C";var B="#5B8FD4";var GR="#4CAF7D";var P="#8B6FBF";var R="#D45B5B"
       if(r7.data){try{setAutonomy(JSON.parse(r7.data.valor))}catch(e){}}
       var r8=await sb.from("config_whatsapp").select("chave,valor").in("chave",["github_token","github_user","github_repo"]).eq("tenant_id",ADMIN_TID);
       (r8.data||[]).forEach(function(c){var v=typeof c.valor==="string"?c.valor.replace(/^"|"$/g,""):String(c.valor);if(c.chave==="github_token")setGhToken(v);if(c.chave==="github_user")setGhUser(v);if(c.chave==="github_repo")setGhRepo(v)});
+      var r9=await sb.from("config_whatsapp").select("chave,valor").like("chave","ai_provider_%").eq("tenant_id",ADMIN_TID);
+      var r10=await sb.from("config_whatsapp").select("chave,valor").like("chave","ai_key_%").eq("tenant_id",ADMIN_TID);
+      var provs={};
+      (r9.data||[]).forEach(function(c){var cat=c.chave.replace("ai_provider_","");provs[cat]=provs[cat]||{};provs[cat].provider=(c.valor||"").replace(/^"|"$/g,"")});
+      (r10.data||[]).forEach(function(c){var cat=c.chave.replace("ai_key_","");provs[cat]=provs[cat]||{};provs[cat].key=(c.valor||"").replace(/^"|"$/g,"")});
+      setAiProviders(provs);
     };
     useEffect(function(){loadBrainData()},[]);
 
@@ -138,6 +145,42 @@ var G="#C8A45C";var B="#5B8FD4";var GR="#4CAF7D";var P="#8B6FBF";var R="#D45B5B"
       setBusy(true);var t2=teams[tk];
       var newMsgs=msgs3.concat([{role:"user",content:q,team:tk}]);
       setMsgs3(newMsgs);setInp("");
+
+      // Handle special generation commands
+      if(q.startsWith("GERAR_IMAGEM:")){
+        var imgPrompt=q.replace("GERAR_IMAGEM:","").trim();
+        setMsgs3(newMsgs.concat([{role:"assistant",content:"\ud83c\udfa8 Gerando imagem...\nPrompt: "+imgPrompt,team:tk}]));
+        var imgResult=await generateImage(imgPrompt);
+        if(imgResult.url){
+          await sb.from("ai_content").insert({equipe:"mkt",tipo:"imagem",titulo:imgPrompt.substring(0,100),conteudo:"URL: "+imgResult.url+"\n\nPrompt: "+imgPrompt,plataforma:"instagram",status:"rascunho",tenant_id:ADMIN_TID});
+          setMsgs3(newMsgs.concat([{role:"assistant",content:"\u2705 Imagem gerada!\n\n\ud83d\uddbc\ufe0f URL: "+imgResult.url+"\n\nSalva na aba Conte\u00fado como rascunho.",team:tk}]));
+        }else{
+          setMsgs3(newMsgs.concat([{role:"assistant",content:"\u274c "+(imgResult.error||"Erro ao gerar imagem"),team:tk}]));
+        }
+        setBusy(false);return;
+      }
+      if(q.startsWith("GERAR_VIDEO:")){
+        var vidPrompt=q.replace("GERAR_VIDEO:","").trim();
+        var vidResult=await generateVideo(vidPrompt);
+        if(vidResult.error){
+          setMsgs3(newMsgs.concat([{role:"assistant",content:"\u274c "+vidResult.error,team:tk}]));
+        }else{
+          await sb.from("ai_content").insert({equipe:"mkt",tipo:"video",titulo:vidPrompt.substring(0,100),conteudo:JSON.stringify(vidResult),plataforma:"instagram",status:"rascunho",tenant_id:ADMIN_TID});
+          setMsgs3(newMsgs.concat([{role:"assistant",content:"\u2705 V\u00eddeo em processamento!\n\nID: "+(vidResult.id||vidResult.video_id||"enviado")+"\n\nSalvo na aba Conte\u00fado.",team:tk}]));
+        }
+        setBusy(false);return;
+      }
+      if(q.startsWith("GERAR_AUDIO:")){
+        var audioText=q.replace("GERAR_AUDIO:","").trim();
+        var audioResult=await generateVoice(audioText);
+        if(audioResult.audio){
+          setMsgs3(newMsgs.concat([{role:"assistant",content:"\u2705 \u00c1udio gerado!\n\n\ud83c\udf99\ufe0f Clique para ouvir. Texto: "+audioText,team:tk,audio:audioResult.audio}]));
+        }else{
+          setMsgs3(newMsgs.concat([{role:"assistant",content:"\u274c "+(audioResult.error||"Erro ao gerar \u00e1udio"),team:tk}]));
+        }
+        setBusy(false);return;
+      }
+
       var apiMsgs=newMsgs.filter(function(m){return m.team===tk}).map(function(m){return{role:m.role,content:m.content}}).slice(-10);
       var txt=await callAI(t2.sys,apiMsgs);
       setMsgs3(newMsgs.concat([{role:"assistant",content:txt,team:tk}]));
@@ -217,11 +260,71 @@ var G="#C8A45C";var B="#5B8FD4";var GR="#4CAF7D";var P="#8B6FBF";var R="#D45B5B"
       {l:"\ud83d\udce7 Email prospec\u00e7\u00e3o",team:"sales",q:"Email de prospec\u00e7\u00e3o fria para construtoras. Tom consultivo, ROI claro."},
       {l:"\ud83d\udcb0 Proje\u00e7\u00e3o 6m",team:"finance",q:"Proje\u00e7\u00e3o financeira 6 meses: cen\u00e1rios otimista, realista, pessimista."},
       {l:"\ud83d\udc1b Audit bugs",team:"tech",q:"Bugs e melhorias priorit\u00e1rias: seguran\u00e7a, performance, UX."},
-      {l:"\ud83d\udd04 Validar tudo",team:"brain",q:"Valida\u00e7\u00e3o completa. Metas atingidas? Tarefas pendentes? O que fazer agora? Liste TAREFA: para cada a\u00e7\u00e3o necess\u00e1ria."}
+      {l:"\ud83d\udd04 Validar tudo",team:"brain",q:"Valida\u00e7\u00e3o completa. Metas atingidas? Tarefas pendentes? O que fazer agora? Liste TAREFA: para cada a\u00e7\u00e3o necess\u00e1ria."},
+      {l:"\ud83c\udfa8 Gerar Imagem",team:"mkt",q:"GERAR_IMAGEM: Crie uma arte profissional para post do Instagram do Portal do Corretor. Estilo moderno, cores dourado e preto, tema: gest\u00e3o imobili\u00e1ria digital."},
+      {l:"\ud83c\udfac Gerar V\u00eddeo",team:"mkt",q:"GERAR_VIDEO: Crie um Reels de 15 segundos mostrando as funcionalidades do Portal do Corretor. Estilo tech, din\u00e2mico."},
+      {l:"\ud83c\udf99\ufe0f Gerar \u00c1udio",team:"mkt",q:"GERAR_AUDIO: Portal do Corretor. A plataforma completa para construtoras. CRM, tabela de vendas, simulador de financiamento e gest\u00e3o de corretores. Tudo em um s\u00f3 lugar."}
     ];
 
 
     // ═══ DEVOPS FUNCTIONS ═══
+
+    // ═══ AI GENERATION FUNCTIONS ═══
+    var generateImage=async function(prompt){
+      var prov=aiProviders.img;if(!prov||!prov.provider||!prov.key){return{error:"Configure Geração de Imagens em Integrações"}}
+      var p=prov.provider;var k=prov.key;
+      try{
+        if(p==="openai_dalle"){
+          var r=await fetch("https://api.openai.com/v1/images/generations",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+k},body:JSON.stringify({model:"dall-e-3",prompt:prompt,n:1,size:"1024x1024"})});
+          var d=await r.json();return{url:d.data&&d.data[0]?d.data[0].url:null,error:d.error?d.error.message:null}
+        }
+        if(p==="stability"){
+          var r2=await fetch("https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+k},body:JSON.stringify({text_prompts:[{text:prompt}],cfg_scale:7,steps:30})});
+          var d2=await r2.json();return{url:d2.artifacts&&d2.artifacts[0]?"data:image/png;base64,"+d2.artifacts[0].base64:null}
+        }
+        if(p==="leonardo"){
+          var r3=await fetch("https://cloud.leonardo.ai/api/rest/v1/generations",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+k},body:JSON.stringify({prompt:prompt,num_images:1,width:1024,height:1024})});
+          var d3=await r3.json();return{id:d3.sdGenerationJob?d3.sdGenerationJob.generationId:null,status:"processing"}
+        }
+        return{error:"Provedor "+p+" não implementado. Use OpenAI DALL-E, Stability AI ou Leonardo AI."}
+      }catch(e){return{error:e.message}}
+    };
+
+    var generateVideo=async function(prompt,imageUrl){
+      var prov=aiProviders.video;if(!prov||!prov.provider||!prov.key){return{error:"Configure Geração de Vídeo em Integrações"}}
+      var p=prov.provider;var k=prov.key;
+      try{
+        if(p==="runway"){
+          var r=await fetch("https://api.rev.ai/runway/v1/image_to_video",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+k},body:JSON.stringify({promptImage:imageUrl,promptText:prompt,duration:4})});
+          return await r.json()
+        }
+        if(p==="heygen"){
+          var r2=await fetch("https://api.heygen.com/v2/video/generate",{method:"POST",headers:{"Content-Type":"application/json","X-Api-Key":k},body:JSON.stringify({video_inputs:[{character:{type:"avatar",avatar_id:"default"},voice:{type:"text",input_text:prompt}}]})});
+          return await r2.json()
+        }
+        return{error:"Provedor "+p+" ainda não implementado"}
+      }catch(e){return{error:e.message}}
+    };
+
+    var generateVoice=async function(text){
+      var prov=aiProviders.voice;if(!prov||!prov.provider||!prov.key){return{error:"Configure Voz em Integrações"}}
+      var p=prov.provider;var k=prov.key;
+      try{
+        if(p==="elevenlabs"){
+          var r=await fetch("https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM",{method:"POST",headers:{"Content-Type":"application/json","xi-api-key":k},body:JSON.stringify({text:text,model_id:"eleven_multilingual_v2"})});
+          if(r.ok){var blob=await r.blob();return{audio:URL.createObjectURL(blob)}}
+          return{error:"Erro ElevenLabs"}
+        }
+        if(p==="openai_tts"){
+          var r2=await fetch("https://api.openai.com/v1/audio/speech",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+k},body:JSON.stringify({model:"tts-1",input:text,voice:"nova"})});
+          if(r2.ok){var blob2=await r2.blob();return{audio:URL.createObjectURL(blob2)}}
+          return{error:"Erro OpenAI TTS"}
+        }
+        return{error:"Provedor "+p+" ainda não implementado"}
+      }catch(e){return{error:e.message}}
+    };
+
+    // ═══ RENDER ═══
     var ghAPI=function(path,method,body){
       return fetch("https://api.github.com/repos/"+ghUser+"/"+ghRepo+"/"+path,{
         method:method||"GET",
@@ -377,6 +480,9 @@ var G="#C8A45C";var B="#5B8FD4";var GR="#4CAF7D";var P="#8B6FBF";var R="#D45B5B"
 
       {/* TAB: CHAT */}
       {tab==="chat"&&<div>
+        <div style={{display:"flex",gap:4,marginBottom:8,flexWrap:"wrap"}}>
+          {[{k:"img",i:"\ud83c\udfa8"},{k:"video",i:"\ud83c\udfac"},{k:"voice",i:"\ud83c\udf99\ufe0f"},{k:"design",i:"\ud83d\uddbc\ufe0f"},{k:"text",i:"\u270d\ufe0f"},{k:"analytics",i:"\ud83d\udcca"}].map(function(s2){var on3=aiProviders[s2.k]&&aiProviders[s2.k].provider;return <span key={s2.k} style={{padding:"3px 8px",borderRadius:6,background:on3?GR+"10":R+"08",color:on3?GR:subColor,fontSize:10,fontWeight:600}}>{s2.i} {on3?aiProviders[s2.k].provider:"off"}</span>})}
+        </div>
         <div style={{display:"flex",gap:6,marginBottom:12,overflow:"auto"}}>
           {Object.keys(teams).map(function(k){var t2=teams[k];return <div key={k} className="bh" onClick={function(){setTeam(k)}} style={{padding:"8px 14px",borderRadius:8,background:team===k?t2.color+"15":"transparent",border:team===k?"1px solid "+t2.color+"30":"1px solid "+border,color:team===k?t2.color:subColor,fontSize:12,fontWeight:team===k?700:400,whiteSpace:"nowrap",cursor:"pointer"}}>{t2.name}</div>})}
         </div>
@@ -387,7 +493,11 @@ var G="#C8A45C";var B="#5B8FD4";var GR="#4CAF7D";var P="#8B6FBF";var R="#D45B5B"
           <div style={{flex:1,padding:10,overflow:"auto"}}>
             {msgs3.filter(function(m){return m.team===team||(team==="brain")}).length===0&&<div style={{textAlign:"center",padding:30,color:subColor,fontSize:13}}>Use os bot\u00f5es ou digite uma pergunta</div>}
             {msgs3.filter(function(m){return m.team===team||(team==="brain"&&m.team)}).map(function(m,i){var isU=m.role==="user";return <div key={i} style={{display:"flex",justifyContent:isU?"flex-end":"flex-start",marginBottom:6}}>
-              <div style={{maxWidth:"85%",padding:"8px 12px",borderRadius:isU?"10px 10px 2px 10px":"10px 10px 10px 2px",background:isU?teams[m.team||team].color+"12":(dark?"#111":"#f8f5f0"),color:textColor,fontSize:13,lineHeight:1.7,whiteSpace:"pre-wrap"}}>{m.content}</div>
+              <div style={{maxWidth:"85%",padding:"8px 12px",borderRadius:isU?"10px 10px 2px 10px":"10px 10px 10px 2px",background:isU?teams[m.team||team].color+"12":(dark?"#111":"#f8f5f0"),color:textColor,fontSize:13,lineHeight:1.7,whiteSpace:"pre-wrap"}}>
+                {m.content}
+                {m.audio&&<div style={{marginTop:6}}><audio controls src={m.audio} style={{width:"100%",height:32}}/></div>}
+                {m.content&&m.content.includes("URL: http")&&<div style={{marginTop:6}}><img src={m.content.match(/URL: (http\S+)/)?m.content.match(/URL: (http\S+)/)[1]:""} style={{maxWidth:"100%",borderRadius:8}} onError={function(e){e.target.style.display="none"}}/></div>}
+              </div>
             </div>})}
             {busy&&<div style={{padding:8,color:subColor,fontSize:13}}>{"\u23f3"} Processando...</div>}
           </div>
@@ -1949,6 +2059,52 @@ function App(){
             await sb.from("config_whatsapp").insert({chave:"anthropic_api_key",valor:k,tenant_id:ADMIN_TID});
             msg("✅ API Key Anthropic salva!")
           }} style={{padding:"10px 20px",borderRadius:8,background:P,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>💾 Salvar API Key</button>
+        </div>
+
+        {/* AI Providers - Modular */}
+        <div style={{padding:20,borderRadius:14,background:cardBg,border:"1px solid "+border,marginBottom:12}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <span style={{fontSize:28}}>🤖</span>
+              <div><div style={{fontSize:16,fontWeight:700,color:textColor}}>Central de IAs — Provedores</div><div style={{fontSize:12,color:subColor}}>Configure cada IA. Troque provedor a qualquer momento.</div></div>
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+            {[
+              {k:"img",icon:"🎨",name:"Geração de Imagens",desc:"Posts, banners, artes",providers:[{v:"openai_dalle",l:"OpenAI DALL-E"},{v:"midjourney",l:"Midjourney"},{v:"ideogram",l:"Ideogram"},{v:"stability",l:"Stability AI"},{v:"leonardo",l:"Leonardo AI"}],color:"#E06090"},
+              {k:"video",icon:"🎬",name:"Geração de Vídeo",desc:"Reels, stories, ads",providers:[{v:"runway",l:"Runway ML"},{v:"heygen",l:"HeyGen"},{v:"synthesia",l:"Synthesia"},{v:"pika",l:"Pika Labs"},{v:"luma",l:"Luma Dream Machine"}],color:"#5B8FD4"},
+              {k:"voice",icon:"🎙️",name:"Voz e Áudio",desc:"Narração, ligações, podcasts",providers:[{v:"elevenlabs",l:"ElevenLabs"},{v:"openai_tts",l:"OpenAI TTS"},{v:"murf",l:"Murf AI"},{v:"play_ht",l:"Play.ht"}],color:"#4CAF7D"},
+              {k:"design",icon:"🖼️",name:"Design e Templates",desc:"Carrosséis, stories",providers:[{v:"canva",l:"Canva API"},{v:"crello",l:"Crello/VistaCreate"},{v:"figma",l:"Figma API"}],color:"#E8A94E"},
+              {k:"text",icon:"✍️",name:"Texto e Copy",desc:"Legendas, emails, scripts",providers:[{v:"anthropic",l:"Claude (Anthropic)"},{v:"openai",l:"GPT (OpenAI)"},{v:"google",l:"Gemini (Google)"},{v:"mistral",l:"Mistral AI"}],color:"#8B6FBF"},
+              {k:"analytics",icon:"📊",name:"Analytics e Dados",desc:"Métricas, previsões",providers:[{v:"anthropic",l:"Claude (Anthropic)"},{v:"openai",l:"GPT (OpenAI)"},{v:"google",l:"Gemini (Google)"}],color:"#C8A45C"}
+            ].map(function(cat){
+              return <div key={cat.k} style={{padding:14,borderRadius:12,background:dark?"#111":"#f8f5f0",border:"1px solid "+border}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+                  <span style={{fontSize:22}}>{cat.icon}</span>
+                  <div><div style={{fontSize:14,fontWeight:700,color:cat.color}}>{cat.name}</div><div style={{fontSize:11,color:subColor}}>{cat.desc}</div></div>
+                </div>
+                <div style={{marginBottom:6}}><div style={{fontSize:11,color:subColor,marginBottom:3}}>Provedor</div>
+                  <select id={"ai_prov_"+cat.k} style={{width:"100%",padding:"8px",borderRadius:6,border:"1px solid "+border,background:dark?"#0a0a09":"#fff",color:textColor,fontSize:12}}>
+                    <option value="">Desativado</option>
+                    {cat.providers.map(function(p2){return <option key={p2.v} value={p2.v}>{p2.l}</option>})}
+                  </select>
+                </div>
+                <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>API Key</div>
+                  <input id={"ai_key_"+cat.k} type="password" onKeyDown={function(e){e.stopPropagation()}} style={{width:"100%",padding:"8px",borderRadius:6,border:"1px solid "+border,background:dark?"#0a0a09":"#fff",color:textColor,fontSize:12}} placeholder="Chave da API"/>
+                </div>
+                <button className="bh" onClick={async function(){
+                  var prov=document.getElementById("ai_prov_"+cat.k).value;
+                  var key=document.getElementById("ai_key_"+cat.k).value;
+                  if(prov){await sb.from("config_whatsapp").delete().eq("chave","ai_provider_"+cat.k).eq("tenant_id",ADMIN_TID);await sb.from("config_whatsapp").insert({chave:"ai_provider_"+cat.k,valor:prov,tenant_id:ADMIN_TID})}
+                  if(key){await sb.from("config_whatsapp").delete().eq("chave","ai_key_"+cat.k).eq("tenant_id",ADMIN_TID);await sb.from("config_whatsapp").insert({chave:"ai_key_"+cat.k,valor:key,tenant_id:ADMIN_TID})}
+                  msg("✅ "+cat.name+": "+(prov||"desativado"));
+                }} style={{width:"100%",marginTop:8,padding:"8px",borderRadius:6,background:cat.color+"15",color:cat.color,border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>💾 Salvar</button>
+              </div>
+            })}
+          </div>
+          <div style={{marginTop:12,padding:12,borderRadius:10,background:dark?"#111":"#EFEBE4",fontSize:12,color:subColor,lineHeight:1.8}}>
+            💡 <b>Como funciona:</b> Selecione o provedor e cole a API Key. O Cérebro IA usa automaticamente a IA configurada para cada tarefa. Para trocar, basta selecionar outro provedor e colar a nova key.
+          </div>
         </div>
 
         {/* WhatsApp Vendas (admin CRM) */}
