@@ -104,7 +104,7 @@ var G="#C8A45C";var B="#5B8FD4";var GR="#4CAF7D";var P="#8B6FBF";var R="#D45B5B"
 
     var loadBrainData=async function(){
       var r1=await sb.from("config_whatsapp").select("valor").eq("chave","anthropic_api_key").eq("tenant_id",ADMIN_TID).single();
-      if(r1.data&&r1.data.valor)setApiKey(r1.data.valor.replace(/^"|"$/g,""));
+      if(r1.data&&r1.data.valor){var kv=r1.data.valor;if(typeof kv==="object")kv=JSON.stringify(kv);kv=String(kv).replace(/^"|"$/g,"").replace(/^'/,"").replace(/'$/,"");if(kv.startsWith("sk-"))setApiKey(kv)}
       var r2=await sb.from("ai_goals").select("*").eq("tenant_id",ADMIN_TID).order("criado_em",{ascending:false});setGoals(r2.data||[]);
       var r3=await sb.from("ai_tasks").select("*").eq("tenant_id",ADMIN_TID).order("criado_em",{ascending:false}).limit(50);setAiTasks(r3.data||[]);
       var r4=await sb.from("ai_content").select("*").eq("tenant_id",ADMIN_TID).order("criado_em",{ascending:false}).limit(30);setAiContent(r4.data||[]);
@@ -133,11 +133,13 @@ var G="#C8A45C";var B="#5B8FD4";var GR="#4CAF7D";var P="#8B6FBF";var R="#D45B5B"
     };
 
     var callAI=async function(sys,messages){
-      if(!apiKey)return"API Key n\u00e3o configurada";
+      if(!apiKey)return"⚠️ API Key não configurada. Vá em Integrações → Anthropic API Key.";
       try{
         var r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1500,system:sys,messages:messages})});
-        var d=await r.json();return d.content?d.content.map(function(c2){return c2.text||""}).join(""):"Erro";
-      }catch(e){return"Erro: "+e.message}
+        var d=await r.json();
+        if(d.error)return"❌ Erro API: "+(d.error.message||JSON.stringify(d.error));
+        return d.content?d.content.map(function(c2){return c2.text||""}).join(""):"Erro na resposta";
+      }catch(e){return"❌ Erro de conexão: "+e.message}
     };
 
     var sendToAgent=async function(tk,q){
@@ -2049,16 +2051,23 @@ function App(){
               <div><div style={{fontSize:16,fontWeight:700,color:textColor}}>Anthropic API (Claude IA)</div><div style={{fontSize:12,color:subColor}}>Cérebro IA, Suporte IA, Agente IA — todos os agentes</div></div>
             </div>
           </div>
-          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>API Key</div><input id="int_anthropic_key" type="password" onKeyDown={function(e){e.stopPropagation()}} style={iS} placeholder="sk-ant-..."/></div>
+          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>API Key (cole a nova ou deixe vazio para manter atual)</div><input id="int_anthropic_key" type="password" onKeyDown={function(e){e.stopPropagation()}} style={iS} placeholder="sk-ant-..."/></div>
           <div style={{padding:10,borderRadius:8,background:dark?"#111":"#f8f5f0",marginBottom:10,fontSize:12,color:subColor}}>
-            Obtenha sua API Key em <b>console.anthropic.com</b>. Usada por: 🧠 Cérebro IA (5 equipes), 🤖 Suporte IA (chatbot do portal), 📊 Agente IA (relatórios automáticos).
+            Obtenha em <b>console.anthropic.com → API Keys</b>. Usada pelo 🧠 Cérebro IA, 🤖 Suporte e 📊 Agente IA.
           </div>
-          <button className="bh" onClick={async function(){
-            var k=document.getElementById("int_anthropic_key").value;if(!k){msg("Insira a API Key");return}
-            await sb.from("config_whatsapp").delete().eq("chave","anthropic_api_key").eq("tenant_id",ADMIN_TID);
-            await sb.from("config_whatsapp").insert({chave:"anthropic_api_key",valor:k,tenant_id:ADMIN_TID});
-            msg("✅ API Key Anthropic salva!")
-          }} style={{padding:"10px 20px",borderRadius:8,background:P,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>💾 Salvar API Key</button>
+          <div style={{display:"flex",gap:8}}>
+            <button className="bh" onClick={async function(){
+              var k=document.getElementById("int_anthropic_key").value;if(!k){msg("Insira a API Key");return}
+              await sb.from("config_whatsapp").delete().eq("chave","anthropic_api_key").eq("tenant_id",ADMIN_TID);
+              await sb.from("config_whatsapp").insert({chave:"anthropic_api_key",valor:k,tenant_id:ADMIN_TID});
+              msg("✅ API Key salva! Volte ao Cérebro IA para usar.");
+            }} style={{flex:1,padding:"10px 20px",borderRadius:8,background:P,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>💾 Salvar API Key</button>
+            <button className="bh" onClick={async function(){
+              var r=await sb.from("config_whatsapp").select("valor").eq("chave","anthropic_api_key").eq("tenant_id",ADMIN_TID).single();
+              if(r.data&&r.data.valor){var v=typeof r.data.valor==="string"?r.data.valor.replace(/^"|"$/g,""):String(r.data.valor);msg("✅ Key configurada: ••••"+v.slice(-4))}
+              else{msg("❌ Nenhuma key encontrada")}
+            }} style={{padding:"10px 20px",borderRadius:8,background:dark?"#111":"#f8f5f0",color:subColor,border:"1px solid "+border,fontSize:13,cursor:"pointer"}}>🔍 Verificar</button>
+          </div>
         </div>
 
         {/* AI Providers - Modular */}
@@ -2071,10 +2080,10 @@ function App(){
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
             {[
-              {k:"img",icon:"🎨",name:"Geração de Imagens",desc:"Posts, banners, artes",providers:[{v:"openai_dalle",l:"OpenAI DALL-E"},{v:"midjourney",l:"Midjourney"},{v:"ideogram",l:"Ideogram"},{v:"stability",l:"Stability AI"},{v:"leonardo",l:"Leonardo AI"}],color:"#E06090"},
-              {k:"video",icon:"🎬",name:"Geração de Vídeo",desc:"Reels, stories, ads",providers:[{v:"runway",l:"Runway ML"},{v:"heygen",l:"HeyGen"},{v:"synthesia",l:"Synthesia"},{v:"pika",l:"Pika Labs"},{v:"luma",l:"Luma Dream Machine"}],color:"#5B8FD4"},
-              {k:"voice",icon:"🎙️",name:"Voz e Áudio",desc:"Narração, ligações, podcasts",providers:[{v:"elevenlabs",l:"ElevenLabs"},{v:"openai_tts",l:"OpenAI TTS"},{v:"murf",l:"Murf AI"},{v:"play_ht",l:"Play.ht"}],color:"#4CAF7D"},
-              {k:"design",icon:"🖼️",name:"Design e Templates",desc:"Carrosséis, stories",providers:[{v:"canva",l:"Canva API"},{v:"crello",l:"Crello/VistaCreate"},{v:"figma",l:"Figma API"}],color:"#E8A94E"},
+              {k:"img",icon:"🎨",name:"Geração de Imagens",desc:"Posts, banners, artes",providers:[{v:"openai_dalle",l:"OpenAI DALL-E"},{v:"midjourney",l:"Midjourney"},{v:"ideogram",l:"Ideogram"},{v:"stability",l:"Stability AI"},{v:"leonardo",l:"Leonardo AI"},{v:"anthropic",l:"Claude (Anthropic)"}],color:"#E06090"},
+              {k:"video",icon:"🎬",name:"Geração de Vídeo",desc:"Reels, stories, ads",providers:[{v:"runway",l:"Runway ML"},{v:"heygen",l:"HeyGen"},{v:"synthesia",l:"Synthesia"},{v:"pika",l:"Pika Labs"},{v:"luma",l:"Luma Dream Machine"},{v:"anthropic",l:"Claude (Anthropic)"}],color:"#5B8FD4"},
+              {k:"voice",icon:"🎙️",name:"Voz e Áudio",desc:"Narração, ligações, podcasts",providers:[{v:"elevenlabs",l:"ElevenLabs"},{v:"openai_tts",l:"OpenAI TTS"},{v:"murf",l:"Murf AI"},{v:"play_ht",l:"Play.ht"},{v:"anthropic",l:"Claude (Anthropic)"}],color:"#4CAF7D"},
+              {k:"design",icon:"🖼️",name:"Design e Templates",desc:"Carrosséis, stories",providers:[{v:"canva",l:"Canva API"},{v:"crello",l:"Crello/VistaCreate"},{v:"figma",l:"Figma API"},{v:"anthropic",l:"Claude (Anthropic)"}],color:"#E8A94E"},
               {k:"text",icon:"✍️",name:"Texto e Copy",desc:"Legendas, emails, scripts",providers:[{v:"anthropic",l:"Claude (Anthropic)"},{v:"openai",l:"GPT (OpenAI)"},{v:"google",l:"Gemini (Google)"},{v:"mistral",l:"Mistral AI"}],color:"#8B6FBF"},
               {k:"analytics",icon:"📊",name:"Analytics e Dados",desc:"Métricas, previsões",providers:[{v:"anthropic",l:"Claude (Anthropic)"},{v:"openai",l:"GPT (OpenAI)"},{v:"google",l:"Gemini (Google)"}],color:"#C8A45C"}
             ].map(function(cat){
