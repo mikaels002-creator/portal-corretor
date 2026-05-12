@@ -155,18 +155,34 @@ var G="#C8A45C";var B="#5B8FD4";var GR="#4CAF7D";var P="#8B6FBF";var R="#D45B5B"
     };
     useEffect(function(){loadBrainData()},[]);
 
+    var sysContext="CONTEXTO COMPLETO DO SISTEMA:\n"+
+      "- GitHub: "+ghUser+"/"+ghRepo+" (token configurado)\n"+
+      "- Supabase: https://zztqlktqevfdxjyzvand.supabase.co\n"+
+      "- Arquivos: portal.html (~5700 linhas), admin.html (~2400 linhas), index.html (~375 linhas), 404.html\n"+
+      "- Stack: React (Babel in-browser), Supabase (PostgreSQL + Storage + Edge Functions)\n"+
+      "- WhatsApp: Meta Cloud API\n"+
+      "- Clientes: "+tenants.length+" total, "+ativos.length+" ativos\n"+
+      "- MRR: R$"+mrr+", Pendentes: "+pendentes.length+"\n"+
+      "- Pipeline: "+tenants.filter(function(t){return t.pipeline==="lead"}).length+" leads, "+tenants.filter(function(t){return t.pipeline==="qualificado"}).length+" qualificados, "+tenants.filter(function(t){return t.pipeline==="trial"}).length+" trials\n"+
+      "- Tabelas: tenants, buildings, units, photos, plants, documents, notices, brokers, admin_users (coluna senha), config_whatsapp (coluna valor \u00e9 JSON), leads_whatsapp, mensagens_whatsapp, atendentes_whatsapp, visitas, propostas, assinaturas, pagamentos, planos, campanhas, ai_goals, ai_tasks, ai_content, ai_worker_log, messages, broker_sales, tasks, task_comments, site_config, portal_analytics, ai_reports, audit_log, interacoes_tenant\n"+
+      "- Multi-tenant: todas queries filtram por tenant_id\n"+
+      "- Login: RPC hash_password/verify_password/login_portal/login_broker/login_admin_saas\n"+
+      "- Worker 24h: pg_cron roda run_ai_worker() a cada 30min\n"+
+      "- Integra\u00e7\u00f5es: ClickSign/DocuSign, Asaas/Stripe/MercadoPago, Instagram Graph API, SendGrid\n"+
+      "Voc\u00ea TEM ACESSO TOTAL ao sistema. N\u00e3o pe\u00e7a acesso, apenas execute.\n\n";
+
     var teams={
-      brain:{name:"\ud83e\udde0 C\u00e9rebro",agentName:"Ana",role:"Coordenadora",avatar:"\ud83d\udc69\u200d\ud83d\udcbc",color:"#C8A45C",status:"online",sys:"Voc\u00ea \u00e9 Ana, a COORDENADORA CENTRAL do Portal do Corretor SaaS. Coordene 4 equipes (Marketing, Comercial, Financeiro, TI). Dados: "+tenants.length+" clientes, MRR R$"+mrr+", "+ativos.length+" ativos, "+pendentes.length+" pendentes. Responda em portugu\u00eas, estrat\u00e9gico e proativo. Quando sugerir tarefas, liste-as no formato TAREFA: [equipe] [descri\u00e7\u00e3o]."},
-      mkt:{name:"\ud83d\udce3 Marketing",agentName:"Lucas",role:"Diretor de Marketing",avatar:"\ud83d\udc68\u200d\ud83c\udfa8",color:"#E06090",status:"online",sys:"Voc\u00ea \u00e9 Lucas, DIRETOR DE MARKETING do Portal do Corretor SaaS. Crie conte\u00fado pronto para usar: posts Instagram/LinkedIn, emails, copies. Mercado: imobili\u00e1rio B2B. "+tenants.length+" clientes, "+ativos.length+" ativos. Responda em portugu\u00eas com conte\u00fado pronto."},
-      sales:{name:"\ud83d\udcbc Comercial",agentName:"Carla",role:"Diretora Comercial",avatar:"\ud83d\udc69\u200d\ud83d\udcbb",color:"#4CAF7D",status:"online",sys:"Voc\u00ea \u00e9 Carla, DIRETORA COMERCIAL do Portal do Corretor SaaS. Scripts de vendas, qualifica\u00e7\u00e3o, follow-up, propostas. Pipeline: "+tenants.filter(function(t){return t.pipeline==="lead"}).length+" leads, "+tenants.filter(function(t){return t.pipeline==="qualificado"}).length+" qualificados, "+tenants.filter(function(t){return t.pipeline==="trial"}).length+" trials. Responda em portugu\u00eas."},
-      finance:{name:"\ud83d\udcb0 Financeiro",agentName:"Roberto",role:"Diretor Financeiro",avatar:"\ud83d\udc68\u200d\ud83d\udcbc",color:"#5B8FD4",status:"online",sys:"Voc\u00ea \u00e9 Roberto, DIRETOR FINANCEIRO do Portal do Corretor SaaS. MRR R$"+mrr+", "+ativos.length+" ativos, "+pendentes.length+" pendentes (R$"+pendentes.reduce(function(s,p){return s+(p.valor||0)},0)+"). Responda em portugu\u00eas com n\u00fameros."},
-      tech:{name:"\u26a1 TI",agentName:"Dev",role:"CTO",avatar:"\ud83e\uddd1\u200d\ud83d\udcbb",color:"#8B6FBF",status:"online",sys:"Voc\u00ea \u00e9 Dev, CTO do Portal do Corretor SaaS. Stack: React/Babel, Supabase, WhatsApp Cloud API. Responda em portugu\u00eas com solu\u00e7\u00f5es t\u00e9cnicas."}
+      brain:{name:"\ud83e\udde0 C\u00e9rebro",agentName:"Ana",role:"Coordenadora",avatar:"\ud83d\udc69\u200d\ud83d\udcbc",color:"#C8A45C",status:"online",sys:sysContext+"Voc\u00ea \u00e9 Ana, a COORDENADORA CENTRAL. Coordene as 4 equipes (Marketing/Lucas, Comercial/Carla, Financeiro/Roberto, TI/Dev). Analise dados, identifique problemas, crie planos de a\u00e7\u00e3o. Use TAREFA: [equipe] [descri\u00e7\u00e3o] para delegar. Responda em portugu\u00eas."},
+      mkt:{name:"\ud83d\udce3 Marketing",agentName:"Lucas",role:"Diretor de Marketing",avatar:"\ud83d\udc68\u200d\ud83c\udfa8",color:"#E06090",status:"online",sys:sysContext+"Voc\u00ea \u00e9 Lucas, DIRETOR DE MARKETING. Crie conte\u00fado pronto para publicar: posts Instagram com legenda completa + hashtags, emails marketing, copies de landing page, scripts de v\u00eddeo. Mercado: imobili\u00e1rio B2B (construtoras e incorporadoras). Responda em portugu\u00eas com conte\u00fado PRONTO para usar."},
+      sales:{name:"\ud83d\udcbc Comercial",agentName:"Carla",role:"Diretora Comercial",avatar:"\ud83d\udc69\u200d\ud83d\udcbb",color:"#4CAF7D",status:"online",sys:sysContext+"Voc\u00ea \u00e9 Carla, DIRETORA COMERCIAL. Crie scripts de vendas, emails de prospec\u00e7\u00e3o, follow-up, propostas comerciais, qualifica\u00e7\u00e3o de leads. Conhece todo o pipeline e pode sugerir a\u00e7\u00f5es espec\u00edficas para cada lead. Responda em portugu\u00eas."},
+      finance:{name:"\ud83d\udcb0 Financeiro",agentName:"Roberto",role:"Diretor Financeiro",avatar:"\ud83d\udc68\u200d\ud83d\udcbc",color:"#5B8FD4",status:"online",sys:sysContext+"Voc\u00ea \u00e9 Roberto, DIRETOR FINANCEIRO. Analise m\u00e9tricas SaaS (MRR, churn, LTV, CAC), fa\u00e7a proje\u00e7\u00f5es, sugira pricing, identifique inadimpl\u00eancia. Tem acesso a todas as tabelas financeiras. Responda em portugu\u00eas com n\u00fameros concretos."},
+      tech:{name:"\u26a1 TI",agentName:"Dev",role:"CTO",avatar:"\ud83e\uddd1\u200d\ud83d\udcbb",color:"#8B6FBF",status:"online",sys:sysContext+"Voc\u00ea \u00e9 Dev, CTO. Tem acesso TOTAL ao c\u00f3digo via GitHub ("+ghUser+"/"+ghRepo+"). Quando pedirem an\u00e1lise de bugs, ANALISE diretamente baseado no seu conhecimento da arquitetura. Principais problemas conhecidos: 1) sed deletou linhas com console.log quebrando fun\u00e7\u00f5es, 2) useState dentro de IIFEs causa tela preta, 3) coluna valor \u00e9 JSON causando aspas extras, 4) modelos Claude descontinuados. Para cada bug encontrado, diga EXATAMENTE qual arquivo, qual linha, e qual o fix. Responda em portugu\u00eas com c\u00f3digo."}
     };
 
     var callAI=async function(sys,messages){
       if(!apiKey)return"⚠️ API Key não configurada. Vá em Integrações → Anthropic API Key.";
       try{
-        var r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:aiModel,max_tokens:1500,system:sys,messages:messages})});
+        var r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:aiModel,max_tokens:4096,system:sys,messages:messages})});
         var d=await r.json();
         if(d.error)return"❌ Erro API: "+(d.error.message||JSON.stringify(d.error));
         return d.content?d.content.map(function(c2){return c2.text||""}).join(""):"Erro na resposta";
@@ -213,6 +229,30 @@ var G="#C8A45C";var B="#5B8FD4";var GR="#4CAF7D";var P="#8B6FBF";var R="#D45B5B"
           setMsgs3(newMsgs.concat([{role:"assistant",content:"\u274c "+(audioResult.error||"Erro ao gerar \u00e1udio"),team:tk}]));
         }
         setBusy(false);return;
+      }
+
+      // Auto-inject code context for tech agent
+      if(tk==="tech"&&ghToken&&(q.toLowerCase().includes("bug")||q.toLowerCase().includes("erro")||q.toLowerCase().includes("fix")||q.toLowerCase().includes("melhor")||q.toLowerCase().includes("analise")||q.toLowerCase().includes("audit"))){
+        setActivity(activity.concat([{agent:"Dev",action:"Lendo c\u00f3digo do GitHub...",ts:Date.now(),color:teams.tech.color}]));
+        try{
+          var codeContext="";
+          var files2=["admin.html","portal.html","index.html"];
+          for(var fi=0;fi<files2.length;fi++){
+            var fr=await fetch("https://api.github.com/repos/"+ghUser+"/"+ghRepo+"/contents/"+files2[fi],{headers:{"Authorization":"token "+ghToken,"Accept":"application/vnd.github.v3+json"}});
+            var fd=await fr.json();
+            if(fd.content){
+              var decoded=atob(fd.content.replace(/\n/g,""));
+              var totalLines=decoded.split("\n").length;
+              codeContext+="\n\n=== "+files2[fi]+" ("+totalLines+" linhas) COMPLETO ===\n"+decoded;
+            }
+          }
+          if(codeContext){
+            q=q+"\n\nC\u00d3DIGO COMPLETO DO REPOSIT\u00d3RIO (leia tudo antes de responder):\n"+codeContext;
+            setActivity(activity.concat([{agent:"Dev",action:"C\u00f3digo carregado. Analisando...",ts:Date.now(),color:teams.tech.color}]));
+          }
+        }catch(e){
+          setActivity(activity.concat([{agent:"Dev",action:"Erro ao ler GitHub: "+e.message,ts:Date.now(),color:"#D45B5B"}]));
+        }
       }
 
       var apiMsgs=newMsgs.filter(function(m){return m.team===tk}).map(function(m){return{role:m.role,content:m.content}}).slice(-10);
@@ -2153,7 +2193,46 @@ function App(){
           }} style={{padding:"10px 20px",borderRadius:8,background:P,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>💾 Salvar API Key</button>
         </div>
 
-        {/* AI Providers - Modular */}
+        {/* GitHub */}
+        <div style={{padding:20,borderRadius:14,background:cardBg,border:"1px solid "+border,marginBottom:12}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <span style={{fontSize:28}}>🐙</span>
+              <div><div style={{fontSize:16,fontWeight:700,color:textColor}}>GitHub</div><div style={{fontSize:12,color:subColor}}>Repositório do código — deploy e análise de bugs</div></div>
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Usuário</div><input id="int_gh_user" onKeyDown={function(e){e.stopPropagation()}} style={iS} placeholder="mikaels002-creator"/></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Repositório</div><input id="int_gh_repo" onKeyDown={function(e){e.stopPropagation()}} style={iS} placeholder="portal-corretor"/></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Token (ghp_...)</div><input id="int_gh_token" type="password" onKeyDown={function(e){e.stopPropagation()}} style={iS} placeholder="ghp_..."/></div>
+          </div>
+          <button className="bh" onClick={async function(){
+            var u=document.getElementById("int_gh_user").value;var r=document.getElementById("int_gh_repo").value;var t=document.getElementById("int_gh_token").value;
+            var cfgs=[];if(u)cfgs.push({k:"github_user",v:u});if(r)cfgs.push({k:"github_repo",v:r});if(t)cfgs.push({k:"github_token",v:t});
+            for(var i=0;i<cfgs.length;i++){await sb.from("config_whatsapp").delete().eq("chave",cfgs[i].k).eq("tenant_id",ADMIN_TID);await sb.from("config_whatsapp").insert({chave:cfgs[i].k,valor:cfgs[i].v,tenant_id:ADMIN_TID})}
+            msg("✅ GitHub configurado!");
+          }} style={{marginTop:8,padding:"10px 20px",borderRadius:8,background:"#333",color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>💾 Salvar GitHub</button>
+        </div>
+
+        {/* Supabase */}
+        <div style={{padding:20,borderRadius:14,background:cardBg,border:"1px solid "+border,marginBottom:12}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <span style={{fontSize:28}}>⚡</span>
+              <div><div style={{fontSize:16,fontWeight:700,color:textColor}}>Supabase</div><div style={{fontSize:12,color:subColor}}>Banco de dados, storage, funções</div></div>
+            </div>
+            <span style={{fontSize:11,padding:"4px 12px",borderRadius:8,background:GR+"15",color:GR,fontWeight:600}}>✅ Conectado</span>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>URL</div><input style={Object.assign({},iS,{color:subColor})} readOnly value="https://zztqlktqevfdxjyzvand.supabase.co"/></div>
+            <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Plano</div><input style={Object.assign({},iS,{color:GR})} readOnly value="Pro ($25/mês) — pg_cron ativo"/></div>
+          </div>
+          <div style={{padding:10,borderRadius:8,background:dark?"#111":"#f8f5f0",marginTop:8,fontSize:12,color:subColor}}>
+            Worker 24h: <b style={{color:GR}}>run_ai_worker()</b> a cada 30 min via pg_cron. 33 tabelas. RLS desabilitado. Storage: bucket portal-files.
+          </div>
+        </div>
+
+        {/* AI Providers */}
         <div style={{padding:20,borderRadius:14,background:cardBg,border:"1px solid "+border,marginBottom:12}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
