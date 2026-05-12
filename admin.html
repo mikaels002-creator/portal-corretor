@@ -135,7 +135,7 @@ var G="#C8A45C";var B="#5B8FD4";var GR="#4CAF7D";var P="#8B6FBF";var R="#D45B5B"
     var callAI=async function(sys,messages){
       if(!apiKey)return"⚠️ API Key não configurada. Vá em Integrações → Anthropic API Key.";
       try{
-        var r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1500,system:sys,messages:messages})});
+        var r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-3-5-sonnet-20241022",max_tokens:1500,system:sys,messages:messages})});
         var d=await r.json();
         if(d.error)return"❌ Erro API: "+(d.error.message||JSON.stringify(d.error));
         return d.content?d.content.map(function(c2){return c2.text||""}).join(""):"Erro na resposta";
@@ -699,6 +699,7 @@ function App(){
   var _auth=useState(false);var auth=_auth[0];var setAuth=_auth[1];
   var _user=useState(null);var user=_user[0];var setUser=_user[1];
   var _view=useState("dash");var view=_view[0];var setView=_view[1];
+  var _apiKeySaved=useState("");var apiKeySaved=_apiKeySaved[0];var setApiKeySaved=_apiKeySaved[1];
   var _dark=useState(localStorage.getItem("admin_theme")!=="light");var dark=_dark[0];var setDark=_dark[1];
   var toggleTheme=function(){var n=!dark;setDark(n);localStorage.setItem("admin_theme",n?"dark":"light");document.body.classList.toggle("light",!n)};
   useEffect(function(){document.body.classList.toggle("light",!dark)},[]);
@@ -781,6 +782,8 @@ function App(){
     var r5=await sb.from("config_whatsapp").select("valor").eq("chave","landing_ativa").single();
     if(r5.data){var lv=r5.data.valor;setLandingOn(lv===true||lv==="true"||String(lv).replace(/"/g,"")==="true")}
     await loadCampanhas();await loadAdminPortalUsers();await loadTenantAdmins();
+    var rk=await sb.from("config_whatsapp").select("valor").eq("chave","anthropic_api_key").eq("tenant_id",ADMIN_TID).single();
+    if(rk.data&&rk.data.valor){var kk=typeof rk.data.valor==="string"?rk.data.valor.replace(/^"|"$/g,""):String(rk.data.valor);if(kk.startsWith("sk-"))setApiKeySaved("••••"+kk.slice(-4))}
   };
   var loadCampanhas=async function(){var r=await sb.from("campanhas").select("*").order("criado_em",{ascending:false});window._campanhas=r.data||[];setView(function(v){return v})};
   var loadAdminPortalUsers=async function(){var r=await sb.from("admin_portal_users").select("*").order("criado_em");window._adminUsers=r.data||[];setView(function(v){return v})};
@@ -2044,30 +2047,25 @@ function App(){
       {view==="integrations"&&<div className="fade-in">
         <div style={{fontSize:24,fontWeight:700,color:textColor,marginBottom:20}}>⚡ Integrações</div>
         {/* Anthropic API Key */}
-        <div style={{padding:20,borderRadius:14,background:cardBg,border:"1px solid "+border,marginBottom:12}}>
+        <div style={{padding:20,borderRadius:14,background:cardBg,border:"1px solid "+(apiKeySaved?GR:R)+"30",marginBottom:12}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
               <span style={{fontSize:28}}>🧠</span>
-              <div><div style={{fontSize:16,fontWeight:700,color:textColor}}>Anthropic API (Claude IA)</div><div style={{fontSize:12,color:subColor}}>Cérebro IA, Suporte IA, Agente IA — todos os agentes</div></div>
+              <div><div style={{fontSize:16,fontWeight:700,color:textColor}}>Anthropic API (Claude IA)</div><div style={{fontSize:12,color:subColor}}>Cérebro IA, Suporte IA, Agente IA</div></div>
             </div>
+            <span style={{fontSize:11,padding:"4px 12px",borderRadius:8,background:apiKeySaved?GR+"15":R+"15",color:apiKeySaved?GR:R,fontWeight:600}}>{apiKeySaved?"✅ "+apiKeySaved:"❌ Não configurada"}</span>
           </div>
-          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>API Key (cole a nova ou deixe vazio para manter atual)</div><input id="int_anthropic_key" type="password" onKeyDown={function(e){e.stopPropagation()}} style={iS} placeholder="sk-ant-..."/></div>
+          <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>{apiKeySaved?"Nova API Key (deixe vazio para manter atual)":"API Key"}</div><input id="int_anthropic_key" type="password" onKeyDown={function(e){e.stopPropagation()}} style={iS} placeholder="sk-ant-api03-..."/></div>
           <div style={{padding:10,borderRadius:8,background:dark?"#111":"#f8f5f0",marginBottom:10,fontSize:12,color:subColor}}>
-            Obtenha em <b>console.anthropic.com → API Keys</b>. Usada pelo 🧠 Cérebro IA, 🤖 Suporte e 📊 Agente IA.
+            Obtenha em <b>console.anthropic.com → API Keys</b>
           </div>
-          <div style={{display:"flex",gap:8}}>
-            <button className="bh" onClick={async function(){
-              var k=document.getElementById("int_anthropic_key").value;if(!k){msg("Insira a API Key");return}
-              await sb.from("config_whatsapp").delete().eq("chave","anthropic_api_key").eq("tenant_id",ADMIN_TID);
-              await sb.from("config_whatsapp").insert({chave:"anthropic_api_key",valor:k,tenant_id:ADMIN_TID});
-              msg("✅ API Key salva! Volte ao Cérebro IA para usar.");
-            }} style={{flex:1,padding:"10px 20px",borderRadius:8,background:P,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>💾 Salvar API Key</button>
-            <button className="bh" onClick={async function(){
-              var r=await sb.from("config_whatsapp").select("valor").eq("chave","anthropic_api_key").eq("tenant_id",ADMIN_TID).single();
-              if(r.data&&r.data.valor){var v=typeof r.data.valor==="string"?r.data.valor.replace(/^"|"$/g,""):String(r.data.valor);msg("✅ Key configurada: ••••"+v.slice(-4))}
-              else{msg("❌ Nenhuma key encontrada")}
-            }} style={{padding:"10px 20px",borderRadius:8,background:dark?"#111":"#f8f5f0",color:subColor,border:"1px solid "+border,fontSize:13,cursor:"pointer"}}>🔍 Verificar</button>
-          </div>
+          <button className="bh" onClick={async function(){
+            var k=document.getElementById("int_anthropic_key").value;if(!k){msg("Insira a API Key");return}
+            await sb.from("config_whatsapp").delete().eq("chave","anthropic_api_key").eq("tenant_id",ADMIN_TID);
+            await sb.from("config_whatsapp").insert({chave:"anthropic_api_key",valor:k,tenant_id:ADMIN_TID});
+            setApiKeySaved("••••"+k.slice(-4));
+            msg("✅ API Key salva!");
+          }} style={{padding:"10px 20px",borderRadius:8,background:P,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>💾 Salvar API Key</button>
         </div>
 
         {/* AI Providers - Modular */}
