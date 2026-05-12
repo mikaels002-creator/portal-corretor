@@ -87,7 +87,7 @@ var G="#C8A45C";var B="#5B8FD4";var GR="#4CAF7D";var P="#8B6FBF";var R="#D45B5B"
     var _busy=useState(false);var busy=_busy[0];var setBusy=_busy[1];
     var _history=useState([]);var history2=_history[0];var setHistory2=_history[1];
     var _apiKey=useState("");var apiKey=_apiKey[0];var setApiKey=_apiKey[1];
-    var _aiModel=useState("claude-3-haiku-20240307");var aiModel=_aiModel[0];var setAiModel=_aiModel[1];
+    var _aiModel=useState("claude-haiku-4-5-20251001");var aiModel=_aiModel[0];var setAiModel=_aiModel[1];
     var _goals=useState([]);var goals=_goals[0];var setGoals=_goals[1];
     var _aiTasks=useState([]);var aiTasks=_aiTasks[0];var setAiTasks=_aiTasks[1];
     var _aiContent=useState([]);var aiContent=_aiContent[0];var setAiContent=_aiContent[1];
@@ -478,11 +478,9 @@ var G="#C8A45C";var B="#5B8FD4";var GR="#4CAF7D";var P="#8B6FBF";var R="#D45B5B"
       {apiKey&&<div style={{display:"flex",gap:8,marginBottom:12,alignItems:"center"}}>
         <span style={{fontSize:12,color:GR}}>{"\u2705"} API Key ativa</span>
         <select value={aiModel} onChange={async function(e){setAiModel(e.target.value);await sb.from("config_whatsapp").delete().eq("chave","ai_model").eq("tenant_id",ADMIN_TID);await sb.from("config_whatsapp").insert({chave:"ai_model",valor:e.target.value,tenant_id:ADMIN_TID});msg("Modelo: "+e.target.value)}} style={{padding:"4px 8px",borderRadius:6,border:"1px solid "+border,background:dark?"#111":"#f8f5f0",color:textColor,fontSize:12}}>
-          <option value="claude-3-haiku-20240307">Haiku (rápido/barato)</option>
-          <option value="claude-3-5-haiku-20241022">Haiku 3.5</option>
-          <option value="claude-3-5-sonnet-20241022">Sonnet 3.5</option>
-          <option value="claude-sonnet-4-20250514">Sonnet 4</option>
-          <option value="claude-3-opus-20240229">Opus 3 (melhor)</option>
+          <option value="claude-haiku-4-5-20251001">Haiku 4.5 (rápido/barato)</option>
+          <option value="claude-sonnet-4-20250514">Sonnet 4 (equilibrado)</option>
+          <option value="claude-opus-4-6">Opus 4.6 (melhor qualidade)</option>
         </select>
       </div>}
 
