@@ -22,6 +22,13 @@ body.light{background:#F5F2ED;color:#1a1a19}
 .bh:hover{opacity:.85;transform:translateY(-1px)}
 input,select,textarea{font-family:inherit}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+@keyframes typing{0%{opacity:.3}50%{opacity:1}100%{opacity:.3}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes work{0%{transform:rotate(-2deg)}50%{transform:rotate(2deg)}100%{transform:rotate(-2deg)}}
+.office-desk{position:relative;transition:all .3s;cursor:pointer}
+.office-desk:hover{transform:scale(1.05)}
+.office-desk .worker{animation:float 3s ease infinite}
+.office-desk.busy .worker{animation:work 1s ease infinite}
 @media(max-width:768px){
   body{overflow-x:hidden!important}
   /* Sidebar becomes top bar on mobile */
@@ -335,19 +342,35 @@ function AIBrainView(props){
 
     {/* ═══ TAB: ESCRITORIO ═══ */}
     {tab==="chat"&&<div>
-      <div style={{display:"flex",gap:6,marginBottom:10,overflow:"auto",paddingBottom:4}}>
-        {agents.map(function(ag){var isAct=selAgent===ag.slug;var isBusy2=busy&&selAgent===ag.slug;
-          return <div key={ag.slug} className="bh" onClick={function(){setSelAgent(ag.slug);loadConvo(ag.slug)}} style={{padding:"10px 12px",borderRadius:10,background:isAct?ag.cor+"12":"transparent",border:isAct?"2px solid "+ag.cor+"40":"1px solid "+border,cursor:"pointer",minWidth:100,textAlign:"center",position:"relative"}}>
-            {isBusy2&&<div style={{position:"absolute",top:4,right:4,width:8,height:8,borderRadius:"50%",background:ag.cor,animation:"pulse 1s infinite"}}/>}
-            <div style={{fontSize:26}}>{ag.avatar}</div>
-            <div style={{fontSize:12,fontWeight:700,color:isAct?ag.cor:textColor}}>{ag.nome}</div>
-            <div style={{fontSize:9,color:subColor}}>{ag.cargo}</div>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:3,marginTop:3}}>
-              <div style={{width:5,height:5,borderRadius:"50%",background:isBusy2?W:GR}}/>
-              <span style={{fontSize:8,color:isBusy2?W:GR}}>{isBusy2?"trabalhando":"online"}</span>
+      {/* Office Floor Plan */}
+      <div style={{padding:16,borderRadius:14,background:"linear-gradient(135deg,"+(dark?"#0a0a12":"#f0ede8")+","+(dark?"#0c0c14":"#faf8f5")+")",border:"1px solid "+border,marginBottom:10,position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",top:8,right:12,fontSize:10,color:subColor}}>{"\\ud83c\\udfe2"} Escritorio Virtual</div>
+        {/* Meeting room button */}
+        <button className="bh" onClick={async function(){
+          if(!apiKey){msg("Configure API Key");return}
+          setBusy(true);setSelAgent("brain");
+          var meetingPrompt="REUNIAO DE EQUIPE. Todos os agentes presentes. Faca um alinhamento geral:\\n1. Status de cada area\\n2. Problemas identificados\\n3. Acoes para proximos 7 dias\\nChame cada agente: CHAMAR:[mkt] status do marketing. CHAMAR:[sales] status comercial. CHAMAR:[finance] status financeiro. CHAMAR:[tech] status TI.";
+          await sendMsg2("brain",meetingPrompt);
+          setBusy(false);
+        }} style={{position:"absolute",top:8,left:12,padding:"4px 10px",borderRadius:6,background:G+"15",color:G,border:"1px solid "+G+"30",fontSize:10,fontWeight:600,cursor:"pointer"}}>{"\\ud83e\\udd1d"} Reuniao Geral</button>
+        {/* Office desks */}
+        <div style={{display:"flex",gap:8,justifyContent:"center",padding:"28px 0 8px",overflow:"auto"}}>
+          {agents.map(function(ag){var isAct=selAgent===ag.slug;var isBusy2=busy&&selAgent===ag.slug;
+            return <div key={ag.slug} className={"office-desk"+(isBusy2?" busy":"")} onClick={function(){setSelAgent(ag.slug);loadConvo(ag.slug)}} style={{width:100,textAlign:"center",padding:"12px 8px",borderRadius:12,background:isAct?"linear-gradient(135deg,"+ag.cor+"15,"+ag.cor+"08)":"transparent",border:isAct?"2px solid "+ag.cor+"40":"1px solid transparent"}}>
+              <div className="worker" style={{fontSize:32,marginBottom:2}}>{ag.avatar}</div>
+              {/* Desk */}
+              <div style={{height:4,borderRadius:2,background:dark?"#333":"#ccc",margin:"4px auto",width:"80%"}}/>
+              {/* Monitor */}
+              <div style={{width:20,height:14,borderRadius:2,background:isBusy2?ag.cor+"40":(dark?"#222":"#ddd"),margin:"0 auto 4px",border:"1px solid "+(dark?"#333":"#bbb")}}/>
+              <div style={{fontSize:11,fontWeight:700,color:isAct?ag.cor:textColor}}>{ag.nome}</div>
+              <div style={{fontSize:8,color:subColor}}>{ag.cargo}</div>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:3,marginTop:2}}>
+                <div style={{width:5,height:5,borderRadius:"50%",background:isBusy2?W:GR,boxShadow:isBusy2?"0 0 6px "+W:"0 0 4px "+GR}}/>
+                <span style={{fontSize:7,color:isBusy2?W:GR}}>{isBusy2?"trabalhando":"online"}</span>
+              </div>
             </div>
-          </div>
-        })}
+          })}
+        </div>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 200px",gap:8}}>
         <div style={{background:cardBg,borderRadius:12,border:"1px solid "+border,display:"flex",flexDirection:"column",minHeight:300,maxHeight:420}}>
@@ -493,6 +516,209 @@ function AIBrainView(props){
 
 
 
+
+// ═══ FINANCEIRO COMPONENT ═══
+function FinanceiroView(props){
+  var dark=props.dark;var msg=props.msg;var cardBg=props.cardBg;var border=props.border;
+  var textColor=props.textColor;var subColor=props.subColor;
+  var G="#C8A45C";var GR="#4CAF7D";var B="#5B8FD4";var R="#D45B5B";var W="#E8A94E";var P="#8B6FBF";
+  var fmt=function(v){return"R$ "+Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:2})};
+
+  var _ftab=useState("resumo");var ftab=_ftab[0];var setFtab=_ftab[1];
+  var _contas=useState([]);var contas=_contas[0];var setContas=_contas[1];
+  var _categorias=useState([]);var categorias=_categorias[0];var setCategorias=_categorias[1];
+  var _lancamentos=useState([]);var lancamentos=_lancamentos[0];var setLancamentos=_lancamentos[1];
+  var _apiCustos=useState([]);var apiCustos=_apiCustos[0];var setApiCustos=_apiCustos[1];
+  var _nfs=useState([]);var nfs=_nfs[0];var setNfs=_nfs[1];
+
+  var loadFin=async function(){
+    var r1=await sb.from("fin_contas").select("*").eq("tenant_id",ADMIN_TID);setContas(r1.data||[]);
+    var r2=await sb.from("fin_categorias").select("*").eq("tenant_id",ADMIN_TID);setCategorias(r2.data||[]);
+    var r3=await sb.from("fin_lancamentos").select("*").eq("tenant_id",ADMIN_TID).order("data_vencimento",{ascending:false}).limit(200);setLancamentos(r3.data||[]);
+    var r4=await sb.from("fin_api_custos").select("*").eq("tenant_id",ADMIN_TID);setApiCustos(r4.data||[]);
+    var r5=await sb.from("fin_notas_fiscais").select("*").eq("tenant_id",ADMIN_TID).order("data_emissao",{ascending:false}).limit(50);setNfs(r5.data||[]);
+  };
+  useEffect(function(){loadFin()},[]);
+
+  var receitas=lancamentos.filter(function(l){return l.tipo==="receita"});
+  var despesas=lancamentos.filter(function(l){return l.tipo==="despesa"});
+  var recPagas=receitas.filter(function(l){return l.status==="pago"}).reduce(function(s,l){return s+Number(l.valor)},0);
+  var desPagas=despesas.filter(function(l){return l.status==="pago"}).reduce(function(s,l){return s+Number(l.valor)},0);
+  var recPend=receitas.filter(function(l){return l.status==="pendente"}).reduce(function(s,l){return s+Number(l.valor)},0);
+  var desPend=despesas.filter(function(l){return l.status==="pendente"}).reduce(function(s,l){return s+Number(l.valor)},0);
+  var saldoTotal=contas.reduce(function(s,c){return s+Number(c.saldo_atual||0)},0);
+  var lucro=recPagas-desPagas;
+  var custoAPIs=apiCustos.reduce(function(s,a){return s+Number(a.valor_mensal||0)},0);
+
+  var iS={width:"100%",padding:"8px 10px",borderRadius:6,border:"1px solid "+border,background:dark?"#111":"#f8f5f0",color:textColor,fontSize:12};
+
+  var addLancamento=function(tipo){
+    var desc=prompt("Descricao:");if(!desc)return;
+    var valor=prompt("Valor (ex: 150.00):");if(!valor)return;
+    var venc=prompt("Vencimento (YYYY-MM-DD):",new Date().toISOString().split("T")[0]);
+    var forn=tipo==="despesa"?prompt("Fornecedor (opcional):"):"";
+    var catId=null;
+    var cats=categorias.filter(function(c){return c.tipo===tipo});
+    if(cats.length>0){var catOpts=cats.map(function(c,i){return(i+1)+". "+c.nome}).join("\n");var ch=prompt(tipo+" - Categoria:\n"+catOpts);if(ch){catId=cats[parseInt(ch)-1]?cats[parseInt(ch)-1].id:null}}
+    sb.from("fin_lancamentos").insert({tipo:tipo,descricao:desc,valor:parseFloat(valor),data_vencimento:venc,fornecedor:forn||null,categoria_id:catId,status:"pendente",tenant_id:ADMIN_TID}).then(function(){loadFin();msg("Lancamento adicionado!")});
+  };
+
+  return <div className="fade-in">
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+      <div style={{fontSize:24,fontWeight:700,color:textColor}}>{"\ud83c\udfe6"} Financeiro</div>
+      <div style={{display:"flex",gap:6}}>
+        <button className="bh" onClick={function(){addLancamento("receita")}} style={{padding:"8px 14px",borderRadius:8,background:GR+"12",color:GR,border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>+ Receita</button>
+        <button className="bh" onClick={function(){addLancamento("despesa")}} style={{padding:"8px 14px",borderRadius:8,background:R+"12",color:R,border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>+ Despesa</button>
+      </div>
+    </div>
+
+    {/* Sub-tabs */}
+    <div style={{display:"flex",gap:4,marginBottom:14,borderBottom:"1px solid "+border,paddingBottom:6}}>
+      {[{k:"resumo",l:"\ud83d\udcca Resumo"},{k:"lancamentos",l:"\ud83d\udccb Lan\u00e7amentos"},{k:"contas",l:"\ud83c\udfe6 Contas"},{k:"apis",l:"\ud83e\udd16 Custos APIs"},{k:"fiscal",l:"\ud83d\udcc4 Fiscal"},{k:"fluxo",l:"\ud83d\udcc8 Fluxo de Caixa"}].map(function(t){
+        return <button key={t.k} className="bh" onClick={function(){setFtab(t.k)}} style={{padding:"6px 12px",borderRadius:"8px 8px 0 0",background:ftab===t.k?G+"15":"transparent",color:ftab===t.k?G:subColor,border:"none",fontSize:12,fontWeight:ftab===t.k?700:400,cursor:"pointer"}}>{t.l}</button>
+      })}
+    </div>
+
+    {/* RESUMO */}
+    {ftab==="resumo"&&<div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16}}>
+        {[{l:"Saldo em Contas",v:fmt(saldoTotal),c:saldoTotal>=0?GR:R},{l:"Receitas Recebidas",v:fmt(recPagas),c:GR},{l:"Despesas Pagas",v:fmt(desPagas),c:R},{l:"Lucro/Preju\u00edzo",v:fmt(lucro),c:lucro>=0?GR:R},{l:"Receitas Pendentes",v:fmt(recPend),c:W},{l:"Despesas Pendentes",v:fmt(desPend),c:W},{l:"Custo APIs/m\u00eas",v:fmt(custoAPIs),c:P},{l:"Margem",v:recPagas>0?Math.round(lucro/recPagas*100)+"%":"0%",c:lucro>=0?GR:R}].map(function(k,i){
+          return <div key={i} style={{padding:14,borderRadius:12,background:cardBg,border:"1px solid "+border}}>
+            <div style={{fontSize:10,color:subColor,textTransform:"uppercase",letterSpacing:1}}>{k.l}</div>
+            <div style={{fontSize:22,fontWeight:700,color:k.c,marginTop:4}}>{k.v}</div>
+          </div>
+        })}
+      </div>
+      {/* Despesas por categoria */}
+      <div style={{padding:16,borderRadius:14,background:cardBg,border:"1px solid "+border}}>
+        <div style={{fontSize:14,fontWeight:600,color:textColor,marginBottom:10}}>Despesas por Categoria</div>
+        {categorias.filter(function(c){return c.tipo==="despesa"}).map(function(cat){
+          var total=despesas.filter(function(l){return l.categoria_id===cat.id}).reduce(function(s,l){return s+Number(l.valor)},0);
+          if(total===0)return null;
+          var pct=desPagas>0?Math.round(total/desPagas*100):0;
+          return <div key={cat.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:"1px solid "+(dark?"#1a1a19":"#eee")}}>
+            <span>{cat.icone}</span>
+            <span style={{flex:1,fontSize:12,color:textColor}}>{cat.nome}</span>
+            <span style={{fontSize:12,fontWeight:600,color:cat.cor}}>{fmt(total)}</span>
+            <div style={{width:60,height:4,borderRadius:2,background:dark?"#1a1a19":"#ddd"}}><div style={{height:"100%",width:pct+"%",background:cat.cor,borderRadius:2}}/></div>
+            <span style={{fontSize:10,color:subColor}}>{pct}%</span>
+          </div>
+        })}
+      </div>
+    </div>}
+
+    {/* LANCAMENTOS */}
+    {ftab==="lancamentos"&&<div>
+      <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+        <thead><tr style={{borderBottom:"2px solid "+border}}>
+          <th style={{textAlign:"left",padding:8,color:subColor}}>Data</th>
+          <th style={{textAlign:"left",padding:8,color:subColor}}>Descri\u00e7\u00e3o</th>
+          <th style={{textAlign:"left",padding:8,color:subColor}}>Fornecedor</th>
+          <th style={{textAlign:"right",padding:8,color:subColor}}>Valor</th>
+          <th style={{textAlign:"center",padding:8,color:subColor}}>Status</th>
+          <th style={{padding:8}}></th>
+        </tr></thead>
+        <tbody>{lancamentos.map(function(l){
+          var cols={pago:GR,pendente:W,atrasado:R,cancelado:"#555"};
+          return <tr key={l.id} style={{borderBottom:"1px solid "+(dark?"#1a1a19":"#eee")}}>
+            <td style={{padding:8,color:subColor}}>{l.data_vencimento?new Date(l.data_vencimento).toLocaleDateString("pt-BR"):"-"}</td>
+            <td style={{padding:8,color:textColor}}>{l.descricao}</td>
+            <td style={{padding:8,color:subColor}}>{l.fornecedor||"-"}</td>
+            <td style={{padding:8,textAlign:"right",fontWeight:600,color:l.tipo==="receita"?GR:R}}>{l.tipo==="receita"?"+":"-"}{fmt(l.valor)}</td>
+            <td style={{padding:8,textAlign:"center"}}><span style={{padding:"2px 8px",borderRadius:4,background:(cols[l.status]||"#555")+"15",color:cols[l.status]||"#555",fontSize:10}}>{l.status}</span></td>
+            <td style={{padding:8}}>
+              {l.status==="pendente"&&<button className="bh" onClick={async function(){await sb.from("fin_lancamentos").update({status:"pago",data_pagamento:new Date().toISOString().split("T")[0]}).eq("id",l.id);await loadFin();msg("Pago!")}} style={{padding:"3px 8px",borderRadius:4,background:GR+"12",color:GR,border:"none",fontSize:10,cursor:"pointer"}}>Pagar</button>}
+            </td>
+          </tr>
+        })}</tbody>
+      </table>
+      {lancamentos.length===0&&<div style={{textAlign:"center",padding:30,color:subColor}}>Nenhum lancamento</div>}
+    </div>}
+
+    {/* CONTAS */}
+    {ftab==="contas"&&<div>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}>
+        <div style={{fontSize:16,fontWeight:600,color:textColor}}>{"\ud83c\udfe6"} Contas Banc\u00e1rias</div>
+        <button className="bh" onClick={function(){
+          var nome=prompt("Nome da conta:");if(!nome)return;
+          var tipo=prompt("Tipo (corrente/poupanca/caixa):","corrente");
+          var banco=prompt("Banco:");var saldo=prompt("Saldo inicial:",0);
+          sb.from("fin_contas").insert({nome:nome,tipo:tipo,banco:banco,saldo_inicial:parseFloat(saldo||0),saldo_atual:parseFloat(saldo||0),tenant_id:ADMIN_TID}).then(function(){loadFin();msg("Conta adicionada!")});
+        }} style={{padding:"6px 12px",borderRadius:8,background:B+"12",color:B,border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>+ Conta</button>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+        {contas.map(function(c){return <div key={c.id} style={{padding:16,borderRadius:14,background:cardBg,border:"1px solid "+border}}>
+          <div style={{fontSize:14,fontWeight:700,color:textColor}}>{c.nome}</div>
+          <div style={{fontSize:11,color:subColor}}>{c.banco} \u00b7 {c.tipo}</div>
+          <div style={{fontSize:28,fontWeight:700,color:Number(c.saldo_atual)>=0?GR:R,marginTop:8}}>{fmt(c.saldo_atual)}</div>
+          <button className="bh" onClick={function(){var v=prompt("Novo saldo:",c.saldo_atual);if(v!==null){sb.from("fin_contas").update({saldo_atual:parseFloat(v)}).eq("id",c.id).then(function(){loadFin()})}}} style={{marginTop:8,padding:"4px 10px",borderRadius:4,background:B+"12",color:B,border:"none",fontSize:10,cursor:"pointer"}}>Atualizar saldo</button>
+        </div>})}
+      </div>
+    </div>}
+
+    {/* CUSTOS APIs */}
+    {ftab==="apis"&&<div>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}>
+        <div style={{fontSize:16,fontWeight:600,color:textColor}}>{"\ud83e\udd16"} Custos de APIs e Servi\u00e7os</div>
+        <div style={{fontSize:14,fontWeight:700,color:R}}>Total: {fmt(custoAPIs)}/m\u00eas</div>
+      </div>
+      <button className="bh" onClick={function(){
+        var s=prompt("Servico:");if(!s)return;var p=prompt("Plano:");var v=prompt("Valor mensal:",0);var d=prompt("Dia vencimento:",1);
+        sb.from("fin_api_custos").insert({servico:s,plano:p,valor_mensal:parseFloat(v||0),dia_vencimento:parseInt(d||1),tenant_id:ADMIN_TID}).then(function(){loadFin();msg("Adicionado!")});
+      }} style={{padding:"6px 12px",borderRadius:8,background:P+"12",color:P,border:"none",fontSize:12,fontWeight:600,cursor:"pointer",marginBottom:10}}>+ Servico</button>
+      {apiCustos.map(function(a){return <div key={a.id} style={{display:"flex",alignItems:"center",padding:12,borderRadius:10,background:cardBg,border:"1px solid "+border,marginBottom:4,gap:10}}>
+        <div style={{flex:1}}>
+          <div style={{fontSize:14,fontWeight:600,color:textColor}}>{a.servico}</div>
+          <div style={{fontSize:11,color:subColor}}>{a.plano} \u00b7 Venc. dia {a.dia_vencimento}</div>
+        </div>
+        <div style={{fontSize:18,fontWeight:700,color:Number(a.valor_mensal)>0?R:GR}}>{fmt(a.valor_mensal)}</div>
+        <button className="bh" onClick={function(){var v=prompt("Novo valor:",a.valor_mensal);if(v!==null){sb.from("fin_api_custos").update({valor_mensal:parseFloat(v)}).eq("id",a.id).then(function(){loadFin()})}}} style={{padding:"4px 8px",borderRadius:4,background:W+"12",color:W,border:"none",fontSize:10,cursor:"pointer"}}>Editar</button>
+      </div>})}
+    </div>}
+
+    {/* FISCAL */}
+    {ftab==="fiscal"&&<div>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}>
+        <div style={{fontSize:16,fontWeight:600,color:textColor}}>{"\ud83d\udcc4"} Notas Fiscais</div>
+        <button className="bh" onClick={function(){
+          var num=prompt("Numero NF:");var tipo=prompt("Tipo (entrada/saida):","saida");var valor=prompt("Valor:");var cliente=prompt("Cliente:");var cnpj=prompt("CNPJ:");var desc=prompt("Descricao:");
+          sb.from("fin_notas_fiscais").insert({numero:num,tipo:tipo,valor:parseFloat(valor||0),data_emissao:new Date().toISOString().split("T")[0],cliente_nome:cliente,cliente_cnpj:cnpj,descricao:desc,tenant_id:ADMIN_TID}).then(function(){loadFin();msg("NF adicionada!")});
+        }} style={{padding:"6px 12px",borderRadius:8,background:G+"12",color:G,border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>+ Nota Fiscal</button>
+      </div>
+      {nfs.map(function(n){return <div key={n.id} style={{display:"flex",alignItems:"center",padding:10,borderRadius:8,background:cardBg,border:"1px solid "+border,marginBottom:4,gap:8}}>
+        <div style={{fontSize:11,color:subColor,width:80}}>{n.data_emissao?new Date(n.data_emissao).toLocaleDateString("pt-BR"):"-"}</div>
+        <div style={{flex:1}}><div style={{fontSize:12,fontWeight:600,color:textColor}}>NF {n.numero||"-"}</div><div style={{fontSize:10,color:subColor}}>{n.cliente_nome} {n.cliente_cnpj?"("+n.cliente_cnpj+")":""}</div></div>
+        <div style={{fontSize:14,fontWeight:700,color:n.tipo==="saida"?GR:R}}>{fmt(n.valor)}</div>
+        <span style={{padding:"2px 6px",borderRadius:4,background:n.status==="emitida"?GR+"12":R+"12",color:n.status==="emitida"?GR:R,fontSize:10}}>{n.status}</span>
+      </div>})}
+      {nfs.length===0&&<div style={{textAlign:"center",padding:20,color:subColor}}>Nenhuma NF</div>}
+    </div>}
+
+    {/* FLUXO DE CAIXA */}
+    {ftab==="fluxo"&&<div>
+      <div style={{fontSize:16,fontWeight:600,color:textColor,marginBottom:12}}>{"\ud83d\udcc8"} Fluxo de Caixa - Pr\u00f3ximos 6 meses</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:8}}>
+        {[0,1,2,3,4,5].map(function(m){
+          var dt=new Date();dt.setMonth(dt.getMonth()+m);
+          var mes=dt.toLocaleDateString("pt-BR",{month:"short",year:"2-digit"});
+          var recMes=lancamentos.filter(function(l){if(!l.data_vencimento)return false;var d=new Date(l.data_vencimento);return l.tipo==="receita"&&d.getMonth()===dt.getMonth()&&d.getFullYear()===dt.getFullYear()}).reduce(function(s,l){return s+Number(l.valor)},0);
+          var desMes=lancamentos.filter(function(l){if(!l.data_vencimento)return false;var d=new Date(l.data_vencimento);return l.tipo==="despesa"&&d.getMonth()===dt.getMonth()&&d.getFullYear()===dt.getFullYear()}).reduce(function(s,l){return s+Number(l.valor)},0);
+          if(m>0)desMes+=custoAPIs; // add recurring API costs
+          var saldoMes=recMes-desMes;
+          return <div key={m} style={{padding:12,borderRadius:10,background:cardBg,border:"1px solid "+border,textAlign:"center"}}>
+            <div style={{fontSize:12,fontWeight:600,color:textColor}}>{mes}</div>
+            <div style={{fontSize:10,color:GR,marginTop:6}}>+{fmt(recMes)}</div>
+            <div style={{fontSize:10,color:R}}>-{fmt(desMes)}</div>
+            <div style={{marginTop:6,padding:4,borderRadius:4,background:saldoMes>=0?GR+"12":R+"12"}}>
+              <div style={{fontSize:14,fontWeight:700,color:saldoMes>=0?GR:R}}>{fmt(saldoMes)}</div>
+            </div>
+          </div>
+        })}
+      </div>
+    </div>}
+  </div>
+}
+
 function App(){
   var _auth=useState(false);var auth=_auth[0];var setAuth=_auth[1];
   var _user=useState(null);var user=_user[0];var setUser=_user[1];
@@ -533,9 +759,9 @@ function App(){
     var p=user.perfil||user.role||"viewer";
     if(p==="super_admin")return true;
     var perms={
-      admin:{dash:true,clients:true,pipeline:true,payments:true,links:true,plans:true,landing:true,aibrain:true,marketing:true,users:false,integrations:false,reports:true,overdue:true},
-      gerente:{dash:true,clients:true,pipeline:true,payments:true,links:false,plans:false,landing:false,aibrain:false,marketing:false,users:false,integrations:false,reports:true,overdue:true},
-      viewer:{dash:true,clients:false,pipeline:false,payments:false,links:false,plans:false,landing:false,aibrain:false,marketing:false,users:false,integrations:false,reports:true,overdue:false}
+      admin:{dash:true,clients:true,pipeline:true,payments:true,financeiro:true,links:true,plans:true,landing:true,aibrain:true,marketing:true,users:false,integrations:false,reports:true,overdue:true},
+      gerente:{dash:true,clients:true,pipeline:true,payments:true,financeiro:false,links:false,plans:false,landing:false,aibrain:false,marketing:false,users:false,integrations:false,reports:true,overdue:true},
+      viewer:{dash:true,clients:false,pipeline:false,payments:false,financeiro:false,links:false,plans:false,landing:false,aibrain:false,marketing:false,users:false,integrations:false,reports:true,overdue:false}
     };
     return perms[p]?perms[p][section]===true:false;
   };
@@ -733,7 +959,7 @@ function App(){
         <div style={{fontSize:11,color:subColor,marginTop:4}}>Portal do Corretor</div>
       </div>
       <div className="admin-nav-items" style={{flex:1,padding:"12px 10px"}}>
-        {[{k:"dash",l:"Dashboard",i:"📊"},{k:"clients",l:"Clientes",i:"👥"},{k:"pipeline",l:"Pipeline",i:"🔄"},{k:"payments",l:"Pagamentos",i:"💰"},{k:"links",l:"Portais",i:"🔗"},{k:"plans",l:"Planos",i:"📦"},{k:"landing",l:"Landing Page",i:"🌐"},{k:"aibrain",l:"Cérebro IA",i:"🧠"},{k:"marketing",l:"Marketing",i:"📣"},{k:"users",l:"Usuários",i:"🔐"},{k:"integrations",l:"Integrações",i:"⚡"},{k:"reports",l:"Relatórios",i:"📈"},{k:"overdue",l:"Inadimplentes",i:"⚠️"}].filter(function(item){return canAdmin(item.k)}).map(function(item){
+        {[{k:"dash",l:"Dashboard",i:"📊"},{k:"clients",l:"Clientes",i:"👥"},{k:"pipeline",l:"Pipeline",i:"🔄"},{k:"payments",l:"Pagamentos",i:"💰"},{k:"financeiro",l:"Financeiro",i:"🏦"},{k:"links",l:"Portais",i:"🔗"},{k:"plans",l:"Planos",i:"📦"},{k:"landing",l:"Landing Page",i:"🌐"},{k:"aibrain",l:"Cérebro IA",i:"🧠"},{k:"marketing",l:"Marketing",i:"📣"},{k:"users",l:"Usuários",i:"🔐"},{k:"integrations",l:"Integrações",i:"⚡"},{k:"reports",l:"Relatórios",i:"📈"},{k:"overdue",l:"Inadimplentes",i:"⚠️"}].filter(function(item){return canAdmin(item.k)}).map(function(item){
           return <div key={item.k} className="bh" onClick={function(){setView(item.k);setSelClient(null)}} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:10,marginBottom:2,background:view===item.k?"rgba(200,164,92,0.08)":"transparent",color:view===item.k?G:"#888",fontSize:14,fontWeight:view===item.k?600:400}}>
             <span style={{fontSize:16}}>{item.i}</span>{item.l}
             {item.k==="overdue"&&pendentes.length>0&&<span style={{marginLeft:"auto",background:R,color:textColor,fontSize:10,fontWeight:700,padding:"2px 6px",borderRadius:8}}>{pendentes.length}</span>}
@@ -1691,6 +1917,7 @@ function App(){
       </div>}
 
       {/* ═══ AI BRAIN ═══ */}
+      {view==="financeiro"&&<FinanceiroView dark={dark} msg={msg} cardBg={cardBg} border={border} textColor={textColor} subColor={subColor}/>}
       {view==="aibrain"&&<AIBrainView tenants={tenants} mrr={mrr} ativos={ativos} pendentes={pendentes} dark={dark} msg={msg} cardBg={cardBg} border={border} textColor={textColor} subColor={subColor}/>}
 
       {/* ═══ MARKETING ═══ */}
