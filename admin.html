@@ -77,747 +77,420 @@ var G="#C8A45C";var B="#5B8FD4";var GR="#4CAF7D";var P="#8B6FBF";var R="#D45B5B"
 
 
 // ═══ AI BRAIN COMPONENT (standalone) ═══
-  function AIBrainView(props){
-    var tenants=props.tenants||[];var mrr=props.mrr||0;var ativos=props.ativos||[];var pendentes=props.pendentes||[];
-    var dark=props.dark;var msg=props.msg;var cardBg=props.cardBg;var border=props.border;
-    var textColor=props.textColor;var subColor=props.subColor;
-    var _tab=useState("chat");var tab=_tab[0];var setTab=_tab[1];
-    var _team=useState("brain");var team=_team[0];var setTeam=_team[1];
-    var _msgs3=useState([]);var msgs3=_msgs3[0];var setMsgs3=_msgs3[1];
-    var _inp=useState("");var inp=_inp[0];var setInp=_inp[1];
-    var _busy=useState(false);var busy=_busy[0];var setBusy=_busy[1];
-    var _history=useState([]);var history2=_history[0];var setHistory2=_history[1];
-    var _apiKey=useState("");var apiKey=_apiKey[0];var setApiKey=_apiKey[1];
-    var _aiModel=useState("claude-opus-4-6");var aiModel=_aiModel[0];var setAiModel=_aiModel[1];
-    var _goals=useState([]);var goals=_goals[0];var setGoals=_goals[1];
-    var _aiTasks=useState([]);var aiTasks=_aiTasks[0];var setAiTasks=_aiTasks[1];
-    var _aiContent=useState([]);var aiContent=_aiContent[0];var setAiContent=_aiContent[1];
-    var _workerOn=useState(false);var workerOn=_workerOn[0];var setWorkerOn=_workerOn[1];
-    var _workerLog=useState([]);var workerLog=_workerLog[0];var setWorkerLog=_workerLog[1];
-    var _autonomy=useState({generate:true,approve:false,post:false});var autonomy=_autonomy[0];var setAutonomy=_autonomy[1];
-    var _devMsgs=useState([]);var devMsgs=_devMsgs[0];var setDevMsgs=_devMsgs[1];
-    var _devInp=useState("");var devInp=_devInp[0];var setDevInp=_devInp[1];
-    var _devBusy=useState(false);var devBusy=_devBusy[0];var setDevBusy=_devBusy[1];
-    var _devLog=useState([]);var devLog=_devLog[0];var setDevLog=_devLog[1];
-    var _ghToken=useState("");var ghToken=_ghToken[0];var setGhToken=_ghToken[1];
-    var _ghRepo=useState("portal-corretor");var ghRepo=_ghRepo[0];var setGhRepo=_ghRepo[1];
-    var _ghUser=useState("");var ghUser=_ghUser[0];var setGhUser=_ghUser[1];
-    var _aiProviders=useState({});var aiProviders=_aiProviders[0];var setAiProviders=_aiProviders[1];
-    var _recording=useState(false);var recording=_recording[0];var setRecording=_recording[1];
-    var _mediaRec=useState(null);var mediaRec=_mediaRec[0];var setMediaRec=_mediaRec[1];
-    var _activity=useState([]);var activity=_activity[0];var setActivity=_activity[1];
 
-    var startRecording=async function(){
+// ═══ AI BRAIN COMPONENT v2 ═══
+function AIBrainView(props){
+  var tenants=props.tenants||[];var mrr=props.mrr||0;var ativos=props.ativos||[];var pendentes=props.pendentes||[];
+  var dark=props.dark;var msg=props.msg;var cardBg=props.cardBg;var border=props.border;
+  var textColor=props.textColor;var subColor=props.subColor;
+
+  var _tab=useState("chat");var tab=_tab[0];var setTab=_tab[1];
+  var _agents=useState([]);var agents=_agents[0];var setAgents=_agents[1];
+  var _selAgent=useState("brain");var selAgent=_selAgent[0];var setSelAgent=_selAgent[1];
+  var _convos=useState({});var convos=_convos[0];var setConvos=_convos[1];
+  var _inp=useState("");var inp=_inp[0];var setInp=_inp[1];
+  var _busy=useState(false);var busy=_busy[0];var setBusy=_busy[1];
+  var _apiKey=useState("");var apiKey=_apiKey[0];var setApiKey=_apiKey[1];
+  var _aiModel=useState("claude-opus-4-6");var aiModel=_aiModel[0];var setAiModel=_aiModel[1];
+  var _goals=useState([]);var goals=_goals[0];var setGoals=_goals[1];
+  var _aiTasks=useState([]);var aiTasks=_aiTasks[0];var setAiTasks=_aiTasks[1];
+  var _aiContent=useState([]);var aiContent=_aiContent[0];var setAiContent=_aiContent[1];
+  var _workerOn=useState(false);var workerOn=_workerOn[0];var setWorkerOn=_workerOn[1];
+  var _workerLog=useState([]);var workerLog=_workerLog[0];var setWorkerLog=_workerLog[1];
+  var _autonomy=useState({generate:true,approve:false,post:false});var autonomy=_autonomy[0];var setAutonomy=_autonomy[1];
+  var _activity=useState([]);var activity=_activity[0];var setActivity=_activity[1];
+  var _recording=useState(false);var recording=_recording[0];var setRecording=_recording[1];
+  var _mediaRec=useState(null);var mediaRec=_mediaRec[0];var setMediaRec=_mediaRec[1];
+  var _agentChats=useState([]);var agentChats=_agentChats[0];var setAgentChats=_agentChats[1];
+  var _ghToken=useState("");var ghToken=_ghToken[0];var setGhToken=_ghToken[1];
+  var _ghUser=useState("");var ghUser=_ghUser[0];var setGhUser=_ghUser[1];
+  var _ghRepo=useState("portal-corretor");var ghRepo=_ghRepo[0];var setGhRepo=_ghRepo[1];
+
+  var G="#C8A45C";var GR="#4CAF7D";var P="#8B6FBF";var B="#5B8FD4";var R="#D45B5B";var W="#E8A94E";
+
+  // ═══ SYSTEM CONTEXT ═══
+  var sysCtx="CONTEXTO DO SISTEMA Portal do Corretor SaaS:\n"+
+    "GitHub: "+ghUser+"/"+ghRepo+" (acesso total)\n"+
+    "Supabase: zztqlktqevfdxjyzvand.supabase.co (33 tabelas)\n"+
+    "Arquivos: portal.html(~5700 lin), admin.html(~2500 lin), index.html(~375 lin)\n"+
+    "Stack: React/Babel, Supabase PostgreSQL, WhatsApp Cloud API\n"+
+    "Clientes: "+tenants.length+" total, "+ativos.length+" ativos, MRR R$"+mrr+"\n"+
+    "Pipeline: "+tenants.filter(function(t){return t.pipeline==="lead"}).length+" leads\n"+
+    "Voce TEM ACESSO TOTAL. Nao peca acesso, execute.\n"+
+    "Para chamar outro agente: CHAMAR:[slug] [mensagem]\n"+
+    "Para corrigir codigo: EXECUTAR_FIX:[arquivo]:::[buscar]:::[substituir]\n"+
+    "Para SQL: EXECUTAR_SQL:::[query]\n\n";
+
+  // ═══ LOAD DATA ═══
+  var loadAll2=async function(){
+    var r1=await sb.from("ai_agents").select("*").eq("tenant_id",ADMIN_TID).eq("ativo",true).order("ordem");
+    setAgents(r1.data||[]);
+    var r2=await sb.from("config_whatsapp").select("chave,valor").in("chave",["anthropic_api_key","ai_model","ai_worker_active","ai_autonomy","github_token","github_user","github_repo"]).eq("tenant_id",ADMIN_TID);
+    (r2.data||[]).forEach(function(c){var v=String(c.valor||"").replace(/^"|"$/g,"");
+      if(c.chave==="anthropic_api_key"&&v.startsWith("sk-"))setApiKey(v);
+      if(c.chave==="ai_model"&&v.startsWith("claude"))setAiModel(v);
+      if(c.chave==="ai_worker_active")setWorkerOn(v==="true");
+      if(c.chave==="github_token")setGhToken(v);
+      if(c.chave==="github_user")setGhUser(v);
+      if(c.chave==="github_repo")setGhRepo(v);
+      if(c.chave==="ai_autonomy"){try{setAutonomy(JSON.parse(v))}catch(e){}}
+    });
+    var r3=await sb.from("ai_goals").select("*").eq("tenant_id",ADMIN_TID).order("criado_em",{ascending:false});setGoals(r3.data||[]);
+    var r4=await sb.from("ai_tasks").select("*").eq("tenant_id",ADMIN_TID).order("criado_em",{ascending:false}).limit(50);setAiTasks(r4.data||[]);
+    var r5=await sb.from("ai_content").select("*").eq("tenant_id",ADMIN_TID).order("criado_em",{ascending:false}).limit(30);setAiContent(r5.data||[]);
+    var r6=await sb.from("ai_worker_log").select("*").eq("tenant_id",ADMIN_TID).order("criado_em",{ascending:false}).limit(10);setWorkerLog(r6.data||[]);
+    var r7=await sb.from("ai_agent_chats").select("*").eq("tenant_id",ADMIN_TID).order("criado_em",{ascending:false}).limit(30);setAgentChats(r7.data||[]);
+    // Load conversations for selected agent
+    await loadConvo(selAgent);
+  };
+  var loadConvo=async function(slug){
+    var r=await sb.from("ai_conversations").select("*").eq("agent_slug",slug).eq("tenant_id",ADMIN_TID).order("criado_em").limit(100);
+    var c2=Object.assign({},convos);c2[slug]=r.data||[];setConvos(c2);
+  };
+  useEffect(function(){loadAll2()},[]);
+
+  // ═══ CALL AI ═══
+  var callAI=async function(sys,messages){
+    if(!apiKey)return"Erro: API Key nao configurada. Va em Integracoes.";
+    try{
+      var r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:aiModel,max_tokens:4096,system:sys,messages:messages})});
+      var d=await r.json();if(d.error)return"Erro API: "+(d.error.message||JSON.stringify(d.error));
+      return d.content?d.content.map(function(c2){return c2.text||""}).join(""):"Erro";
+    }catch(e){return"Erro: "+e.message}
+  };
+
+  // ═══ GITHUB ═══
+  var ghAPI=function(path,method,body){
+    return fetch("https://api.github.com/repos/"+ghUser+"/"+ghRepo+"/"+path,{
+      method:method||"GET",headers:{"Authorization":"token "+ghToken,"Content-Type":"application/json","Accept":"application/vnd.github.v3+json"},
+      body:body?JSON.stringify(body):undefined
+    }).then(function(r){return r.json()});
+  };
+  var readGHFile=async function(f){var r=await ghAPI("contents/"+f);if(r.content)return{content:atob(r.content.replace(/\n/g,"")),sha:r.sha};return null};
+  var writeGHFile=async function(f,content,msg2,sha){return ghAPI("contents/"+f,"PUT",{message:msg2||"[AI] "+f,content:btoa(unescape(encodeURIComponent(content))),sha:sha})};
+
+  // ═══ SEND MESSAGE ═══
+  var sendMsg2=async function(agentSlug,text){
+    if(!text||!text.trim()||busy)return;
+    var agent=agents.find(function(a){return a.slug===agentSlug})||{nome:"?",system_prompt:""};
+    setBusy(true);setInp("");
+    // Save user message
+    await sb.from("ai_conversations").insert({agent_slug:agentSlug,role:"user",content:text.trim(),tenant_id:ADMIN_TID});
+    var msgs2=(convos[agentSlug]||[]).concat([{role:"user",content:text.trim(),agent_slug:agentSlug}]);
+    var c2=Object.assign({},convos);c2[agentSlug]=msgs2;setConvos(c2);
+    setActivity(activity.concat([{agent:agent.nome,action:"Processando...",ts:Date.now(),color:agent.cor}]));
+
+    // Auto-read GitHub for tech agent
+    var finalText=text;
+    if(agentSlug==="tech"&&ghToken&&(/bug|erro|fix|melhor|analis|audit/i.test(text))){
+      setActivity(activity.concat([{agent:"Dev",action:"Lendo codigo do GitHub...",ts:Date.now(),color:P}]));
       try{
-        var stream=await navigator.mediaDevices.getUserMedia({audio:true});
-        var rec=new MediaRecorder(stream);var chunks=[];
-        rec.ondataavailable=function(e){chunks.push(e.data)};
-        rec.onstop=async function(){
-          stream.getTracks().forEach(function(t){t.stop()});
-          var blob=new Blob(chunks,{type:"audio/webm"});
-          setActivity(activity.concat([{agent:teams[team].agentName,action:"Recebendo \u00e1udio...",ts:Date.now()}]));
-          // Transcribe via Whisper or send as text prompt
-          var reader=new FileReader();
-          reader.onload=async function(){
-            // For now, use Claude to process the audio description
-            sendToAgent(team,"[AUDIO RECEBIDO] O usu\u00e1rio enviou um \u00e1udio. Por favor, pergunte o que ele precisa.");
-          };
-          reader.readAsDataURL(blob);
-          setRecording(false);
-        };
-        rec.start();setMediaRec(rec);setRecording(true);
-        msg("\ud83c\udf99\ufe0f Gravando...");
-      }catch(e){msg("\u274c Microfone n\u00e3o dispon\u00edvel: "+e.message)}
-    };
-    var stopRecording=function(){if(mediaRec&&mediaRec.state==="recording"){mediaRec.stop();setMediaRec(null)}};
-
-    var loadBrainData=async function(){
-      var r1=await sb.from("config_whatsapp").select("valor").eq("chave","anthropic_api_key").eq("tenant_id",ADMIN_TID).single();
-      if(r1.data&&r1.data.valor){var kv=r1.data.valor;if(typeof kv==="object")kv=JSON.stringify(kv);kv=String(kv).replace(/^"|"$/g,"").replace(/^'/,"").replace(/'$/,"");if(kv.startsWith("sk-"))setApiKey(kv)}
-      var rm=await sb.from("config_whatsapp").select("valor").eq("chave","ai_model").eq("tenant_id",ADMIN_TID).single();
-      if(rm.data&&rm.data.valor){var mv=String(rm.data.valor).replace(/^"|"$/g,"");if(mv.startsWith("claude"))setAiModel(mv)}
-      var r2=await sb.from("ai_goals").select("*").eq("tenant_id",ADMIN_TID).order("criado_em",{ascending:false});setGoals(r2.data||[]);
-      var r3=await sb.from("ai_tasks").select("*").eq("tenant_id",ADMIN_TID).order("criado_em",{ascending:false}).limit(50);setAiTasks(r3.data||[]);
-      var r4=await sb.from("ai_content").select("*").eq("tenant_id",ADMIN_TID).order("criado_em",{ascending:false}).limit(30);setAiContent(r4.data||[]);
-      var r5=await sb.from("ai_worker_log").select("*").eq("tenant_id",ADMIN_TID).order("criado_em",{ascending:false}).limit(10);setWorkerLog(r5.data||[]);
-      var r6=await sb.from("config_whatsapp").select("valor").eq("chave","ai_worker_active").eq("tenant_id",ADMIN_TID).single();
-      if(r6.data)setWorkerOn(r6.data.valor==="true"||r6.data.valor===true);
-      var r7=await sb.from("config_whatsapp").select("valor").eq("chave","ai_autonomy").eq("tenant_id",ADMIN_TID).single();
-      if(r7.data){try{setAutonomy(JSON.parse(r7.data.valor))}catch(e){}}
-      var r8=await sb.from("config_whatsapp").select("chave,valor").in("chave",["github_token","github_user","github_repo"]).eq("tenant_id",ADMIN_TID);
-      (r8.data||[]).forEach(function(c){var v=typeof c.valor==="string"?c.valor.replace(/^"|"$/g,""):String(c.valor);if(c.chave==="github_token")setGhToken(v);if(c.chave==="github_user")setGhUser(v);if(c.chave==="github_repo")setGhRepo(v)});
-      var r9=await sb.from("config_whatsapp").select("chave,valor").like("chave","ai_provider_%").eq("tenant_id",ADMIN_TID);
-      var r10=await sb.from("config_whatsapp").select("chave,valor").like("chave","ai_key_%").eq("tenant_id",ADMIN_TID);
-      var provs={};
-      (r9.data||[]).forEach(function(c){var cat=c.chave.replace("ai_provider_","");provs[cat]=provs[cat]||{};provs[cat].provider=(c.valor||"").replace(/^"|"$/g,"")});
-      (r10.data||[]).forEach(function(c){var cat=c.chave.replace("ai_key_","");provs[cat]=provs[cat]||{};provs[cat].key=(c.valor||"").replace(/^"|"$/g,"")});
-      setAiProviders(provs);
-    };
-    useEffect(function(){loadBrainData()},[]);
-
-    var sysContext="CONTEXTO COMPLETO DO SISTEMA:\n"+
-      "- GitHub: "+ghUser+"/"+ghRepo+" (token configurado)\n"+
-      "- Supabase: https://zztqlktqevfdxjyzvand.supabase.co\n"+
-      "- Arquivos: portal.html (~5700 linhas), admin.html (~2400 linhas), index.html (~375 linhas), 404.html\n"+
-      "- Stack: React (Babel in-browser), Supabase (PostgreSQL + Storage + Edge Functions)\n"+
-      "- WhatsApp: Meta Cloud API\n"+
-      "- Clientes: "+tenants.length+" total, "+ativos.length+" ativos\n"+
-      "- MRR: R$"+mrr+", Pendentes: "+pendentes.length+"\n"+
-      "- Pipeline: "+tenants.filter(function(t){return t.pipeline==="lead"}).length+" leads, "+tenants.filter(function(t){return t.pipeline==="qualificado"}).length+" qualificados, "+tenants.filter(function(t){return t.pipeline==="trial"}).length+" trials\n"+
-      "- Tabelas: tenants, buildings, units, photos, plants, documents, notices, brokers, admin_users (coluna senha), config_whatsapp (coluna valor \u00e9 JSON), leads_whatsapp, mensagens_whatsapp, atendentes_whatsapp, visitas, propostas, assinaturas, pagamentos, planos, campanhas, ai_goals, ai_tasks, ai_content, ai_worker_log, messages, broker_sales, tasks, task_comments, site_config, portal_analytics, ai_reports, audit_log, interacoes_tenant\n"+
-      "- Multi-tenant: todas queries filtram por tenant_id\n"+
-      "- Login: RPC hash_password/verify_password/login_portal/login_broker/login_admin_saas\n"+
-      "- Worker 24h: pg_cron roda run_ai_worker() a cada 30min\n"+
-      "- Integra\u00e7\u00f5es: ClickSign/DocuSign, Asaas/Stripe/MercadoPago, Instagram Graph API, SendGrid\n"+
-      "Voc\u00ea TEM ACESSO TOTAL ao sistema. N\u00e3o pe\u00e7a acesso, apenas execute.\n\n";
-
-    var teams={
-      brain:{name:"\ud83e\udde0 C\u00e9rebro",agentName:"Ana",role:"Coordenadora",avatar:"\ud83d\udc69\u200d\ud83d\udcbc",color:"#C8A45C",status:"online",sys:sysContext+"Voc\u00ea \u00e9 Ana, a COORDENADORA CENTRAL. Coordene as 4 equipes (Marketing/Lucas, Comercial/Carla, Financeiro/Roberto, TI/Dev). Analise dados, identifique problemas, crie planos de a\u00e7\u00e3o. Use TAREFA: [equipe] [descri\u00e7\u00e3o] para delegar. Responda em portugu\u00eas."},
-      mkt:{name:"\ud83d\udce3 Marketing",agentName:"Lucas",role:"Diretor de Marketing",avatar:"\ud83d\udc68\u200d\ud83c\udfa8",color:"#E06090",status:"online",sys:sysContext+"Voc\u00ea \u00e9 Lucas, DIRETOR DE MARKETING. Crie conte\u00fado pronto para publicar: posts Instagram com legenda completa + hashtags, emails marketing, copies de landing page, scripts de v\u00eddeo. Mercado: imobili\u00e1rio B2B (construtoras e incorporadoras). Responda em portugu\u00eas com conte\u00fado PRONTO para usar."},
-      sales:{name:"\ud83d\udcbc Comercial",agentName:"Carla",role:"Diretora Comercial",avatar:"\ud83d\udc69\u200d\ud83d\udcbb",color:"#4CAF7D",status:"online",sys:sysContext+"Voc\u00ea \u00e9 Carla, DIRETORA COMERCIAL. Crie scripts de vendas, emails de prospec\u00e7\u00e3o, follow-up, propostas comerciais, qualifica\u00e7\u00e3o de leads. Conhece todo o pipeline e pode sugerir a\u00e7\u00f5es espec\u00edficas para cada lead. Responda em portugu\u00eas."},
-      finance:{name:"\ud83d\udcb0 Financeiro",agentName:"Roberto",role:"Diretor Financeiro",avatar:"\ud83d\udc68\u200d\ud83d\udcbc",color:"#5B8FD4",status:"online",sys:sysContext+"Voc\u00ea \u00e9 Roberto, DIRETOR FINANCEIRO. Analise m\u00e9tricas SaaS (MRR, churn, LTV, CAC), fa\u00e7a proje\u00e7\u00f5es, sugira pricing, identifique inadimpl\u00eancia. Tem acesso a todas as tabelas financeiras. Responda em portugu\u00eas com n\u00fameros concretos."},
-      tech:{name:"\u26a1 TI",agentName:"Dev",role:"CTO",avatar:"\ud83e\uddd1\u200d\ud83d\udcbb",color:"#8B6FBF",status:"online",sys:sysContext+"Voc\u00ea \u00e9 Dev, CTO. Tem acesso TOTAL ao c\u00f3digo via GitHub ("+ghUser+"/"+ghRepo+"). Quando pedirem an\u00e1lise de bugs, ANALISE diretamente baseado no seu conhecimento da arquitetura. Principais problemas conhecidos: 1) sed deletou linhas com console.log quebrando fun\u00e7\u00f5es, 2) useState dentro de IIFEs causa tela preta, 3) coluna valor \u00e9 JSON causando aspas extras, 4) modelos Claude descontinuados. Para cada bug encontrado, diga EXATAMENTE qual arquivo, qual linha, e qual o fix. Responda em portugu\u00eas com c\u00f3digo."}
-    };
-
-    var callAI=async function(sys,messages){
-      if(!apiKey)return"⚠️ API Key não configurada. Vá em Integrações → Anthropic API Key.";
-      try{
-        var r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:aiModel,max_tokens:4096,system:sys,messages:messages})});
-        var d=await r.json();
-        if(d.error)return"❌ Erro API: "+(d.error.message||JSON.stringify(d.error));
-        return d.content?d.content.map(function(c2){return c2.text||""}).join(""):"Erro na resposta";
-      }catch(e){return"❌ Erro de conexão: "+e.message}
-    };
-
-    var sendToAgent=async function(tk,q){
-      if(!q||!q.trim()||busy)return;
-      setBusy(true);var t2=teams[tk];
-      var newMsgs=msgs3.concat([{role:"user",content:q,team:tk}]);
-      setMsgs3(newMsgs);setInp("");
-      setActivity(activity.concat([{agent:teams[tk].agentName,action:"Processando...",ts:Date.now(),color:teams[tk].color}]));
-
-      // Handle special generation commands
-      if(q.startsWith("GERAR_IMAGEM:")){
-        var imgPrompt=q.replace("GERAR_IMAGEM:","").trim();
-        setMsgs3(newMsgs.concat([{role:"assistant",content:"\ud83c\udfa8 Gerando imagem...\nPrompt: "+imgPrompt,team:tk}]));
-        var imgResult=await generateImage(imgPrompt);
-        if(imgResult.url){
-          await sb.from("ai_content").insert({equipe:"mkt",tipo:"imagem",titulo:imgPrompt.substring(0,100),conteudo:"URL: "+imgResult.url+"\n\nPrompt: "+imgPrompt,plataforma:"instagram",status:"rascunho",tenant_id:ADMIN_TID});
-          setMsgs3(newMsgs.concat([{role:"assistant",content:"\u2705 Imagem gerada!\n\n\ud83d\uddbc\ufe0f URL: "+imgResult.url+"\n\nSalva na aba Conte\u00fado como rascunho.",team:tk}]));
-        }else{
-          setMsgs3(newMsgs.concat([{role:"assistant",content:"\u274c "+(imgResult.error||"Erro ao gerar imagem"),team:tk}]));
+        var codeCtx="";
+        for(var fi=0;fi<["portal.html","admin.html","index.html"].length;fi++){
+          var fn=["portal.html","admin.html","index.html"][fi];
+          var gf=await readGHFile(fn);
+          if(gf)codeCtx+="\n=== "+fn+" ("+gf.content.split("\n").length+" linhas) ===\n"+gf.content;
         }
-        setBusy(false);return;
-      }
-      if(q.startsWith("GERAR_VIDEO:")){
-        var vidPrompt=q.replace("GERAR_VIDEO:","").trim();
-        var vidResult=await generateVideo(vidPrompt);
-        if(vidResult.error){
-          setMsgs3(newMsgs.concat([{role:"assistant",content:"\u274c "+vidResult.error,team:tk}]));
-        }else{
-          await sb.from("ai_content").insert({equipe:"mkt",tipo:"video",titulo:vidPrompt.substring(0,100),conteudo:JSON.stringify(vidResult),plataforma:"instagram",status:"rascunho",tenant_id:ADMIN_TID});
-          setMsgs3(newMsgs.concat([{role:"assistant",content:"\u2705 V\u00eddeo em processamento!\n\nID: "+(vidResult.id||vidResult.video_id||"enviado")+"\n\nSalvo na aba Conte\u00fado.",team:tk}]));
-        }
-        setBusy(false);return;
-      }
-      if(q.startsWith("GERAR_AUDIO:")){
-        var audioText=q.replace("GERAR_AUDIO:","").trim();
-        var audioResult=await generateVoice(audioText);
-        if(audioResult.audio){
-          setMsgs3(newMsgs.concat([{role:"assistant",content:"\u2705 \u00c1udio gerado!\n\n\ud83c\udf99\ufe0f Clique para ouvir. Texto: "+audioText,team:tk,audio:audioResult.audio}]));
-        }else{
-          setMsgs3(newMsgs.concat([{role:"assistant",content:"\u274c "+(audioResult.error||"Erro ao gerar \u00e1udio"),team:tk}]));
-        }
-        setBusy(false);return;
-      }
+        if(codeCtx)finalText=text+"\n\nCODIGO COMPLETO:\n"+codeCtx;
+      }catch(e){}
+    }
 
-      // Auto-inject code context for tech agent
-      if(tk==="tech"&&ghToken&&(q.toLowerCase().includes("bug")||q.toLowerCase().includes("erro")||q.toLowerCase().includes("fix")||q.toLowerCase().includes("melhor")||q.toLowerCase().includes("analise")||q.toLowerCase().includes("audit"))){
-        setActivity(activity.concat([{agent:"Dev",action:"Lendo c\u00f3digo do GitHub...",ts:Date.now(),color:teams.tech.color}]));
+    // Build messages for API
+    var fullSys=sysCtx+(agent.system_prompt||"")+(agent.treinamento?"\n\nTREINAMENTO EXTRA:\n"+agent.treinamento:"");
+    var apiMsgs=msgs2.map(function(m){return{role:m.role,content:m.content}}).slice(-12);
+    apiMsgs[apiMsgs.length-1]={role:"user",content:finalText};
+
+    var txt=await callAI(fullSys,apiMsgs);
+
+    // Save assistant response
+    await sb.from("ai_conversations").insert({agent_slug:agentSlug,role:"assistant",content:txt,tenant_id:ADMIN_TID});
+    c2[agentSlug]=msgs2.concat([{role:"assistant",content:txt,agent_slug:agentSlug}]);setConvos(c2);
+    setActivity(activity.concat([{agent:agent.nome,action:"Resposta entregue",ts:Date.now(),color:agent.cor}]));
+
+    // ═══ PARSE COMMANDS ═══
+    // CHAMAR:[slug] [msg]
+    var chamarMatches=txt.match(/CHAMAR:\[?(\w+)\]?\s+([^\n]+)/g);
+    if(chamarMatches){
+      for(var ci=0;ci<chamarMatches.length;ci++){
+        var cm=chamarMatches[ci].match(/CHAMAR:\[?(\w+)\]?\s+(.+)/);
+        if(cm){
+          var targetSlug=cm[1];var targetMsg=cm[2];
+          await sb.from("ai_agent_chats").insert({from_agent:agentSlug,to_agent:targetSlug,content:targetMsg,tenant_id:ADMIN_TID});
+          setActivity(activity.concat([{agent:agent.nome,action:"Chamou "+targetSlug+": "+targetMsg.substring(0,40),ts:Date.now(),color:agent.cor}]));
+          // Auto-forward to target agent
+          setTimeout(function(){sendMsg2(targetSlug,"[De "+agent.nome+"] "+targetMsg)},500);
+        }
+      }
+    }
+
+    // EXECUTAR_FIX:[arquivo]:::[buscar]:::[substituir]
+    var fixMatches=txt.match(/EXECUTAR_FIX:\[?(\w+\.\w+)\]?:::(.*?):::(.*?)(?=\n|$)/gs);
+    if(fixMatches&&ghToken){
+      for(var fxi=0;fxi<fixMatches.length;fxi++){
+        var fxm=fixMatches[fxi].match(/EXECUTAR_FIX:\[?(\w+\.\w+)\]?:::(.*?):::(.*?)$/s);
+        if(fxm){
+          var fxFile=fxm[1];var fxOld=fxm[2].trim();var fxNew=fxm[3].trim();
+          setActivity(activity.concat([{agent:"Dev",action:"Aplicando fix em "+fxFile+"...",ts:Date.now(),color:P}]));
+          try{
+            var gf2=await readGHFile(fxFile);
+            if(gf2&&gf2.content.includes(fxOld)){
+              var newContent=gf2.content.replace(fxOld,fxNew);
+              var wr=await writeGHFile(fxFile,newContent,"[AI Fix] "+fxFile,gf2.sha);
+              if(wr.content){
+                setActivity(activity.concat([{agent:"Dev",action:"Fix aplicado em "+fxFile+"!",ts:Date.now(),color:GR}]));
+                await sb.from("ai_conversations").insert({agent_slug:agentSlug,role:"assistant",content:"Fix aplicado em "+fxFile+" com sucesso! Commit: "+wr.commit.sha.substring(0,7),tenant_id:ADMIN_TID});
+              }
+            }
+          }catch(e){}
+        }
+      }
+    }
+
+    // EXECUTAR_SQL:::[query]
+    var sqlMatches=txt.match(/EXECUTAR_SQL:::(.*?)(?=\n\n|$)/gs);
+    if(sqlMatches){
+      for(var si=0;si<sqlMatches.length;si++){
+        var sql=sqlMatches[si].replace("EXECUTAR_SQL:::","").trim();
         try{
-          var codeContext="";
-          var files2=["admin.html","portal.html","index.html"];
-          for(var fi=0;fi<files2.length;fi++){
-            var fr=await fetch("https://api.github.com/repos/"+ghUser+"/"+ghRepo+"/contents/"+files2[fi],{headers:{"Authorization":"token "+ghToken,"Accept":"application/vnd.github.v3+json"}});
-            var fd=await fr.json();
-            if(fd.content){
-              var decoded=atob(fd.content.replace(/\n/g,""));
-              var totalLines=decoded.split("\n").length;
-              codeContext+="\n\n=== "+files2[fi]+" ("+totalLines+" linhas) COMPLETO ===\n"+decoded;
-            }
-          }
-          if(codeContext){
-            q=q+"\n\nC\u00d3DIGO COMPLETO DO REPOSIT\u00d3RIO (leia tudo antes de responder):\n"+codeContext;
-            setActivity(activity.concat([{agent:"Dev",action:"C\u00f3digo carregado. Analisando...",ts:Date.now(),color:teams.tech.color}]));
-          }
-        }catch(e){
-          setActivity(activity.concat([{agent:"Dev",action:"Erro ao ler GitHub: "+e.message,ts:Date.now(),color:"#D45B5B"}]));
-        }
+          await sb.rpc("exec_sql",{sql_text:sql});
+          setActivity(activity.concat([{agent:"Dev",action:"SQL executado!",ts:Date.now(),color:GR}]));
+        }catch(e){}
       }
+    }
 
-      var apiMsgs=newMsgs.filter(function(m){return m.team===tk}).map(function(m){return{role:m.role,content:m.content}}).slice(-10);
-      var txt=await callAI(t2.sys,apiMsgs);
-      setMsgs3(newMsgs.concat([{role:"assistant",content:txt,team:tk}]));
-      setHistory2(history2.concat([{team:tk,q:q.substring(0,100),ts:new Date().toLocaleString("pt-BR")}]));
-      setActivity(activity.concat([{agent:teams[tk].agentName,action:"Resposta entregue \u2705",ts:Date.now(),color:teams[tk].color}]));
-      // Auto-extract tasks from brain responses
-      if(tk==="brain"){var taskLines=txt.split("\n").filter(function(l){return l.includes("TAREFA:")});taskLines.forEach(function(l){
-        var parts=l.replace("TAREFA:","").trim().split("]");
-        if(parts.length>=2){var eq=parts[0].replace("[","").trim();var desc=parts.slice(1).join("]").replace("[","").replace("]","").trim();
-          sb.from("ai_tasks").insert({equipe:eq.toLowerCase(),tipo:"auto",titulo:desc.substring(0,100),conteudo:desc,status:"pendente",prioridade:5,tenant_id:ADMIN_TID}).catch(function(){})
-        }
-      })}
-      // Save content from mkt/sales
-      if((tk==="mkt"||tk==="sales")&&txt.length>100){
-        sb.from("ai_content").insert({equipe:tk,tipo:tk==="mkt"?"post":"script",titulo:q.substring(0,100),conteudo:txt,plataforma:tk==="mkt"?"instagram":"whatsapp",status:"rascunho",tenant_id:ADMIN_TID}).catch(function(){});
-      }
-      setBusy(false);
-    };
+    // Save content from mkt/sales
+    if((agentSlug==="mkt"||agentSlug==="sales")&&txt.length>100){
+      sb.from("ai_content").insert({equipe:agentSlug,tipo:agentSlug==="mkt"?"post":"script",titulo:text.substring(0,100),conteudo:txt,status:"rascunho",tenant_id:ADMIN_TID}).catch(function(){});
+    }
 
-    // WORKER - processes queue automatically
-    var runWorker=async function(){
-      if(!apiKey)return;
-      await sb.from("ai_worker_log").insert({tipo:"worker_run",detalhes:"Worker executando...",tenant_id:ADMIN_TID});
-      // 1. Check goals progress
-      var gls=await sb.from("ai_goals").select("*").eq("status","ativo").eq("tenant_id",ADMIN_TID);
-      var activeGoals=gls.data||[];
-      // Update goal values
-      for(var i=0;i<activeGoals.length;i++){
-        var g=activeGoals[i];var newVal=0;
-        if(g.tipo==="clientes")newVal=ativos.length;
-        else if(g.tipo==="mrr")newVal=mrr;
-        else if(g.tipo==="leads")newVal=tenants.filter(function(t){return t.pipeline==="lead"}).length;
-        else if(g.tipo==="posts")newVal=(await sb.from("ai_content").select("id").eq("tipo","post").eq("tenant_id",ADMIN_TID)).data.length;
-        else if(g.tipo==="emails")newVal=(await sb.from("ai_content").select("id").eq("tipo","email").eq("tenant_id",ADMIN_TID)).data.length;
-        await sb.from("ai_goals").update({valor_atual:newVal}).eq("id",g.id);
-      }
-      // 2. Process pending tasks
-      var pending2=await sb.from("ai_tasks").select("*").eq("status","pendente").eq("tenant_id",ADMIN_TID).order("prioridade").limit(3);
-      var tasks2=pending2.data||[];
-      for(var j=0;j<tasks2.length;j++){
-        var task=tasks2[j];
-        await sb.from("ai_tasks").update({status:"gerando"}).eq("id",task.id);
-        var sys2=teams[task.equipe]?teams[task.equipe].sys:"Gere conte\u00fado profissional em portugu\u00eas.";
-        var resultado=await callAI(sys2,[{role:"user",content:task.conteudo||task.titulo}]);
-        await sb.from("ai_tasks").update({status:"pronto",resultado:resultado,gerado_em:new Date().toISOString()}).eq("id",task.id);
-        await sb.from("ai_content").insert({equipe:task.equipe,tipo:task.tipo,titulo:task.titulo,conteudo:resultado,status:"rascunho",task_id:task.id,tenant_id:ADMIN_TID});
-      }
-      // 3. Auto-generate tasks if goals behind
-      for(var k=0;k<activeGoals.length;k++){
-        var gl=activeGoals[k];var pct=gl.meta_valor>0?gl.valor_atual/gl.meta_valor:1;
-        if(pct<0.8){
-          var pendingTasks=await sb.from("ai_tasks").select("id").eq("status","pendente").eq("tenant_id",ADMIN_TID);
-          if((pendingTasks.data||[]).length<5){
-            if(gl.tipo==="posts"||gl.tipo==="leads"){
-              await sb.from("ai_tasks").insert({equipe:"mkt",tipo:"post_instagram",titulo:"Post Instagram - atingir meta de "+gl.tipo,conteudo:"Crie 1 post completo para Instagram do Portal do Corretor. Legenda persuasiva + 10 hashtags. Foco: atrair construtoras. Meta: "+gl.meta_valor+" "+gl.tipo+", atual: "+gl.valor_atual,status:"pendente",prioridade:3,meta_id:gl.id,tenant_id:ADMIN_TID});
-            }
-            if(gl.tipo==="clientes"||gl.tipo==="mrr"){
-              await sb.from("ai_tasks").insert({equipe:"sales",tipo:"email_prospeccao",titulo:"Email prospec\u00e7\u00e3o - meta "+gl.tipo,conteudo:"Crie 1 email de prospec\u00e7\u00e3o fria para construtoras. Mostre ROI do Portal do Corretor. Tom consultivo. Meta: "+gl.meta_valor+" "+gl.tipo+", atual: "+gl.valor_atual,status:"pendente",prioridade:2,meta_id:gl.id,tenant_id:ADMIN_TID});
-            }
-          }
-        }
-      }
-      await sb.from("ai_worker_log").insert({tipo:"worker_done",detalhes:"Processou "+tasks2.length+" tarefas. "+activeGoals.length+" metas ativas.",tenant_id:ADMIN_TID});
-      await loadBrainData();
-      msg("\u2705 Worker executou: "+tasks2.length+" tarefas processadas");
-    };
+    setBusy(false);
+    await loadConvo(agentSlug);
+  };
 
-    // Auto-worker interval
-    useEffect(function(){
-      if(!workerOn||!apiKey)return;
-      var iv=setInterval(function(){runWorker()},1800000); // 30 min
-      return function(){clearInterval(iv)};
-    },[workerOn,apiKey]);
+  // ═══ AUDIO ═══
+  var startRec=async function(){
+    try{var stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      var rec=new MediaRecorder(stream);var chunks=[];
+      rec.ondataavailable=function(e){chunks.push(e.data)};
+      rec.onstop=function(){stream.getTracks().forEach(function(t){t.stop()});setRecording(false);
+        sendMsg2(selAgent,"[Audio recebido] O usuario enviou um audio. Responda normalmente.");
+      };
+      rec.start();setMediaRec(rec);setRecording(true);msg("Gravando...");
+    }catch(e){msg("Microfone nao disponivel")}
+  };
+  var stopRec=function(){if(mediaRec&&mediaRec.state==="recording"){mediaRec.stop();setMediaRec(null)}};
 
-    var qActions=[
-      {l:"\ud83d\udcca An\u00e1lise completa",team:"brain",q:"An\u00e1lise completa: sa\u00fade financeira, pipeline, metas, plano de a\u00e7\u00e3o. Liste TAREFA: [equipe] [descri\u00e7\u00e3o] para cada a\u00e7\u00e3o."},
-      {l:"\ud83d\udcdd 3 Posts Instagram",team:"mkt",q:"Crie 3 posts Instagram para atrair construtoras. Legenda completa + hashtags."},
-      {l:"\ud83d\udce7 Email prospec\u00e7\u00e3o",team:"sales",q:"Email de prospec\u00e7\u00e3o fria para construtoras. Tom consultivo, ROI claro."},
-      {l:"\ud83d\udcb0 Proje\u00e7\u00e3o 6m",team:"finance",q:"Proje\u00e7\u00e3o financeira 6 meses: cen\u00e1rios otimista, realista, pessimista."},
-      {l:"\ud83d\udc1b Audit bugs",team:"tech",q:"Bugs e melhorias priorit\u00e1rias: seguran\u00e7a, performance, UX."},
-      {l:"\ud83d\udd04 Validar tudo",team:"brain",q:"Valida\u00e7\u00e3o completa. Metas atingidas? Tarefas pendentes? O que fazer agora? Liste TAREFA: para cada a\u00e7\u00e3o necess\u00e1ria."},
-      {l:"\ud83c\udfa8 Gerar Imagem",team:"mkt",q:"GERAR_IMAGEM: Crie uma arte profissional para post do Instagram do Portal do Corretor. Estilo moderno, cores dourado e preto, tema: gest\u00e3o imobili\u00e1ria digital."},
-      {l:"\ud83c\udfac Gerar V\u00eddeo",team:"mkt",q:"GERAR_VIDEO: Crie um Reels de 15 segundos mostrando as funcionalidades do Portal do Corretor. Estilo tech, din\u00e2mico."},
-      {l:"\ud83c\udf99\ufe0f Gerar \u00c1udio",team:"mkt",q:"GERAR_AUDIO: Portal do Corretor. A plataforma completa para construtoras. CRM, tabela de vendas, simulador de financiamento e gest\u00e3o de corretores. Tudo em um s\u00f3 lugar."}
-    ];
+  // ═══ WORKER ═══
+  var runWorker=async function(){
+    if(!apiKey)return;
+    setActivity(activity.concat([{agent:"Sistema",action:"Worker executando...",ts:Date.now(),color:G}]));
+    await sb.rpc("run_ai_worker");
+    // Process pending tasks with AI
+    var r=await sb.from("ai_tasks").select("*").eq("status","pendente").eq("tenant_id",ADMIN_TID).order("prioridade").limit(3);
+    for(var i=0;i<(r.data||[]).length;i++){
+      var task=r.data[i];
+      await sb.from("ai_tasks").update({status:"gerando"}).eq("id",task.id);
+      var agent2=agents.find(function(a){return a.slug===task.equipe})||agents[0];
+      var result=await callAI(sysCtx+(agent2?agent2.system_prompt:""),[{role:"user",content:task.conteudo||task.titulo}]);
+      await sb.from("ai_tasks").update({status:"pronto",resultado:result,gerado_em:new Date().toISOString()}).eq("id",task.id);
+      await sb.from("ai_content").insert({equipe:task.equipe,tipo:task.tipo,titulo:task.titulo,conteudo:result,status:autonomy.approve?"aprovado":"rascunho",task_id:task.id,tenant_id:ADMIN_TID});
+    }
+    await loadAll2();
+    msg("Worker: "+(r.data||[]).length+" tarefas processadas");
+  };
 
+  // Auto worker
+  useEffect(function(){if(!workerOn||!apiKey)return;var iv=setInterval(runWorker,1800000);return function(){clearInterval(iv)}},[workerOn,apiKey]);
 
-    // ═══ DEVOPS FUNCTIONS ═══
+  // ═══ CURRENT AGENT ═══
+  var curAgent=agents.find(function(a){return a.slug===selAgent})||{slug:"brain",nome:"Ana",cargo:"Coordenadora",avatar:"\ud83d\udc69\u200d\ud83d\udcbc",cor:"#C8A45C"};
+  var curMsgs=convos[selAgent]||[];
 
-    // ═══ AI GENERATION FUNCTIONS ═══
-    var generateImage=async function(prompt){
-      var prov=aiProviders.img;if(!prov||!prov.provider||!prov.key){return{error:"Configure Geração de Imagens em Integrações"}}
-      var p=prov.provider;var k=prov.key;
-      try{
-        if(p==="openai_dalle"){
-          var r=await fetch("https://api.openai.com/v1/images/generations",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+k},body:JSON.stringify({model:"dall-e-3",prompt:prompt,n:1,size:"1024x1024"})});
-          var d=await r.json();return{url:d.data&&d.data[0]?d.data[0].url:null,error:d.error?d.error.message:null}
-        }
-        if(p==="stability"){
-          var r2=await fetch("https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+k},body:JSON.stringify({text_prompts:[{text:prompt}],cfg_scale:7,steps:30})});
-          var d2=await r2.json();return{url:d2.artifacts&&d2.artifacts[0]?"data:image/png;base64,"+d2.artifacts[0].base64:null}
-        }
-        if(p==="leonardo"){
-          var r3=await fetch("https://cloud.leonardo.ai/api/rest/v1/generations",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+k},body:JSON.stringify({prompt:prompt,num_images:1,width:1024,height:1024})});
-          var d3=await r3.json();return{id:d3.sdGenerationJob?d3.sdGenerationJob.generationId:null,status:"processing"}
-        }
-        return{error:"Provedor "+p+" não implementado. Use OpenAI DALL-E, Stability AI ou Leonardo AI."}
-      }catch(e){return{error:e.message}}
-    };
-
-    var generateVideo=async function(prompt,imageUrl){
-      var prov=aiProviders.video;if(!prov||!prov.provider||!prov.key){return{error:"Configure Geração de Vídeo em Integrações"}}
-      var p=prov.provider;var k=prov.key;
-      try{
-        if(p==="runway"){
-          var r=await fetch("https://api.rev.ai/runway/v1/image_to_video",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+k},body:JSON.stringify({promptImage:imageUrl,promptText:prompt,duration:4})});
-          return await r.json()
-        }
-        if(p==="heygen"){
-          var r2=await fetch("https://api.heygen.com/v2/video/generate",{method:"POST",headers:{"Content-Type":"application/json","X-Api-Key":k},body:JSON.stringify({video_inputs:[{character:{type:"avatar",avatar_id:"default"},voice:{type:"text",input_text:prompt}}]})});
-          return await r2.json()
-        }
-        return{error:"Provedor "+p+" ainda não implementado"}
-      }catch(e){return{error:e.message}}
-    };
-
-    var generateVoice=async function(text){
-      var prov=aiProviders.voice;if(!prov||!prov.provider||!prov.key){return{error:"Configure Voz em Integrações"}}
-      var p=prov.provider;var k=prov.key;
-      try{
-        if(p==="elevenlabs"){
-          var r=await fetch("https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM",{method:"POST",headers:{"Content-Type":"application/json","xi-api-key":k},body:JSON.stringify({text:text,model_id:"eleven_multilingual_v2"})});
-          if(r.ok){var blob=await r.blob();return{audio:URL.createObjectURL(blob)}}
-          return{error:"Erro ElevenLabs"}
-        }
-        if(p==="openai_tts"){
-          var r2=await fetch("https://api.openai.com/v1/audio/speech",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+k},body:JSON.stringify({model:"tts-1",input:text,voice:"nova"})});
-          if(r2.ok){var blob2=await r2.blob();return{audio:URL.createObjectURL(blob2)}}
-          return{error:"Erro OpenAI TTS"}
-        }
-        return{error:"Provedor "+p+" ainda não implementado"}
-      }catch(e){return{error:e.message}}
-    };
-
-    // ═══ RENDER ═══
-    var ghAPI=function(path,method,body){
-      return fetch("https://api.github.com/repos/"+ghUser+"/"+ghRepo+"/"+path,{
-        method:method||"GET",
-        headers:{"Authorization":"token "+ghToken,"Content-Type":"application/json","Accept":"application/vnd.github.v3+json"},
-        body:body?JSON.stringify(body):undefined
-      }).then(function(r){return r.json()});
-    };
-
-    var readFile=async function(filename){
-      var r=await ghAPI("contents/"+filename);
-      if(r.content){return{content:atob(r.content),sha:r.sha}}
-      return null;
-    };
-
-    var writeFile=async function(filename,content,message,sha){
-      return ghAPI("contents/"+filename,"PUT",{
-        message:message||"[AI DevOps] Update "+filename,
-        content:btoa(unescape(encodeURIComponent(content))),
-        sha:sha
-      });
-    };
-
-    var execSQL=async function(sql){
-      try{
-        var r=await fetch(SUPABASE_URL+"/rest/v1/rpc/exec_sql",{
-          method:"POST",
-          headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/json"},
-          body:JSON.stringify({sql_text:sql})
-        });
-        return await r.json();
-      }catch(e){return{error:e.message}}
-    };
-
-    var devSysPrompt="Voc\u00ea \u00e9 o AGENTE DEVOPS do Portal do Corretor SaaS.\n\nARQUITETURA:\n- portal.html (~5700 linhas): Portal dos clientes (React/Babel)\n- admin.html (~1900 linhas): Painel admin SaaS\n- index.html (~375 linhas): Landing page\n- 404.html (~31 linhas): Routing\n- Backend: Supabase (PostgreSQL)\n- GitHub: "+ghUser+"/"+ghRepo+"\n\nVoc\u00ea pode:\n1. LER arquivos do GitHub (comando: READ:filename)\n2. EDITAR arquivos (comando: EDIT:filename)\n3. EXECUTAR SQL no Supabase (comando: SQL:query)\n\nQuando o usu\u00e1rio pedir uma melhoria:\n1. Analise o que precisa mudar\n2. Gere o c\u00f3digo/SQL exato\n3. Mostre preview das mudan\u00e7as\n4. Pergunte se deve aplicar\n\nQuando confirmar, use os comandos:\n- APPLY_EDIT:filename:::conteudo_completo_do_arquivo\n- APPLY_SQL:::sql_query\n\nResponda SEMPRE em portugu\u00eas. Seja preciso e teste mentalmente o c\u00f3digo antes de sugerir.";
-
-    var sendDevMsg=async function(q){
-      if(!q||!q.trim()||devBusy)return;
-      if(!apiKey){setDevMsgs(devMsgs.concat([{role:"assistant",content:"\u26a0\ufe0f Configure a API Key em Integra\u00e7\u00f5es."}]));return}
-      if(!ghToken){setDevMsgs(devMsgs.concat([{role:"assistant",content:"\u26a0\ufe0f Configure o GitHub Token em Integra\u00e7\u00f5es."}]));return}
-      setDevBusy(true);
-      var newMsgs=devMsgs.concat([{role:"user",content:q}]);
-      setDevMsgs(newMsgs);setDevInp("");
-
-      // Check for auto-commands
-      if(q.startsWith("CONFIRMAR_DEPLOY:")){
-        var parts=q.split(":::");
-        var filename=parts[0].replace("CONFIRMAR_DEPLOY:","").trim();
-        var content=parts.slice(1).join(":::");
-        setDevLog(devLog.concat([{t:Date.now(),m:"\ud83d\ude80 Deployando "+filename+"..."}]));
-        try{
-          var current=await readFile(filename);
-          var r=await writeFile(filename,content,"[AI DevOps] "+filename,current?current.sha:undefined);
-          if(r.content){
-            setDevMsgs(newMsgs.concat([{role:"assistant",content:"\u2705 Deploy realizado com sucesso!\n\nArquivo: "+filename+"\nCommit: "+r.commit.sha.substring(0,7)+"\nMensagem: "+r.commit.message}]));
-            setDevLog(devLog.concat([{t:Date.now(),m:"\u2705 "+filename+" deployado: "+r.commit.sha.substring(0,7)}]));
-          }else{
-            setDevMsgs(newMsgs.concat([{role:"assistant",content:"\u274c Erro no deploy: "+JSON.stringify(r)}]));
-          }
-        }catch(e){setDevMsgs(newMsgs.concat([{role:"assistant",content:"\u274c Erro: "+e.message}]))}
-        setDevBusy(false);return;
-      }
-
-      if(q.startsWith("EXECUTAR_SQL:")){
-        var sql=q.replace("EXECUTAR_SQL:","").trim();
-        setDevLog(devLog.concat([{t:Date.now(),m:"\ud83d\udcbe Executando SQL..."}]));
-        var r2=await execSQL(sql);
-        setDevMsgs(newMsgs.concat([{role:"assistant",content:r2.error?"\u274c SQL Erro: "+JSON.stringify(r2.error):"\u2705 SQL executado com sucesso!\n\nResultado: "+JSON.stringify(r2).substring(0,500)}]));
-        setDevBusy(false);return;
-      }
-
-      // Regular AI conversation
-      var txt=await callAI(devSysPrompt,newMsgs.map(function(m){return{role:m.role,content:m.content}}).slice(-10));
-      setDevMsgs(newMsgs.concat([{role:"assistant",content:txt}]));
-      setDevBusy(false);
-    };
-
-    var quickDevActions=[
-      {l:"\ud83d\udcca Ler portal.html",cmd:"Leia o portal.html do GitHub e me diga quantas linhas tem e liste as principais fun\u00e7\u00f5es."},
-      {l:"\ud83d\udc1b Scan de bugs",cmd:"Analise o c\u00f3digo atual e identifique poss\u00edveis bugs, fun\u00e7\u00f5es vazias, ou erros de sintaxe."},
-      {l:"\u26a1 Otimizar performance",cmd:"Sugira otimiza\u00e7\u00f5es de performance para o portal: lazy loading, debounce, cache, queries."},
-      {l:"\ud83d\udd12 Audit seguran\u00e7a",cmd:"Fa\u00e7a um audit de seguran\u00e7a: senhas, tokens expostos, XSS, SQL injection, RLS."},
-      {l:"\ud83d\udcf1 Fix mobile",cmd:"Identifique problemas de responsividade mobile e gere os CSS fixes necess\u00e1rios."},
-      {l:"\ud83d\udcbe Criar tabela SQL",cmd:"Que tabelas novas poderiam melhorar o sistema? Sugira com CREATE TABLE completo."}
-    ];
-
-    // ═══ RENDER ═══
-    return <div className="fade-in">
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <div style={{fontSize:24,fontWeight:700,color:textColor}}>{"\ud83e\udde0"} C\u00e9rebro IA</div>
-        <div style={{display:"flex",gap:8,alignItems:"center"}}>
-          <button className="bh" onClick={runWorker} style={{padding:"6px 14px",borderRadius:8,background:G+"12",color:G,border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>{"\ud83d\udd04"} Executar Agora</button>
-        </div>
-      </div>
-
-      {/* Autonomy Control Panel */}
-      <div style={{padding:16,borderRadius:14,background:"linear-gradient(135deg,"+(dark?"#0d0d18":"#f8f5f0")+","+(dark?"#12101a":"#fff")+")",border:"1px solid "+G+"20",marginBottom:16}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-          <div style={{fontSize:15,fontWeight:700,color:textColor}}>{"\ud83c\udfae"} Controle de Autonomia</div>
-          <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <div style={{width:10,height:10,borderRadius:"50%",background:workerOn?GR:R,boxShadow:workerOn?"0 0 8px "+GR:"none"}}/>
-            <span style={{fontSize:13,fontWeight:600,color:workerOn?GR:R}}>{workerOn?"ATIVO 24h":"PARADO"}</span>
-            <button className="bh" onClick={async function(){
-              var nv=!workerOn;setWorkerOn(nv);
-              await sb.from("config_whatsapp").delete().eq("chave","ai_worker_active").eq("tenant_id",ADMIN_TID);
-              await sb.from("config_whatsapp").insert({chave:"ai_worker_active",valor:String(nv),tenant_id:ADMIN_TID});
-              if(nv)runWorker();
-              msg(nv?"\u2705 Worker ativado 24h!":"\u23f8 Worker pausado");
-            }} style={{padding:"8px 18px",borderRadius:8,background:workerOn?"linear-gradient(135deg,"+R+",#c44040)":"linear-gradient(135deg,"+GR+",#2e8b57)",color:"#fff",border:"none",fontSize:13,fontWeight:700,cursor:"pointer"}}>{workerOn?"\u23f8 Parar Tudo":"\u25b6\ufe0f Ligar Worker 24h"}</button>
-          </div>
-        </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
-          {[
-            {k:"generate",l:"\u2699\ufe0f Gerar Conte\u00fado",d:"IA cria posts, emails e scripts automaticamente baseado nas metas",c:P},
-            {k:"approve",l:"\u2705 Auto-Aprovar",d:"Conte\u00fado gerado \u00e9 aprovado sem revis\u00e3o humana",c:W},
-            {k:"post",l:"\ud83d\ude80 Auto-Postar",d:"Publica automaticamente no Instagram nos melhores hor\u00e1rios",c:R}
-          ].map(function(item){
-            var isOn=autonomy[item.k];
-            return <div key={item.k} className="bh" onClick={async function(){
-              var nv=Object.assign({},autonomy);nv[item.k]=!nv[item.k];
-              if(item.k==="post"&&!nv.post===false&&nv.approve){nv.approve=false}
-              if(item.k==="approve"&&nv.approve&&!autonomy.generate){nv.generate=true}
-              if(item.k==="post"&&nv.post){nv.generate=true;nv.approve=true}
-              setAutonomy(nv);
-              await sb.from("config_whatsapp").delete().eq("chave","ai_autonomy").eq("tenant_id",ADMIN_TID);
-              await sb.from("config_whatsapp").insert({chave:"ai_autonomy",valor:JSON.stringify(nv),tenant_id:ADMIN_TID});
-              msg((nv[item.k]?"\u2705 ":"\u274c ")+item.l+" "+(nv[item.k]?"ativado":"desativado"));
-            }} style={{padding:14,borderRadius:12,background:isOn?item.c+"10":"transparent",border:isOn?"2px solid "+item.c+"40":"1px solid "+border,cursor:"pointer",textAlign:"center"}}>
-              <div style={{fontSize:24,marginBottom:4}}>{isOn?"\ud83d\udfe2":"\ud83d\udd34"}</div>
-              <div style={{fontSize:13,fontWeight:700,color:isOn?item.c:subColor}}>{item.l}</div>
-              <div style={{fontSize:11,color:subColor,marginTop:4,lineHeight:1.4}}>{item.d}</div>
-            </div>
-          })}
-        </div>
-        <div style={{marginTop:10,padding:10,borderRadius:8,background:dark?"#111":"#EFEBE4",fontSize:12,color:subColor}}>
-          {"\ud83d\udee1\ufe0f"} <b>N\u00edvel 1</b> (Gerar): IA cria, voc\u00ea aprova e posta. <b>N\u00edvel 2</b> (Aprovar): IA cria e aprova, voc\u00ea posta. <b>N\u00edvel 3</b> (Postar): 100% aut\u00f4nomo, IA faz tudo.
-        </div>
-      </div>
-
-      {!apiKey&&<div style={{padding:20,borderRadius:14,background:W+"08",border:"1px solid "+W+"20",marginBottom:16}}>
-        <div style={{fontSize:16,fontWeight:700,color:textColor,marginBottom:8}}>{"\ud83d\udd11"} Configure sua API Key</div>
-        <div style={{display:"flex",gap:8}}>
-          <input id="brain_api_key" type="password" onKeyDown={function(e){e.stopPropagation()}} placeholder="sk-ant-..." style={{flex:1,padding:"10px 14px",borderRadius:8,border:"1px solid "+border,background:dark?"#111":"#f8f5f0",color:textColor,fontSize:13,outline:"none"}}/>
-          <button className="bh" onClick={async function(){var k=document.getElementById("brain_api_key").value;if(!k)return;await sb.from("config_whatsapp").delete().eq("chave","anthropic_api_key").eq("tenant_id",ADMIN_TID);await sb.from("config_whatsapp").insert({chave:"anthropic_api_key",valor:k,tenant_id:ADMIN_TID});setApiKey(k);msg("\u2705 Salva!")}} style={{padding:"10px 20px",borderRadius:8,background:G,color:"#0a0a09",fontWeight:700,border:"none",cursor:"pointer"}}>Salvar</button>
-        </div>
-      </div>}
-      {apiKey&&<div style={{display:"flex",gap:8,marginBottom:12,alignItems:"center"}}>
-        <span style={{fontSize:12,color:GR}}>{"\u2705"} API Key ativa</span>
-        <select value={aiModel} onChange={async function(e){setAiModel(e.target.value);await sb.from("config_whatsapp").delete().eq("chave","ai_model").eq("tenant_id",ADMIN_TID);await sb.from("config_whatsapp").insert({chave:"ai_model",valor:e.target.value,tenant_id:ADMIN_TID});msg("Modelo: "+e.target.value)}} style={{padding:"4px 8px",borderRadius:6,border:"1px solid "+border,background:dark?"#111":"#f8f5f0",color:textColor,fontSize:12}}>
-          <option value="claude-opus-4-6">Claude Opus 4.6</option>
-          <option value="claude-sonnet-4-6">Claude Sonnet 4.6</option>
+  // ═══ RENDER ═══
+  return <div className="fade-in">
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+      <div style={{fontSize:24,fontWeight:700,color:textColor}}>{"\ud83e\udde0"} Escritorio Virtual</div>
+      <div style={{display:"flex",gap:6,alignItems:"center"}}>
+        <div style={{width:8,height:8,borderRadius:"50%",background:workerOn?GR:R}}/>
+        <span style={{fontSize:11,color:workerOn?GR:subColor}}>{workerOn?"24h ativo":"parado"}</span>
+        <button className="bh" onClick={async function(){var nv=!workerOn;setWorkerOn(nv);await sb.from("config_whatsapp").delete().eq("chave","ai_worker_active").eq("tenant_id",ADMIN_TID);await sb.from("config_whatsapp").insert({chave:"ai_worker_active",valor:String(nv),tenant_id:ADMIN_TID});if(nv)runWorker();msg(nv?"Worker ativado":"Worker parado")}} style={{padding:"5px 12px",borderRadius:6,background:workerOn?R+"12":GR+"12",color:workerOn?R:GR,border:"none",fontSize:11,fontWeight:600,cursor:"pointer"}}>{workerOn?"Parar":"Ligar 24h"}</button>
+        <button className="bh" onClick={runWorker} style={{padding:"5px 12px",borderRadius:6,background:G+"12",color:G,border:"none",fontSize:11,fontWeight:600,cursor:"pointer"}}>Executar</button>
+        <select value={aiModel} onChange={async function(e){setAiModel(e.target.value);await sb.from("config_whatsapp").delete().eq("chave","ai_model").eq("tenant_id",ADMIN_TID);await sb.from("config_whatsapp").insert({chave:"ai_model",valor:e.target.value,tenant_id:ADMIN_TID})}} style={{padding:"4px 8px",borderRadius:6,border:"1px solid "+border,background:dark?"#111":"#f8f5f0",color:textColor,fontSize:11}}>
+          <option value="claude-opus-4-6">Opus 4.6</option>
+          <option value="claude-sonnet-4-6">Sonnet 4.6</option>
         </select>
-      </div>}
+      </div>
+    </div>
 
-      {/* Tabs */}
-      <div style={{display:"flex",gap:4,marginBottom:16,borderBottom:"1px solid "+border,paddingBottom:8}}>
-        {[{k:"chat",l:"\ud83d\udcac Chat",c:G},{k:"goals",l:"\ud83c\udfaf Metas",c:GR},{k:"queue",l:"\u2699\ufe0f Fila ("+aiTasks.filter(function(t){return t.status==="pendente"||t.status==="gerando"}).length+")",c:P},{k:"content",l:"\ud83d\udcc4 Conte\u00fado ("+aiContent.length+")",c:B},{k:"deploy",l:"\ud83d\udee0\ufe0f DevOps",c:"#8B6FBF"}].map(function(t2){
-          return <button key={t2.k} className="bh" onClick={function(){setTab(t2.k)}} style={{padding:"8px 16px",borderRadius:"8px 8px 0 0",background:tab===t2.k?t2.c+"15":"transparent",color:tab===t2.k?t2.c:subColor,border:"none",fontSize:13,fontWeight:tab===t2.k?700:400,cursor:"pointer",borderBottom:tab===t2.k?"2px solid "+t2.c:"2px solid transparent"}}>{t2.l}</button>
+    {!apiKey&&<div style={{padding:16,borderRadius:12,background:W+"08",border:"1px solid "+W+"20",marginBottom:12}}>
+      <div style={{fontSize:14,fontWeight:700,color:textColor,marginBottom:6}}>Configure a API Key em Integracoes</div>
+    </div>}
+
+    {/* Tabs */}
+    <div style={{display:"flex",gap:4,marginBottom:12,borderBottom:"1px solid "+border,paddingBottom:6}}>
+      {[{k:"chat",l:"\ud83c\udfe2 Escritorio"},{k:"goals",l:"\ud83c\udfaf Metas"},{k:"queue",l:"\u2699\ufe0f Fila("+aiTasks.filter(function(t){return t.status==="pendente"||t.status==="gerando"}).length+")"},{k:"content",l:"\ud83d\udcc4 Conteudo("+aiContent.length+")"},{k:"team",l:"\ud83d\udc65 Equipe"},{k:"collab",l:"\ud83d\udcac Collabs("+agentChats.length+")"}].map(function(t2){
+        return <button key={t2.k} className="bh" onClick={function(){setTab(t2.k)}} style={{padding:"6px 12px",borderRadius:"8px 8px 0 0",background:tab===t2.k?G+"15":"transparent",color:tab===t2.k?G:subColor,border:"none",fontSize:12,fontWeight:tab===t2.k?700:400,cursor:"pointer",borderBottom:tab===t2.k?"2px solid "+G:"none"}}>{t2.l}</button>
+      })}
+    </div>
+
+    {/* ═══ TAB: ESCRITORIO ═══ */}
+    {tab==="chat"&&<div>
+      <div style={{display:"flex",gap:6,marginBottom:10,overflow:"auto",paddingBottom:4}}>
+        {agents.map(function(ag){var isAct=selAgent===ag.slug;var isBusy2=busy&&selAgent===ag.slug;
+          return <div key={ag.slug} className="bh" onClick={function(){setSelAgent(ag.slug);loadConvo(ag.slug)}} style={{padding:"10px 12px",borderRadius:10,background:isAct?ag.cor+"12":"transparent",border:isAct?"2px solid "+ag.cor+"40":"1px solid "+border,cursor:"pointer",minWidth:100,textAlign:"center",position:"relative"}}>
+            {isBusy2&&<div style={{position:"absolute",top:4,right:4,width:8,height:8,borderRadius:"50%",background:ag.cor,animation:"pulse 1s infinite"}}/>}
+            <div style={{fontSize:26}}>{ag.avatar}</div>
+            <div style={{fontSize:12,fontWeight:700,color:isAct?ag.cor:textColor}}>{ag.nome}</div>
+            <div style={{fontSize:9,color:subColor}}>{ag.cargo}</div>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:3,marginTop:3}}>
+              <div style={{width:5,height:5,borderRadius:"50%",background:isBusy2?W:GR}}/>
+              <span style={{fontSize:8,color:isBusy2?W:GR}}>{isBusy2?"trabalhando":"online"}</span>
+            </div>
+          </div>
         })}
       </div>
-
-      {/* TAB: CHAT - ESCRITÓRIO VIRTUAL */}
-      {tab==="chat"&&<div>
-        {/* Agent Cards */}
-        <div style={{display:"flex",gap:8,marginBottom:12,overflow:"auto",paddingBottom:4}}>
-          {Object.keys(teams).map(function(k){var t2=teams[k];var isActive=team===k;var isBusy2=busy&&team===k;
-            return <div key={k} className="bh" onClick={function(){setTeam(k)}} style={{padding:"12px 14px",borderRadius:12,background:isActive?t2.color+"12":"transparent",border:isActive?"2px solid "+t2.color+"40":"1px solid "+border,cursor:"pointer",minWidth:110,textAlign:"center",position:"relative"}}>
-              {isBusy2&&<div style={{position:"absolute",top:6,right:6,width:8,height:8,borderRadius:"50%",background:t2.color,animation:"pulse 1s infinite"}}/>}
-              <div style={{fontSize:28,marginBottom:2}}>{t2.avatar}</div>
-              <div style={{fontSize:13,fontWeight:700,color:isActive?t2.color:textColor}}>{t2.agentName}</div>
-              <div style={{fontSize:10,color:subColor}}>{t2.role}</div>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:4,marginTop:4}}>
-                <div style={{width:6,height:6,borderRadius:"50%",background:isBusy2?W:GR}}/>
-                <span style={{fontSize:9,color:isBusy2?W:GR}}>{isBusy2?"trabalhando":"online"}</span>
-              </div>
-            </div>
-          })}
-        </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 220px",gap:10}}>
-          <div>
-            <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:8}}>
-              {qActions.filter(function(a){return a.team===team||team==="brain"}).slice(0,6).map(function(a,i){return <button key={i} className="bh" onClick={function(){setTeam(a.team);sendToAgent(a.team,a.q)}} style={{padding:"5px 8px",borderRadius:6,background:teams[a.team].color+"10",color:teams[a.team].color,border:"none",fontSize:10,fontWeight:600,cursor:"pointer"}}>{a.l}</button>})}
-            </div>
-            <div style={{background:cardBg,borderRadius:12,border:"1px solid "+border,minHeight:280,maxHeight:380,display:"flex",flexDirection:"column"}}>
-              <div style={{padding:"8px 12px",borderBottom:"1px solid "+border,display:"flex",alignItems:"center",gap:8}}>
-                <span style={{fontSize:18}}>{teams[team].avatar}</span>
-                <div style={{flex:1}}><span style={{fontSize:13,fontWeight:700,color:teams[team].color}}>{teams[team].agentName}</span><span style={{fontSize:11,color:subColor}}> — {teams[team].role}</span></div>
-                {busy&&<span style={{fontSize:10,color:W,fontWeight:600}}>digitando...</span>}
-              </div>
-              <div style={{flex:1,padding:8,overflow:"auto"}}>
-                {msgs3.filter(function(m){return m.team===team||(team==="brain")}).length===0&&<div style={{textAlign:"center",padding:24,color:subColor,fontSize:13}}>
-                  <div style={{fontSize:32,marginBottom:8}}>{teams[team].avatar}</div>
-                  Olá! Sou {teams[team].agentName}, {teams[team].role}. Como posso ajudar?
-                </div>}
-                {msgs3.filter(function(m){return m.team===team||(team==="brain"&&m.team)}).map(function(m,i){var isU=m.role==="user";return <div key={i} style={{display:"flex",justifyContent:isU?"flex-end":"flex-start",marginBottom:6,gap:6}}>
-                  {!isU&&<span style={{fontSize:14,marginTop:4}}>{teams[m.team||team].avatar}</span>}
-                  <div style={{maxWidth:"80%",padding:"8px 12px",borderRadius:isU?"10px 10px 2px 10px":"10px 10px 10px 2px",background:isU?teams[m.team||team].color+"12":(dark?"#111":"#f8f5f0"),color:textColor,fontSize:13,lineHeight:1.7,whiteSpace:"pre-wrap"}}>
-                    {m.content}
-                    {m.audio&&<div style={{marginTop:6}}><audio controls src={m.audio} style={{width:"100%",height:32}}/></div>}
-                  </div>
-                </div>})}
-                {busy&&<div style={{display:"flex",gap:6}}><span style={{fontSize:14}}>{teams[team].avatar}</span><div style={{padding:"8px 12px",borderRadius:"10px 10px 10px 2px",background:dark?"#111":"#f8f5f0",color:subColor,fontSize:13}}>{teams[team].agentName} está pensando...</div></div>}
-              </div>
-              <div style={{padding:8,borderTop:"1px solid "+border,display:"flex",gap:4}}>
-                <input value={inp} onChange={function(e){setInp(e.target.value)}} onKeyDown={function(e){e.stopPropagation();if(e.key==="Enter"&&!busy)sendToAgent(team,inp)}} placeholder={"Falar com "+teams[team].agentName+"..."} style={{flex:1,padding:"10px 12px",borderRadius:8,border:"1px solid "+border,background:dark?"#111":"#f8f5f0",color:textColor,fontSize:13,outline:"none"}}/>
-                <button className="bh" onClick={recording?stopRecording:startRecording} style={{padding:"10px 12px",borderRadius:8,background:recording?"#D45B5B":"transparent",color:recording?"#fff":subColor,border:recording?"none":"1px solid "+border,fontSize:14,cursor:"pointer"}}>{recording?"\u23f9":"\ud83c\udf99\ufe0f"}</button>
-                <button className="bh" disabled={busy} onClick={function(){sendToAgent(team,inp)}} style={{padding:"10px 14px",borderRadius:8,background:teams[team].color,color:"#fff",fontWeight:700,border:"none",cursor:busy?"wait":"pointer"}}>{"\u2191"}</button>
-              </div>
-            </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 200px",gap:8}}>
+        <div style={{background:cardBg,borderRadius:12,border:"1px solid "+border,display:"flex",flexDirection:"column",minHeight:300,maxHeight:420}}>
+          <div style={{padding:"8px 12px",borderBottom:"1px solid "+border,display:"flex",alignItems:"center",gap:6}}>
+            <span style={{fontSize:16}}>{curAgent.avatar}</span>
+            <span style={{fontSize:13,fontWeight:700,color:curAgent.cor}}>{curAgent.nome}</span>
+            <span style={{fontSize:11,color:subColor}}>{curAgent.cargo}</span>
+            {busy&&<span style={{marginLeft:"auto",fontSize:10,color:W}}>digitando...</span>}
           </div>
-          <div>
-            <div style={{padding:12,borderRadius:12,background:cardBg,border:"1px solid "+border,marginBottom:8}}>
-              <div style={{fontSize:12,fontWeight:700,color:textColor,marginBottom:8}}>{"\ud83d\udce1"} Atividade</div>
-              {activity.length===0&&<div style={{fontSize:11,color:subColor,textAlign:"center",padding:12}}>Aguardando...</div>}
-              {activity.slice(-6).reverse().map(function(a2,i){return <div key={i} style={{display:"flex",alignItems:"center",gap:6,padding:"4px 0",borderBottom:"1px solid "+(dark?"#1a1a19":"#eee")}}>
-                <div style={{width:5,height:5,borderRadius:"50%",background:a2.color||G}}/>
-                <div><div style={{fontSize:10,fontWeight:600,color:a2.color||textColor}}>{a2.agent}</div><div style={{fontSize:9,color:subColor}}>{a2.action}</div></div>
-              </div>})}
-            </div>
-            <div style={{padding:12,borderRadius:12,background:cardBg,border:"1px solid "+border}}>
-              <div style={{fontSize:12,fontWeight:700,color:textColor,marginBottom:8}}>{"\ud83c\udfaf"} Metas</div>
-              {goals.slice(0,4).map(function(g){var pct=g.meta_valor>0?Math.min(100,Math.round(g.valor_atual/g.meta_valor*100)):0;return <div key={g.id} style={{marginBottom:6}}>
-                <div style={{display:"flex",justifyContent:"space-between",fontSize:11}}>
-                  <span style={{color:subColor}}>{g.tipo}</span>
-                  <span style={{color:pct>=80?GR:W,fontWeight:600}}>{pct}%</span>
-                </div>
-                <div style={{height:4,borderRadius:2,background:dark?"#1a1a19":"#ddd",marginTop:2}}>
-                  <div style={{height:"100%",width:pct+"%",background:pct>=80?GR:pct>=50?W:R,borderRadius:2}}/>
-                </div>
-              </div>})}
-              {goals.length===0&&<div style={{fontSize:11,color:subColor,textAlign:"center"}}>Sem metas</div>}
-            </div>
-          </div>
-        </div>
-      </div>}
-
-      {/* TAB: METAS */}
-      {tab==="goals"&&<div>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-          <div style={{fontSize:16,fontWeight:600,color:textColor}}>{"\ud83c\udfaf"} Metas Configur\u00e1veis</div>
-          <button className="bh" onClick={async function(){
-            var tipo=prompt("Tipo de meta:\n1. clientes\n2. mrr\n3. leads\n4. posts\n5. emails\n\nDigite o nome:","clientes");if(!tipo)return;
-            var valor=prompt("Valor da meta (n\u00famero):","50");if(!valor)return;
-            var prazo=prompt("Prazo (YYYY-MM-DD):","2026-12-31");
-            await sb.from("ai_goals").insert({tipo:tipo,meta_valor:parseInt(valor),prazo:prazo||null,tenant_id:ADMIN_TID});
-            await loadBrainData();msg("\u2705 Meta criada!");
-          }} style={{padding:"8px 16px",borderRadius:8,background:GR+"12",color:GR,border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>{"\uff0b"} Nova Meta</button>
-        </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
-          {goals.map(function(g){
-            var pct=g.meta_valor>0?Math.min(100,Math.round(g.valor_atual/g.meta_valor*100)):0;
-            var icons={clientes:"\ud83d\udc65",mrr:"\ud83d\udcb0",leads:"\ud83c\udfaf",posts:"\ud83d\udcdd",emails:"\ud83d\udce7"};
-            return <div key={g.id} style={{padding:16,borderRadius:14,background:cardBg,border:"1px solid "+border}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                <span style={{fontSize:14,fontWeight:600,color:textColor}}>{icons[g.tipo]||"\ud83c\udfaf"} {g.tipo}</span>
-                <span style={{fontSize:12,color:pct>=100?GR:pct>=50?W:R,fontWeight:700}}>{pct}%</span>
-              </div>
-              <div style={{fontSize:24,fontWeight:700,color:pct>=100?GR:textColor}}>{g.valor_atual}/{g.meta_valor}</div>
-              <div style={{height:6,borderRadius:3,background:dark?"#1a1a19":"#ddd",marginTop:8,overflow:"hidden"}}>
-                <div style={{height:"100%",width:pct+"%",background:pct>=100?GR:pct>=50?W:R,borderRadius:3,transition:"width .5s"}}/>
-              </div>
-              {g.prazo&&<div style={{fontSize:11,color:subColor,marginTop:6}}>Prazo: {new Date(g.prazo).toLocaleDateString("pt-BR")}</div>}
-              <div style={{display:"flex",gap:4,marginTop:8}}>
-                <button className="bh" onClick={async function(){var nv=prompt("Novo valor da meta:",g.meta_valor);if(nv){await sb.from("ai_goals").update({meta_valor:parseInt(nv)}).eq("id",g.id);await loadBrainData()}}} style={{padding:"4px 8px",borderRadius:4,background:B+"12",color:B,border:"none",fontSize:10,cursor:"pointer"}}>{"\u270f\ufe0f"} Editar</button>
-                <button className="bh" onClick={async function(){await sb.from("ai_goals").update({status:g.status==="ativo"?"pausado":"ativo"}).eq("id",g.id);await loadBrainData()}} style={{padding:"4px 8px",borderRadius:4,background:g.status==="ativo"?R+"12":GR+"12",color:g.status==="ativo"?R:GR,border:"none",fontSize:10,cursor:"pointer"}}>{g.status==="ativo"?"\u23f8":"\u25b6\ufe0f"}</button>
-              </div>
-            </div>
-          })}
-          {goals.length===0&&<div style={{gridColumn:"1/-1",textAlign:"center",padding:30,color:subColor}}>Nenhuma meta configurada. Clique em "+ Nova Meta" para come\u00e7ar.</div>}
-        </div>
-      </div>}
-
-      {/* TAB: QUEUE */}
-      {tab==="queue"&&<div>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-          <div style={{fontSize:16,fontWeight:600,color:textColor}}>{"\u2699\ufe0f"} Fila de Tarefas dos Agentes</div>
-          <div style={{display:"flex",gap:6}}>
-            <span style={{padding:"4px 10px",borderRadius:6,background:W+"12",color:W,fontSize:12}}>{"\u23f3"} {aiTasks.filter(function(t){return t.status==="pendente"}).length} pendentes</span>
-            <span style={{padding:"4px 10px",borderRadius:6,background:P+"12",color:P,fontSize:12}}>{"\u2699\ufe0f"} {aiTasks.filter(function(t){return t.status==="gerando"}).length} gerando</span>
-            <span style={{padding:"4px 10px",borderRadius:6,background:GR+"12",color:GR,fontSize:12}}>{"\u2705"} {aiTasks.filter(function(t){return t.status==="pronto"}).length} prontas</span>
-          </div>
-        </div>
-        {aiTasks.slice(0,20).map(function(t2){var cols={pendente:W,gerando:P,pronto:GR,publicado:B,erro:R};return <div key={t2.id} style={{padding:12,borderRadius:10,background:cardBg,border:"1px solid "+border,marginBottom:6,display:"flex",alignItems:"center",gap:10}}>
-          <div style={{width:8,height:8,borderRadius:"50%",background:cols[t2.status]||"#555",flexShrink:0}}/>
-          <div style={{flex:1}}>
-            <div style={{fontSize:13,fontWeight:600,color:textColor}}>[{t2.equipe}] {t2.titulo}</div>
-            <div style={{fontSize:11,color:subColor}}>{t2.status} \u00b7 {new Date(t2.criado_em).toLocaleString("pt-BR")}</div>
-          </div>
-          {t2.status==="pronto"&&<button className="bh" onClick={function(){setTab("content");msg("Veja o conte\u00fado gerado na aba Conte\u00fado")}} style={{padding:"4px 10px",borderRadius:6,background:GR+"12",color:GR,border:"none",fontSize:11,cursor:"pointer"}}>{"\ud83d\udc41\ufe0f"} Ver</button>}
-        </div>})}
-        {aiTasks.length===0&&<div style={{textAlign:"center",padding:30,color:subColor}}>Fila vazia. O C\u00e9rebro criar\u00e1 tarefas automaticamente baseado nas metas.</div>}
-        {/* Worker log */}
-        <div style={{marginTop:16,padding:12,borderRadius:10,background:dark?"#111":"#f8f5f0",border:"1px solid "+border}}>
-          <div style={{fontSize:13,fontWeight:600,color:textColor,marginBottom:8}}>{"\ud83d\udcdd"} Log do Worker</div>
-          {workerLog.map(function(l,i){return <div key={i} style={{fontSize:11,color:subColor,padding:"3px 0"}}>{new Date(l.criado_em).toLocaleString("pt-BR")} \u2014 {l.detalhes}</div>})}
-          {workerLog.length===0&&<div style={{fontSize:12,color:subColor}}>Nenhuma execu\u00e7\u00e3o ainda</div>}
-        </div>
-      </div>}
-
-      {/* TAB: CONTENT */}
-      {tab==="content"&&<div>
-        <div style={{fontSize:16,fontWeight:600,color:textColor,marginBottom:12}}>{"\ud83d\udcc4"} Conte\u00fado Gerado pela IA</div>
-        {aiContent.map(function(c2){var cols2={rascunho:W,aprovado:GR,publicado:B,descartado:R};return <div key={c2.id} style={{padding:14,borderRadius:12,background:cardBg,border:"1px solid "+border,marginBottom:8}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-            <div>
-              <span style={{fontSize:12,fontWeight:600,color:teams[c2.equipe]?teams[c2.equipe].color:subColor}}>[{c2.equipe}]</span>
-              <span style={{fontSize:13,fontWeight:600,color:textColor,marginLeft:6}}>{c2.titulo||c2.tipo}</span>
-            </div>
-            <span style={{padding:"3px 8px",borderRadius:4,background:(cols2[c2.status]||"#555")+"12",color:cols2[c2.status]||"#555",fontSize:10,fontWeight:600}}>{c2.status}</span>
-          </div>
-          <div style={{fontSize:13,color:textColor,lineHeight:1.7,whiteSpace:"pre-wrap",maxHeight:150,overflow:"auto",padding:10,borderRadius:8,background:dark?"#0a0a0a":"#f8f5f0"}}>{c2.conteudo}</div>
-          <div style={{display:"flex",gap:4,marginTop:8}}>
-            <button className="bh" onClick={function(){navigator.clipboard.writeText(c2.conteudo);msg("\ud83d\udccb Copiado!")}} style={{padding:"4px 10px",borderRadius:6,background:B+"12",color:B,border:"none",fontSize:11,cursor:"pointer"}}>{"\ud83d\udccb"} Copiar</button>
-            <button className="bh" onClick={async function(){await sb.from("ai_content").update({status:"aprovado"}).eq("id",c2.id);await loadBrainData();msg("\u2705 Aprovado!")}} style={{padding:"4px 10px",borderRadius:6,background:GR+"12",color:GR,border:"none",fontSize:11,cursor:"pointer"}}>{"\u2705"} Aprovar</button>
-            <button className="bh" onClick={async function(){await sb.from("ai_content").update({status:"publicado"}).eq("id",c2.id);await loadBrainData();msg("\ud83d\ude80 Publicado!")}} style={{padding:"4px 10px",borderRadius:6,background:P+"12",color:P,border:"none",fontSize:11,cursor:"pointer"}}>{"\ud83d\ude80"} Publicar</button>
-            <button className="bh" onClick={async function(){await sb.from("ai_content").update({status:"descartado"}).eq("id",c2.id);await loadBrainData()}} style={{padding:"4px 10px",borderRadius:6,background:R+"12",color:R,border:"none",fontSize:11,cursor:"pointer"}}>{"\ud83d\uddd1\ufe0f"}</button>
-          </div>
-        </div>})}
-        {aiContent.length===0&&<div style={{textAlign:"center",padding:30,color:subColor}}>Nenhum conte\u00fado gerado ainda. Ative o Worker ou use o Chat.</div>}
-      </div>}
-
-      {/* TAB: DEVOPS */}
-      {tab==="deploy"&&<div>
-        <div style={{fontSize:16,fontWeight:600,color:textColor,marginBottom:12}}>{"\ud83d\udee0\ufe0f"} Agente DevOps — Deploy Automatizado</div>
-
-
-          <div>
-            {/* GitHub config */}
-            {(!ghToken||!ghUser)&&<div style={{padding:16,borderRadius:12,background:W+"08",border:"1px solid "+W+"20",marginBottom:12}}>
-              <div style={{fontSize:14,fontWeight:700,color:textColor,marginBottom:8}}>{"\ud83d\udd11"} Configure GitHub</div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
-                <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Usu\u00e1rio</div><input id="dev_gh_user" onKeyDown={function(e){e.stopPropagation()}} defaultValue={ghUser} style={{width:"100%",padding:"8px",borderRadius:6,border:"1px solid "+border,background:dark?"#111":"#f8f5f0",color:textColor,fontSize:12}} placeholder="mikaels002-creator"/></div>
-                <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Reposit\u00f3rio</div><input id="dev_gh_repo" onKeyDown={function(e){e.stopPropagation()}} defaultValue={ghRepo} style={{width:"100%",padding:"8px",borderRadius:6,border:"1px solid "+border,background:dark?"#111":"#f8f5f0",color:textColor,fontSize:12}} placeholder="portal-corretor"/></div>
-                <div><div style={{fontSize:11,color:subColor,marginBottom:3}}>Token</div><input id="dev_gh_token" type="password" onKeyDown={function(e){e.stopPropagation()}} style={{width:"100%",padding:"8px",borderRadius:6,border:"1px solid "+border,background:dark?"#111":"#f8f5f0",color:textColor,fontSize:12}} placeholder="ghp_..."/></div>
-              </div>
-              <button className="bh" onClick={async function(){
-                var u=document.getElementById("dev_gh_user").value;var r=document.getElementById("dev_gh_repo").value;var t=document.getElementById("dev_gh_token").value;
-                if(u){await sb.from("config_whatsapp").delete().eq("chave","github_user").eq("tenant_id",ADMIN_TID);await sb.from("config_whatsapp").insert({chave:"github_user",valor:u,tenant_id:ADMIN_TID});setGhUser(u)}
-                if(r){await sb.from("config_whatsapp").delete().eq("chave","github_repo").eq("tenant_id",ADMIN_TID);await sb.from("config_whatsapp").insert({chave:"github_repo",valor:r,tenant_id:ADMIN_TID});setGhRepo(r)}
-                if(t){await sb.from("config_whatsapp").delete().eq("chave","github_token").eq("tenant_id",ADMIN_TID);await sb.from("config_whatsapp").insert({chave:"github_token",valor:t,tenant_id:ADMIN_TID});setGhToken(t)}
-                msg("\u2705 GitHub configurado!");
-              }} style={{marginTop:8,padding:"8px 16px",borderRadius:6,background:P,color:"#fff",border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>{"\ud83d\udcbe"} Salvar GitHub</button>
+          <div style={{flex:1,padding:8,overflow:"auto"}}>
+            {curMsgs.length===0&&<div style={{textAlign:"center",padding:20,color:subColor,fontSize:13}}>
+              <div style={{fontSize:30,marginBottom:6}}>{curAgent.avatar}</div>
+              Ola! Sou {curAgent.nome}, {curAgent.cargo}. Como posso ajudar?
             </div>}
-
-            {/* Status bar */}
-            <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
-              <span style={{padding:"6px 12px",borderRadius:8,background:ghToken?GR+"12":R+"12",color:ghToken?GR:R,fontSize:12,fontWeight:600}}>{ghToken?"\u2705":"\u274c"} GitHub {ghUser?ghUser+"/"+ghRepo:""}</span>
-              <span style={{padding:"6px 12px",borderRadius:8,background:apiKey?GR+"12":R+"12",color:apiKey?GR:R,fontSize:12,fontWeight:600}}>{apiKey?"\u2705":"\u274c"} Claude IA</span>
-              <span style={{padding:"6px 12px",borderRadius:8,background:GR+"12",color:GR,fontSize:12,fontWeight:600}}>{"\u2705"} Supabase</span>
-            </div>
-
-            {/* Quick actions */}
-            <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
-              {quickDevActions.map(function(a,i){return <button key={i} className="bh" onClick={function(){sendDevMsg(a.cmd)}} style={{padding:"6px 10px",borderRadius:6,background:P+"10",color:P,border:"1px solid "+P+"20",fontSize:11,fontWeight:600,cursor:"pointer"}}>{a.l}</button>})}
-            </div>
-
-            <div style={{display:"grid",gridTemplateColumns:"1fr 250px",gap:12}}>
-              {/* Chat */}
-              <div style={{background:cardBg,borderRadius:12,border:"1px solid "+border,display:"flex",flexDirection:"column",minHeight:350,maxHeight:450}}>
-                <div style={{padding:"10px 14px",borderBottom:"1px solid "+border,display:"flex",alignItems:"center",gap:8}}>
-                  <div style={{width:8,height:8,borderRadius:"50%",background:devBusy?W:GR}}/>
-                  <span style={{fontSize:13,fontWeight:600,color:textColor}}>{"\u26a1"} DevOps Agent {devBusy?"processando...":"pronto"}</span>
-                </div>
-                <div style={{flex:1,padding:10,overflow:"auto"}}>
-                  {devMsgs.length===0&&<div style={{textAlign:"center",padding:30,color:subColor}}>
-                    <div style={{fontSize:36,marginBottom:8}}>{"\ud83d\udee0\ufe0f"}</div>
-                    <div style={{fontSize:13}}>Pe\u00e7a melhorias, corre\u00e7\u00f5es ou deploy</div>
-                    <div style={{fontSize:11,color:subColor,marginTop:8}}>Ex: "Adicione um bot\u00e3o de exportar PDF no dashboard"</div>
-                  </div>}
-                  {devMsgs.map(function(m,i){var isU=m.role==="user";return <div key={i} style={{display:"flex",justifyContent:isU?"flex-end":"flex-start",marginBottom:6}}>
-                    <div style={{maxWidth:"85%",padding:"8px 12px",borderRadius:isU?"10px 10px 2px 10px":"10px 10px 10px 2px",background:isU?P+"12":(dark?"#111":"#f8f5f0"),color:textColor,fontSize:13,lineHeight:1.7,whiteSpace:"pre-wrap"}}>{m.content}</div>
-                  </div>})}
-                  {devBusy&&<div style={{padding:8,color:subColor,fontSize:13}}>{"\u23f3"} Processando...</div>}
-                </div>
-                <div style={{padding:8,borderTop:"1px solid "+border,display:"flex",gap:6}}>
-                  <input value={devInp} onChange={function(e){setDevInp(e.target.value)}} onKeyDown={function(e){e.stopPropagation();if(e.key==="Enter"&&!devBusy)sendDevMsg(devInp)}} placeholder="Descreva a melhoria ou corre\u00e7\u00e3o..." style={{flex:1,padding:"10px 12px",borderRadius:8,border:"1px solid "+border,background:dark?"#111":"#f8f5f0",color:textColor,fontSize:13,outline:"none"}}/>
-                  <button className="bh" disabled={devBusy} onClick={function(){sendDevMsg(devInp)}} style={{padding:"10px 14px",borderRadius:8,background:P,color:"#fff",fontWeight:700,border:"none",cursor:devBusy?"wait":"pointer"}}>{"\u2191"}</button>
-                </div>
-              </div>
-
-              {/* Deploy log */}
-              <div>
-                <div style={{padding:12,borderRadius:12,background:cardBg,border:"1px solid "+border,marginBottom:10}}>
-                  <div style={{fontSize:13,fontWeight:600,color:textColor,marginBottom:8}}>{"\ud83d\ude80"} Deploy r\u00e1pido</div>
-                  <button className="bh" onClick={async function(){
-                    if(!ghToken){msg("Configure GitHub primeiro");return}
-                    setDevLog(devLog.concat([{t:Date.now(),m:"\ud83d\udcca Lendo portal.html..."}]));
-                    var f=await readFile("portal.html");
-                    if(f)setDevLog(devLog.concat([{t:Date.now(),m:"\u2705 portal.html: "+f.content.split("\\n").length+" linhas"}]));
-                  }} style={{width:"100%",padding:"8px",borderRadius:6,background:P+"12",color:P,border:"none",fontSize:12,fontWeight:600,cursor:"pointer",marginBottom:4}}>{"\ud83d\udcca"} Status Repo</button>
-                  <button className="bh" onClick={async function(){
-                    if(!ghToken){msg("Configure GitHub primeiro");return}
-                    var file=prompt("Arquivo para atualizar (portal.html, admin.html, index.html, 404.html):","admin.html");if(!file)return;
-                    var el=document.createElement("input");el.type="file";el.accept=".html";el.onchange=async function(){
-                      var f=el.files[0];if(!f)return;
-                      var reader=new FileReader();reader.onload=async function(){
-                        var content=reader.result;
-                        setDevLog(devLog.concat([{t:Date.now(),m:"\ud83d\ude80 Uploading "+file+"..."}]));
-                        var current=await readFile(file);
-                        var r=await writeFile(file,content,"[Manual] Update "+file,current?current.sha:undefined);
-                        if(r.content){setDevLog(devLog.concat([{t:Date.now(),m:"\u2705 "+file+" deployado!"}]));msg("\u2705 Deploy OK!")}
-                        else{setDevLog(devLog.concat([{t:Date.now(),m:"\u274c Erro: "+JSON.stringify(r.message||r)}]));msg("\u274c Erro no deploy")}
-                      };reader.readAsText(f);
-                    };el.click();
-                  }} style={{width:"100%",padding:"8px",borderRadius:6,background:GR+"12",color:GR,border:"none",fontSize:12,fontWeight:600,cursor:"pointer",marginBottom:4}}>{"\ud83d\udce4"} Upload & Deploy</button>
-                </div>
-
-                <div style={{padding:12,borderRadius:12,background:cardBg,border:"1px solid "+border}}>
-                  <div style={{fontSize:13,fontWeight:600,color:textColor,marginBottom:8}}>{"\ud83d\udcdd"} Log</div>
-                  {devLog.length===0&&<div style={{fontSize:12,color:subColor,textAlign:"center",padding:16}}>Nenhuma a\u00e7\u00e3o</div>}
-                  {devLog.slice(-10).reverse().map(function(l,i){return <div key={i} style={{fontSize:11,color:subColor,padding:"3px 0",borderBottom:"1px solid "+(dark?"#1a1a19":"#eee")}}>{l.m}</div>})}
-                </div>
-              </div>
-            </div>
+            {curMsgs.map(function(m,i){var isU=m.role==="user";return <div key={i} style={{display:"flex",justifyContent:isU?"flex-end":"flex-start",marginBottom:5,gap:4}}>
+              {!isU&&<span style={{fontSize:12,marginTop:4}}>{curAgent.avatar}</span>}
+              <div style={{maxWidth:"82%",padding:"7px 10px",borderRadius:isU?"10px 10px 2px 10px":"10px 10px 10px 2px",background:isU?curAgent.cor+"12":(dark?"#111":"#f8f5f0"),color:textColor,fontSize:12,lineHeight:1.7,whiteSpace:"pre-wrap"}}>{m.content}</div>
+            </div>})}
+            {busy&&<div style={{display:"flex",gap:4}}><span style={{fontSize:12}}>{curAgent.avatar}</span><div style={{padding:"7px 10px",borderRadius:10,background:dark?"#111":"#f8f5f0",color:subColor,fontSize:12}}>{curAgent.nome} pensando...</div></div>}
           </div>
-      </div>}
+          <div style={{padding:6,borderTop:"1px solid "+border,display:"flex",gap:4}}>
+            <label style={{padding:"8px 10px",borderRadius:8,border:"1px solid "+border,cursor:"pointer",fontSize:12,color:subColor}}>
+              <input type="file" accept="image/*" style={{display:"none"}} onChange={function(e){if(e.target.files&&e.target.files[0]){sendMsg2(selAgent,"[Imagem anexada: "+e.target.files[0].name+"] Analise esta imagem.")}}}/>
+              {"\ud83d\udcce"}
+            </label>
+            <input value={inp} onChange={function(e){setInp(e.target.value)}} onKeyDown={function(e){e.stopPropagation();if(e.key==="Enter"&&!busy)sendMsg2(selAgent,inp)}} placeholder={"Falar com "+curAgent.nome+"..."} style={{flex:1,padding:"8px 10px",borderRadius:8,border:"1px solid "+border,background:dark?"#111":"#f8f5f0",color:textColor,fontSize:12,outline:"none"}}/>
+            <button className="bh" onClick={recording?stopRec:startRec} style={{padding:"8px 10px",borderRadius:8,background:recording?R:"transparent",color:recording?"#fff":subColor,border:recording?"none":"1px solid "+border,cursor:"pointer"}}>{"\ud83c\udf99\ufe0f"}</button>
+            <button className="bh" disabled={busy} onClick={function(){sendMsg2(selAgent,inp)}} style={{padding:"8px 12px",borderRadius:8,background:curAgent.cor,color:"#fff",fontWeight:700,border:"none",cursor:busy?"wait":"pointer"}}>{"\u2191"}</button>
+          </div>
+        </div>
+        <div>
+          <div style={{padding:10,borderRadius:10,background:cardBg,border:"1px solid "+border,marginBottom:6}}>
+            <div style={{fontSize:11,fontWeight:700,color:textColor,marginBottom:6}}>{"\ud83d\udce1"} Atividade</div>
+            {activity.slice(-6).reverse().map(function(a2,i){return <div key={i} style={{padding:"3px 0",borderBottom:"1px solid "+(dark?"#1a1a19":"#eee"),fontSize:10}}>
+              <span style={{color:a2.color||G,fontWeight:600}}>{a2.agent}</span>
+              <div style={{color:subColor}}>{a2.action}</div>
+            </div>})}
+            {activity.length===0&&<div style={{fontSize:10,color:subColor,textAlign:"center"}}>Aguardando...</div>}
+          </div>
+          <div style={{padding:10,borderRadius:10,background:cardBg,border:"1px solid "+border}}>
+            <div style={{fontSize:11,fontWeight:700,color:textColor,marginBottom:6}}>{"\ud83c\udfaf"} Metas</div>
+            {goals.slice(0,3).map(function(g){var pct=g.meta_valor>0?Math.min(100,Math.round(g.valor_atual/g.meta_valor*100)):0;return <div key={g.id} style={{marginBottom:4}}>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:10}}><span style={{color:subColor}}>{g.tipo}</span><span style={{color:pct>=80?GR:W}}>{pct}%</span></div>
+              <div style={{height:3,borderRadius:2,background:dark?"#1a1a19":"#ddd",marginTop:1}}><div style={{height:"100%",width:pct+"%",background:pct>=80?GR:W,borderRadius:2}}/></div>
+            </div>})}
+          </div>
+        </div>
+      </div>
+    </div>}
 
-    </div>
-  }
+    {/* ═══ TAB: EQUIPE ═══ */}
+    {tab==="team"&&<div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+        <div style={{fontSize:16,fontWeight:600,color:textColor}}>{"\ud83d\udc65"} Equipe de Agentes</div>
+        <button className="bh" onClick={async function(){
+          var nome=prompt("Nome do agente:");if(!nome)return;
+          var cargo=prompt("Cargo:");var avatar=prompt("Emoji avatar:","\ud83e\udd16");var cor=prompt("Cor (#hex):","#8B6FBF");
+          var slug=nome.toLowerCase().replace(/[^a-z0-9]/g,"").substring(0,20);
+          var sys=prompt("System prompt (instrucoes do agente):","Voce e "+nome+", "+cargo+". Responda em portugues.");
+          await sb.from("ai_agents").insert({slug:slug,nome:nome,cargo:cargo,avatar:avatar||"\ud83e\udd16",cor:cor||"#8B6FBF",system_prompt:sys,tenant_id:ADMIN_TID});
+          await loadAll2();msg("Agente "+nome+" adicionado!");
+        }} style={{padding:"8px 14px",borderRadius:8,background:GR+"12",color:GR,border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>+ Novo Agente</button>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+        {agents.map(function(ag){return <div key={ag.id} style={{padding:16,borderRadius:14,background:cardBg,border:"1px solid "+border,textAlign:"center"}}>
+          <div style={{fontSize:36,marginBottom:6}}>{ag.avatar}</div>
+          <div style={{fontSize:16,fontWeight:700,color:ag.cor}}>{ag.nome}</div>
+          <div style={{fontSize:12,color:subColor,marginBottom:8}}>{ag.cargo}</div>
+          <div style={{display:"flex",gap:4,justifyContent:"center",flexWrap:"wrap"}}>
+            <button className="bh" onClick={function(){
+              var t=prompt("Cole o treinamento/script extra para "+ag.nome+":",ag.treinamento||"");if(t===null)return;
+              sb.from("ai_agents").update({treinamento:t}).eq("id",ag.id).then(function(){loadAll2();msg("Treinamento atualizado!")});
+            }} style={{padding:"4px 8px",borderRadius:4,background:B+"12",color:B,border:"none",fontSize:10,cursor:"pointer"}}>{"\ud83d\udcda"} Treinar</button>
+            <button className="bh" onClick={function(){
+              var s=prompt("System prompt de "+ag.nome+":",ag.system_prompt);if(!s)return;
+              sb.from("ai_agents").update({system_prompt:s}).eq("id",ag.id).then(function(){loadAll2();msg("Prompt atualizado!")});
+            }} style={{padding:"4px 8px",borderRadius:4,background:P+"12",color:P,border:"none",fontSize:10,cursor:"pointer"}}>{"\u270f\ufe0f"} Prompt</button>
+            <button className="bh" onClick={function(){
+              if(!confirm("Desativar "+ag.nome+"?"))return;
+              sb.from("ai_agents").update({ativo:false}).eq("id",ag.id).then(function(){loadAll2();msg("Agente desativado")});
+            }} style={{padding:"4px 8px",borderRadius:4,background:R+"12",color:R,border:"none",fontSize:10,cursor:"pointer"}}>{"\u274c"}</button>
+          </div>
+          {ag.treinamento&&<div style={{marginTop:6,fontSize:10,color:GR}}>{"\ud83d\udcda"} Treinamento ativo</div>}
+        </div>})}
+      </div>
+    </div>}
+
+    {/* ═══ TAB: COLLABS ═══ */}
+    {tab==="collab"&&<div>
+      <div style={{fontSize:16,fontWeight:600,color:textColor,marginBottom:12}}>{"\ud83d\udcac"} Conversas entre Agentes</div>
+      {agentChats.length===0&&<div style={{textAlign:"center",padding:30,color:subColor}}>Os agentes conversarao automaticamente quando precisarem de ajuda.</div>}
+      {agentChats.map(function(ch,i){return <div key={i} style={{padding:10,borderRadius:10,background:cardBg,border:"1px solid "+border,marginBottom:4,fontSize:12}}>
+        <div><span style={{fontWeight:600,color:G}}>{ch.from_agent}</span> {"\u2192"} <span style={{fontWeight:600,color:B}}>{ch.to_agent}</span> <span style={{fontSize:10,color:subColor}}>{new Date(ch.criado_em).toLocaleString("pt-BR")}</span></div>
+        <div style={{color:textColor,marginTop:4}}>{ch.content}</div>
+      </div>})}
+    </div>}
+
+    {/* ═══ TAB: METAS ═══ */}
+    {tab==="goals"&&<div>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}>
+        <div style={{fontSize:16,fontWeight:600,color:textColor}}>{"\ud83c\udfaf"} Metas</div>
+        <button className="bh" onClick={async function(){var tipo=prompt("Tipo (clientes/mrr/leads/posts/emails):","clientes");if(!tipo)return;var valor=prompt("Meta:",50);var prazo=prompt("Prazo (YYYY-MM-DD):","2026-12-31");await sb.from("ai_goals").insert({tipo:tipo,meta_valor:parseInt(valor),prazo:prazo,tenant_id:ADMIN_TID});await loadAll2();msg("Meta criada!")}} style={{padding:"6px 14px",borderRadius:8,background:GR+"12",color:GR,border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>+ Meta</button>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+        {goals.map(function(g){var pct=g.meta_valor>0?Math.min(100,Math.round(g.valor_atual/g.meta_valor*100)):0;return <div key={g.id} style={{padding:14,borderRadius:12,background:cardBg,border:"1px solid "+border}}>
+          <div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:13,fontWeight:600,color:textColor}}>{g.tipo}</span><span style={{color:pct>=100?GR:W,fontWeight:700}}>{pct}%</span></div>
+          <div style={{fontSize:22,fontWeight:700,color:pct>=100?GR:textColor,marginTop:4}}>{g.valor_atual}/{g.meta_valor}</div>
+          <div style={{height:5,borderRadius:3,background:dark?"#1a1a19":"#ddd",marginTop:6}}><div style={{height:"100%",width:pct+"%",background:pct>=100?GR:pct>=50?W:R,borderRadius:3}}/></div>
+          {g.prazo&&<div style={{fontSize:10,color:subColor,marginTop:4}}>Prazo: {new Date(g.prazo).toLocaleDateString("pt-BR")}</div>}
+        </div>})}
+      </div>
+    </div>}
+
+    {/* ═══ TAB: FILA ═══ */}
+    {tab==="queue"&&<div>
+      <div style={{fontSize:16,fontWeight:600,color:textColor,marginBottom:12}}>{"\u2699\ufe0f"} Fila</div>
+      {aiTasks.slice(0,15).map(function(t2){var cols={pendente:W,gerando:P,pronto:GR,erro:R};return <div key={t2.id} style={{padding:10,borderRadius:8,background:cardBg,border:"1px solid "+border,marginBottom:4,display:"flex",alignItems:"center",gap:8}}>
+        <div style={{width:6,height:6,borderRadius:"50%",background:cols[t2.status]||"#555"}}/>
+        <div style={{flex:1}}><div style={{fontSize:12,fontWeight:600,color:textColor}}>[{t2.equipe}] {t2.titulo}</div><div style={{fontSize:10,color:subColor}}>{t2.status}</div></div>
+      </div>})}
+      {aiTasks.length===0&&<div style={{textAlign:"center",padding:20,color:subColor}}>Fila vazia</div>}
+    </div>}
+
+    {/* ═══ TAB: CONTEUDO ═══ */}
+    {tab==="content"&&<div>
+      <div style={{fontSize:16,fontWeight:600,color:textColor,marginBottom:12}}>{"\ud83d\udcc4"} Conteudo</div>
+      {aiContent.map(function(c2){return <div key={c2.id} style={{padding:12,borderRadius:10,background:cardBg,border:"1px solid "+border,marginBottom:6}}>
+        <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+          <span style={{fontSize:12,fontWeight:600,color:textColor}}>[{c2.equipe}] {c2.titulo||c2.tipo}</span>
+          <span style={{fontSize:10,color:c2.status==="aprovado"?GR:W}}>{c2.status}</span>
+        </div>
+        <div style={{fontSize:12,color:textColor,lineHeight:1.6,whiteSpace:"pre-wrap",maxHeight:120,overflow:"auto",padding:8,borderRadius:6,background:dark?"#0a0a0a":"#f8f5f0"}}>{c2.conteudo}</div>
+        <div style={{display:"flex",gap:4,marginTop:6}}>
+          <button className="bh" onClick={function(){navigator.clipboard.writeText(c2.conteudo);msg("Copiado!")}} style={{padding:"3px 8px",borderRadius:4,background:B+"12",color:B,border:"none",fontSize:10,cursor:"pointer"}}>Copiar</button>
+          <button className="bh" onClick={async function(){await sb.from("ai_content").update({status:"aprovado"}).eq("id",c2.id);await loadAll2()}} style={{padding:"3px 8px",borderRadius:4,background:GR+"12",color:GR,border:"none",fontSize:10,cursor:"pointer"}}>Aprovar</button>
+          <button className="bh" onClick={async function(){await sb.from("ai_content").update({status:"descartado"}).eq("id",c2.id);await loadAll2()}} style={{padding:"3px 8px",borderRadius:4,background:R+"12",color:R,border:"none",fontSize:10,cursor:"pointer"}}>Descartar</button>
+        </div>
+      </div>})}
+      {aiContent.length===0&&<div style={{textAlign:"center",padding:20,color:subColor}}>Nenhum conteudo</div>}
+    </div>}
+  </div>
+}
+
 
 
 function App(){
