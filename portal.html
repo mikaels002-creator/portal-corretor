@@ -1136,6 +1136,7 @@ function App(){
           {bld.status==="construction" && <button className="bh" onClick={function(){setMdl({t:"obra",bid:bld.id})}} style={mbtn("#E8A94E")}>🏗️ Obra</button>}
           <button className="bh" onClick={function(){setMdl({t:"notice",bid:bld.id})}} style={mbtn("#8B6FBF")}>📢 Aviso</button>
           <button className="bh" onClick={function(){setMdl({t:"addUnit",bid:bld.id})}} style={mbtn("#5BB8B0")}>＋ Unid.</button>
+          <button className="bh" onClick={function(){setMdl({t:"reajust",bid:bld.id})}} style={mbtn("#C8A45C")}>📊 Reajustar %</button>
           <button className="bh" onClick={function(){setMdl({t:"importPdf",bid:bld.id})}} style={mbtn("#5B8FD4")}>📥 PDF</button>
         </div>}
 
@@ -1822,6 +1823,7 @@ function App(){
     if(mdl.t==="login") return <LoginM/>;
     if(mdl.t==="editUnit") return <EditUnitM/>;
     if(mdl.t==="addUnit") return <AddUnitM/>;
+    if(mdl.t==="reajust") return <ReajustM/>;
     if(mdl.t==="obra") return <ObraM/>;
     if(mdl.t==="notice") return <NoticeM/>;
     if(mdl.t==="addBld") return <AddBldM/>;
@@ -1955,9 +1957,23 @@ function App(){
 
   function EditUnitM(){
     var _u=useState(mdl.u);var u=_u[0];var setU=_u[1];
+    var _pct=useState("");var pct=_pct[0];var setPct=_pct[1];
+    var applyPct=function(){
+      if(!pct)return;
+      var factor=1+(parseFloat(pct)/100);
+      var newPrice=Math.round(u.base_price*factor);
+      setU(Object.assign({},u,{base_price:newPrice}));
+      setPct("");
+      msg("Preço ajustado: "+fmt(u.base_price)+" → "+fmt(newPrice));
+    };
     return <div><div style={mT}>✏️ {u.name}</div>
       <L>Nome</L><input style={mI} value={u.name} onChange={function(e){setU(Object.assign({},u,{name:e.target.value}))}}/>
       <L>Preço Base (R$)</L><input style={mI} type="number" value={u.base_price} onChange={function(e){setU(Object.assign({},u,{base_price:+e.target.value}))}}/>
+      <L>Reajuste por Percentual (%)</L>
+      <div style={{display:"flex",gap:6}}>
+        <input style={Object.assign({},mI,{flex:1})} type="number" placeholder="Ex: 5 para +5%, -3 para -3%" value={pct} onChange={function(e){setPct(e.target.value)}}/>
+        <button style={{padding:"8px 16px",borderRadius:8,background:G,color:"#0a0a09",fontWeight:600,border:"none",cursor:"pointer",fontSize:13}} onClick={applyPct}>Aplicar %</button>
+      </div>
       <L>Área (m²)</L><input style={mI} type="number" value={u.area} onChange={function(e){setU(Object.assign({},u,{area:+e.target.value}))}}/>
       <L>Status</L><select style={mI} value={u.status} onChange={function(e){setU(Object.assign({},u,{status:e.target.value}))}}>
         <option value="available">Disponível</option><option value="reserved">Reservado</option>{!isPreLaunch(buildings.find(function(x){return x.id===mdl.bid}))&&<option value="sold">Vendido</option>}
@@ -1967,6 +1983,59 @@ function App(){
         await sb.from("units").update({name:u.name,base_price:u.base_price,area:u.area,status:u.status,history:hist}).eq("id",u.id);
         await refreshUnits();setMdl(null);msg("Salvo!");
       }}>Salvar</button><button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
+    </div>;
+  }
+
+  function ReajustM(){
+    var _pct2=useState("");var pct2=_pct2[0];var setPct2=_pct2[1];
+    var _scope=useState("all");var scope=_scope[0];var setScope=_scope[1];
+    var _status2=useState("available");var status2=_status2[0];var setStatus2=_status2[1];
+    var bld=buildings.find(function(b){return b.id===mdl.bid});
+    var unitsInBld=allUnits.filter(function(u){return u.building_id===mdl.bid});
+    var affected=scope==="all"?unitsInBld:unitsInBld.filter(function(u){return u.status===status2});
+    var factor=pct2?1+(parseFloat(pct2)/100):1;
+    return <div><div style={mT}>📊 Reajuste de Preços {bld?("— "+bld.name):""}</div>
+      <L>Percentual de Reajuste (%)</L>
+      <input style={mI} type="number" placeholder="Ex: 5 para +5%, -10 para -10%" value={pct2} onChange={function(e){setPct2(e.target.value)}}/>
+      <L>Aplicar em</L>
+      <select style={mI} value={scope} onChange={function(e){setScope(e.target.value)}}>
+        <option value="all">Todas as unidades ({unitsInBld.length})</option>
+        <option value="filter">Apenas por status</option>
+      </select>
+      {scope==="filter"&&<div>
+        <L>Status</L>
+        <select style={mI} value={status2} onChange={function(e){setStatus2(e.target.value)}}>
+          <option value="available">Disponíveis ({unitsInBld.filter(function(u){return u.status==="available"}).length})</option>
+          <option value="reserved">Reservadas ({unitsInBld.filter(function(u){return u.status==="reserved"}).length})</option>
+          <option value="sold">Vendidas ({unitsInBld.filter(function(u){return u.status==="sold"}).length})</option>
+        </select>
+      </div>}
+      <div style={{padding:12,borderRadius:8,background:dark?"#111":"#f8f5f0",margin:"10px 0",fontSize:12,color:subColor}}>
+        <div style={{fontWeight:600,color:textColor,marginBottom:6}}>Preview do reajuste:</div>
+        <div>Unidades afetadas: <b style={{color:textColor}}>{affected.length}</b></div>
+        <div>Percentual: <b style={{color:parseFloat(pct2||0)>=0?"#4CAF7D":"#D45B5B"}}>{pct2||0}%</b></div>
+        {affected.slice(0,5).map(function(u,i){var newP=Math.round(u.base_price*factor);return <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"3px 0",borderBottom:"1px solid "+(dark?"#1a1a19":"#eee")}}>
+          <span>{u.name}</span>
+          <span><span style={{textDecoration:"line-through",color:subColor}}>{fmt(u.base_price)}</span> → <b style={{color:parseFloat(pct2||0)>=0?"#4CAF7D":"#D45B5B"}}>{fmt(newP)}</b></span>
+        </div>})}
+        {affected.length>5&&<div style={{fontSize:11,color:subColor,marginTop:4}}>...e mais {affected.length-5} unidades</div>}
+      </div>
+      <button style={mP(G)} onClick={async function(){
+        if(!pct2||parseFloat(pct2)===0){msg("Informe o percentual");return}
+        if(!confirm("Confirma reajuste de "+pct2+"% em "+affected.length+" unidades?")){return}
+        var count=0;
+        for(var i=0;i<affected.length;i++){
+          var u=affected[i];
+          var newPrice=Math.round(u.base_price*factor);
+          var hist=[];try{hist=JSON.parse(u.history||"[]")}catch(e){hist=[]}
+          hist.push({date:new Date().toLocaleDateString("pt-BR"),from:"reajuste",to:pct2+"%",price:newPrice,oldPrice:u.base_price});
+          await sb.from("units").update({base_price:newPrice,history:JSON.stringify(hist)}).eq("id",u.id);
+          count++;
+        }
+        await refreshUnits();setMdl(null);
+        msg("✅ "+count+" unidades reajustadas em "+pct2+"%!");
+      }}>Aplicar Reajuste</button>
+      <button style={mC} onClick={function(){setMdl(null)}}>Cancelar</button>
     </div>;
   }
 
